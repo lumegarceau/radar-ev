@@ -36,6 +36,44 @@ def hist(tid):
     return memo[tid]
 
 
+def cuotas_af(fid):
+    out = {}
+    for o in api("/odds", fixture=fid) or []:
+        for bk in o["bookmakers"]:
+            can = rv.canon(bk["name"])
+            if not can:
+                continue
+            for b in bk["bets"]:
+                if b["name"] == "Home Corners Over/Under":
+                    lado = "home"
+                elif b["name"] == "Away Corners Over/Under":
+                    lado = "away"
+                else:
+                    continue
+                for v in b["values"]:
+                    t = str(v["value"]).split()
+                    if len(t) != 2 or t[0] != "Over":
+                        continue
+                    try:
+                        ln = float(t[1])
+                        c = float(v["odd"])
+                    except Exception:
+                        continue
+                    d = out.setdefault(("team_corners", lado, ln), {})
+                    if c > d.get(can, 0):
+                        d[can] = c
+    return out
+
+
+def unir(a, b):
+    for k, q in b.items():
+        d = a.setdefault(k, {})
+        for casa, c in q.items():
+            if c > d.get(casa, 0):
+                d[casa] = c
+    return a
+
+
 hoy = datetime.now(MAD).date()
 fechas = [str(hoy + timedelta(days=i)) for i in range(DIAS + 1)]
 vo = {}
@@ -44,12 +82,10 @@ for f in fechas:
         vo[rv.idde(o)] = o
 vo = list(vo.values())
 print("valueodds:", len(vo), "partidos")
-if not vo:
-    print("Sin datos de valueodds: no se actualiza")
-    raise SystemExit
 
 res = []
 sin_par = []
+con_vo = 0
 rango = {"from": fechas[0], "to": fechas[-1]}
 for lid, (pais, liga) in LIGAS.items():
     fx = api("/fixtures", league=lid, season=TEMP, **rango) or []
@@ -60,14 +96,16 @@ for lid, (pais, liga) in LIGAS.items():
         loc = x["teams"]["home"]
         vis = x["teams"]["away"]
         dt = datetime.fromisoformat(x["fixture"]["date"]).astimezone(MAD)
+        cu = {}
         o = rv.emparejar(loc["name"], vis["name"], dt, vo)
-        if not o:
+        if o:
+            j = rv.vget("/api/v1/fixtures/" + str(rv.idde(o)) + "/odds?format=compact")
+            if j:
+                cu = rv.leer_cuotas(j)
+                con_vo += 1
+        else:
             sin_par.append(loc["name"] + " v " + vis["name"])
-            continue
-        j = rv.vget("/api/v1/fixtures/" + str(rv.idde(o)) + "/odds?format=compact")
-        if not j:
-            continue
-        cu = rv.leer_cuotas(j)
+        cu = unir(cu, cuotas_af(x["fixture"]["id"]))
         if not cu:
             continue
         hl = hist(loc["id"])
@@ -113,7 +151,8 @@ if res:
 else:
     print("Sin selecciones: no se toca radar-data.json")
 print(len(res), "selecciones;", gasto[0], "peticiones API-Football")
-print("Sin pareja en valueodds:", len(sin_par), sin_par[:8])
+print("Partidos con cuotas de valueodds:", con_vo)
+print("Sin pareja en valueodds:", len(sin_par), sin_par[:6])
 vt = sorted(rv.tipos.items(), key=lambda kv: -kv[1])
 print("Mercados vistos:", vt[:40])
 sa = sorted(rv.saltadas.items(), key=lambda kv: -kv[1])
