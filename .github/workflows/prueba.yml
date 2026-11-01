@@ -18,6 +18,11 @@ jobs:
         env:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
           PAUSA: "0.3"
+      - name: Probar cuotas
+        run: python prueba_cuotas.py
+        continue-on-error: true
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
       - name: Guardar resultados
         run: |
           git config user.name "radar-bot"
