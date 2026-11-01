@@ -1,3 +1,4 @@
+import json
 import re
 import urllib.request
 
@@ -5,54 +6,64 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Sa
 BASE = "https://www.valueodds.net"
 
 
-def get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
+def get(path):
+    h = {"User-Agent": UA, "Accept": "application/json,text/html"}
+    req = urllib.request.Request(BASE + path, headers=h)
     r = urllib.request.urlopen(req, timeout=30)
     return r.read().decode("utf-8", "ignore")
 
 
-home = get(BASE + "/")
-links = re.findall(r'href="(/partidos/[^"]+|https://www\.valueodds\.net/partidos/[^"]+)"', home)
-print("Partidos en portada:", len(set(links)))
-if not links:
-    print("Sin partidos hoy")
+home = get("/")
+ids = re.findall(r'/partidos/[^"]*?-(\d+)"', home)
+fid = ids[0] if ids else "19636778"
+print("Fixture:", fid)
+
+t = get("/api/v1/fixtures/" + fid + "/odds?format=compact")
+print("Tamano respuesta:", len(t))
+try:
+    j = json.loads(t)
+except Exception:
+    print(t[:800])
     raise SystemExit
-url = links[0]
-if url.startswith("/"):
-    url = BASE + url
-print("Partido de prueba:", url)
-html = get(url)
-print("HTML:", len(html), "bytes")
+if isinstance(j, dict):
+    print("Claves:", list(j.keys()))
+print("--- Inicio ---")
+print(json.dumps(j, ensure_ascii=False)[:1500])
 
-srcs = re.findall(r'<script[^>]+src="([^"]+)"', html)
-print("Scripts:", srcs)
-textos = {"html": html}
-for s in srcs:
-    if s.startswith("//"):
-        s = "https:" + s
-    if s.startswith("/"):
-        s = BASE + s
-    if "valueodds" in s:
-        try:
-            textos[s] = get(s)
-        except Exception as e:
-            print("No se pudo leer", s, str(e)[:60])
+pat = r"team_corners|team_cards|team_fouls|team_shots|corners_over|cards_over"
+hits = []
 
-rutas = set()
-for nombre, t in textos.items():
-    for m in re.findall(r'["\'`](/(?:api|v1|data|markets)[^"\'`\s<>]{0,90})', t):
-        rutas.add(m)
+
+def buscar(o, ruta):
+    if len(hits) >= 6:
+        return
+    if isinstance(o, dict):
+        txt = [v for v in o.values() if isinstance(v, str)]
+        if any(re.search(pat, v, re.I) for v in txt):
+            hits.append((ruta, json.dumps(o, ensure_ascii=False)[:900]))
+        for k, v in o.items():
+            if re.search(pat, str(k), re.I):
+                hits.append((ruta + "/" + str(k), json.dumps(v, ensure_ascii=False)[:900]))
+            buscar(v, ruta + "/" + str(k))
+    elif isinstance(o, list):
+        for i, v in enumerate(o[:80]):
+            buscar(v, ruta + "/" + str(i))
+
+
+buscar(j, "")
 print("")
-print("Rutas internas encontradas:")
-for r in sorted(rutas)[:40]:
-    print("  ", r)
+print("--- Mercados de equipo ---")
+for r, s in hits[:6]:
+    print(r)
+    print(s)
+    print("")
+
+js = get("/assets/fixture.js?v=bdbcf40ca6")
+i = js.find("team_corners")
+print("--- Nombres de mercados (fixture.js) ---")
+print(js[max(0, i - 200):i + 900].replace("\n", " "))
 
 print("")
-for nombre, t in textos.items():
-    n = 0
-    for m in re.finditer(r'(?i)corner', t):
-        a = max(0, m.start() - 70)
-        print("[" + nombre[-30:] + "]", t[a:m.end() + 70].replace("\n", " "))
-        n += 1
-        if n >= 4:
-            break
+print("--- Direcciones de listado ---")
+for m in sorted(set(re.findall(r"/api/v1/[a-zA-Z0-9_/\-\?=\$\{\}\.]{0,70}", home + js))):
+    print(m)
