@@ -47,6 +47,7 @@ def corners(fid):
 
 def historial(tid):
     out = []
+    sin = 0
     lista = api("/fixtures", team=tid, last=20)
     lista = sorted(lista, key=lambda x: x["fixture"]["date"])
     for x in lista:
@@ -65,7 +66,15 @@ def historial(tid):
                 "pro": c[str(tid)],
                 "contra": c[str(rival)],
             })
-    return out
+        else:
+            sin += 1
+    return out, sin
+
+
+def media(h):
+    if not h:
+        return "-"
+    return str(round(sum(x["pro"] for x in h) / len(h), 1))
 
 
 def analizar(ht, hr, linea, es_local):
@@ -87,6 +96,7 @@ def analizar(ht, hr, linea, es_local):
     pf = ((1 - wr) * p + wr * r20 / nr)
     return {
         "linea": linea,
+        "n": n,
         "l20": str(hits) + "/" + str(n),
         "cond": str(hc) + "/" + str(nc),
         "rival": str(r20) + "/" + str(nr),
@@ -104,19 +114,23 @@ res = []
 for p in partidos:
     loc = p["teams"]["home"]
     vis = p["teams"]["away"]
-    hl = historial(loc["id"])
-    hv = historial(vis["id"])
+    hl, sl = historial(loc["id"])
+    hv, sv = historial(vis["id"])
     nombre = loc["name"] + " v " + vis["name"]
     print("")
     print(nombre, p["fixture"]["date"][:16])
-    if not hl or not hv:
+    print("  " + loc["name"] + ": " + str(len(hl)) + " partidos con datos"
+          + " (" + str(sl) + " sin datos), corners medios " + media(hl))
+    print("  " + vis["name"] + ": " + str(len(hv)) + " partidos con datos"
+          + " (" + str(sv) + " sin datos), corners medios " + media(hv))
+    if len(hl) < 5 or len(hv) < 5:
         print("  Sin datos suficientes")
         continue
     lados = [(loc, hl, hv, True), (vis, hv, hl, False)]
     for eq, h, ho, es_local in lados:
         for ln in LINEAS:
             r = analizar(h, ho, ln, es_local)
-            if r["hits"] < 14:
+            if r["n"] < 10 or r["hits"] < 0.7 * r["n"]:
                 continue
             r["equipo"] = eq["name"]
             r["partido"] = nombre
