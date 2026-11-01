@@ -1,0 +1,24 @@
+name: Prueba datos
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ejecutar prueba
+        run: python prueba_datos.py
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          PAUSA: "7"
+      - name: Guardar resultados
+        run: |
+          git config user.name "radar-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git commit -m "datos de prueba" || echo "sin cambios"
+          git push
