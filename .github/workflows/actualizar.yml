@@ -2,19 +2,18 @@ name: Actualizar Radar EV
 
 on:
   schedule:
-    # 07:00 UTC = 08:00 Madrid (Invierno)
-    # 19:00 UTC = 20:00 Madrid (Invierno)
-    - cron: '0 7,19 * * *'
-  workflow_dispatch: # Te permite darle a un botón para ejecutarlo a mano cuando quieras
+    - cron: '0 8 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  actualizar:
+  scrape-and-update:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Descargar proyecto
+      - name: Descargar el repositorio
         uses: actions/checkout@v4
 
       - name: Configurar Python
@@ -22,14 +21,21 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Ejecutar Pipeline
+      - name: Instalar Playwright y navegador invisible
         run: |
-          python3 pipeline-diario.py
+          pip install playwright
+          playwright install --with-deps chromium
 
-      - name: Guardar y publicar cambios
+      - name: Ejecutar el robot
+        env:
+          VALUESTATS_USER: ${{ secrets.VALUESTATS_USER }}
+          VALUESTATS_PASSWORD: ${{ secrets.VALUESTATS_PASSWORD }}
         run: |
-          git config --global user.name "Radar EV Bot"
-          git config --global user.email "bot@radarev.local"
+          python actualizar.py
+
+      - name: Guardar los datos en tu GitHub
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add radar-data.json
-          git commit -m "Actualización automática de cuotas [skip ci]" || echo "Sin cambios"
-          git push
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-actualización de Radar EV" && git push)
