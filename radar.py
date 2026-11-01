@@ -3,52 +3,30 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from rcommon import api, gasto
 from rmodelo import historial, analizar
+import rvalue as rv
 
 MAD = ZoneInfo("Europe/Madrid")
 TEMP = 2026
-DIAS = 2
+DIAS = 3
 LIGAS = {
     140: ("España", "LaLiga"),
+    141: ("España", "Segunda División"),
     39: ("Inglaterra", "Premier League"),
+    40: ("Inglaterra", "Championship"),
     135: ("Italia", "Serie A"),
+    61: ("Francia", "Ligue 1"),
+    78: ("Alemania", "Bundesliga"),
+    88: ("Países Bajos", "Eredivisie"),
+    94: ("Portugal", "Primeira Liga"),
 }
-CASAS = set([
-    "1xbet", "888sports", "bet365", "betfair", "betsson", "betway",
-    "bwin", "grancasinomadrid", "casinomarbella", "codere", "daznbet",
-    "goldenbull", "interwetten", "kirolbet", "luckia", "marcaapuestas",
-    "paf", "retabet", "speedybet", "sportium", "versus", "williamhill",
-    "winamax", "yosports",
-])
-
-
-def nk(s):
-    return "".join(ch for ch in s.lower() if ch.isalnum())
-
-
-def cuotas(fid):
-    out = {}
-    for o in api("/odds", fixture=fid) or []:
-        for bk in o["bookmakers"]:
-            if nk(bk["name"]) not in CASAS:
-                continue
-            for b in bk["bets"]:
-                if b["name"] == "Home Corners Over/Under":
-                    lado = "H"
-                elif b["name"] == "Away Corners Over/Under":
-                    lado = "A"
-                else:
-                    continue
-                for v in b["values"]:
-                    t = v["value"].split()
-                    if len(t) == 2 and t[0] == "Over":
-                        k = (lado, float(t[1]))
-                        d = out.setdefault(k, {})
-                        c = float(v["odd"])
-                        if c > d.get(bk["name"], 0):
-                            d[bk["name"]] = c
-    return out
-
-
+NOM = {
+    "corners": "córners",
+    "cards": "tarjetas",
+    "fouls": "faltas",
+    "shots": "tiros",
+    "sot": "tiros a puerta",
+    "goals": "goles",
+}
 memo = {}
 
 
@@ -59,9 +37,20 @@ def hist(tid):
 
 
 hoy = datetime.now(MAD).date()
-hasta = hoy + timedelta(days=DIAS)
-rango = {"from": str(hoy), "to": str(hasta)}
+fechas = [str(hoy + timedelta(days=i)) for i in range(DIAS + 1)]
+vo = {}
+for f in fechas:
+    for o in rv.listar(f):
+        vo[rv.idde(o)] = o
+vo = list(vo.values())
+print("valueodds:", len(vo), "partidos")
+if not vo:
+    print("Sin datos de valueodds: no se actualiza")
+    raise SystemExit
+
 res = []
+sin_par = []
+rango = {"from": fechas[0], "to": fechas[-1]}
 for lid, (pais, liga) in LIGAS.items():
     fx = api("/fixtures", league=lid, season=TEMP, **rango) or []
     print(liga, len(fx), "partidos")
@@ -70,33 +59,44 @@ for lid, (pais, liga) in LIGAS.items():
             continue
         loc = x["teams"]["home"]
         vis = x["teams"]["away"]
-        cu = cuotas(x["fixture"]["id"])
+        dt = datetime.fromisoformat(x["fixture"]["date"]).astimezone(MAD)
+        o = rv.emparejar(loc["name"], vis["name"], dt, vo)
+        if not o:
+            sin_par.append(loc["name"] + " v " + vis["name"])
+            continue
+        j = rv.vget("/api/v1/fixtures/" + str(rv.idde(o)) + "/odds?format=compact")
+        if not j:
+            continue
+        cu = rv.leer_cuotas(j)
         if not cu:
             continue
         hl = hist(loc["id"])
         hv = hist(vis["id"])
-        if len(hl) < 14 or len(hv) < 14:
+        if not hl or not hv:
             continue
-        dt = datetime.fromisoformat(x["fixture"]["date"]).astimezone(MAD)
-        for (lado, ln), q in sorted(cu.items()):
-            es_local = lado == "H"
+        for (tipo, lado, ln), q in sorted(cu.items()):
+            if max(q.values()) < 1.40:
+                continue
+            stat = rv.MERC[tipo]
+            es_local = lado == "home"
             eq = loc if es_local else vis
             h = hl if es_local else hv
             ho = hv if es_local else hl
-            r = analizar(h, ho, ln, es_local)
-            if r["hits"] < 0.7 * r["n"] or max(q.values()) < 1.40:
+            r = analizar(h, ho, stat, ln, es_local)
+            if r is None or r["hits"] < 0.7 * r["n"]:
                 continue
-            nombre = eq["name"] + " +" + str(ln).replace(".", ",")
+            txt = eq["name"] + " +" + str(ln).replace(".", ",")
             res.append({
                 "pais": pais,
                 "liga": liga,
                 "fixture": x["fixture"]["id"],
                 "equipo": eq["name"],
+                "mercado": stat,
                 "linea": ln,
                 "local": loc["name"],
                 "visitante": vis["name"],
                 "hora": dt.strftime("%d/%m %H:%M"),
-                "suceso": nombre + " córners",
+                "suceso": txt + " " + NOM[stat],
                 "l20": r["l20"],
                 "cond": r["cond"],
                 "condTxt": "local" if es_local else "visitante",
@@ -105,7 +105,16 @@ for lid, (pais, liga) in LIGAS.items():
                 "cuotas": [{"b": b, "c": c} for b, c in q.items()],
             })
 
-ahora = datetime.now(MAD).isoformat(timespec="minutes")
-out = {"updated_at": ahora, "days": [{"fecha": str(hoy), "candidatos": res}]}
-json.dump(out, open("radar-data.json", "w"), ensure_ascii=False)
-print(len(res), "selecciones;", gasto[0], "peticiones")
+if res:
+    ahora = datetime.now(MAD).isoformat(timespec="minutes")
+    dia = {"fecha": str(hoy), "candidatos": res}
+    out = {"updated_at": ahora, "days": [dia]}
+    json.dump(out, open("radar-data.json", "w"), ensure_ascii=False)
+else:
+    print("Sin selecciones: no se toca radar-data.json")
+print(len(res), "selecciones;", gasto[0], "peticiones API-Football")
+print("Sin pareja en valueodds:", len(sin_par), sin_par[:8])
+vt = sorted(rv.tipos.items(), key=lambda kv: -kv[1])
+print("Mercados vistos:", vt[:40])
+sa = sorted(rv.saltadas.items(), key=lambda kv: -kv[1])
+print("Casas sin afiliado:", sa[:20])
