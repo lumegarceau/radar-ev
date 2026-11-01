@@ -8,7 +8,7 @@ from playwright.async_api import async_playwright
 USER = os.environ.get("VALUESTATS_USER")
 PASS = os.environ.get("VALUESTATS_PASSWORD")
 
-async def pulsar(page, selector, timeout=4000):
+async def pulsar(page, selector, timeout=3000):
     try:
         loc = page.locator(selector).first
         if await loc.is_visible(timeout=timeout):
@@ -20,15 +20,13 @@ async def pulsar(page, selector, timeout=4000):
     return False
 
 async def scroll_y_seguir(page):
-    """Baja por la página y pulsa 'Seguir buscando' si aparece"""
-    for _ in range(6):
+    for _ in range(5):
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
         await page.wait_for_timeout(1500)
-        btn_mas = page.locator("button:has-text('Seguir buscando'), button:has-text('Cargar más'), [role='button']:has-text('Seguir')").first
+        btn_mas = page.locator("button:has-text('Seguir buscando'), button:has-text('Cargar más')").first
         if await btn_mas.is_visible(timeout=2000):
-            print("Pulsando 'Seguir buscando'...")
             await btn_mas.click()
-            await page.wait_for_timeout(3000)
+            await page.wait_for_timeout(2500)
         else:
             break
 
@@ -36,19 +34,18 @@ async def extraer_tarjetas(page, tipo):
     candidatos = []
     bloques = await page.locator("div:has-text('ACIERTOS')").all()
     
-    for bloque in bloques:
+    for b in bloques:
         try:
-            texto = await bloque.inner_text()
-            match = re.search(r"(\d+)/20\s*ACIERTOS", texto)
-            if not match:
-                match = re.search(r"(\d+)/20", texto)
+            texto = await b.inner_text()
+            m = re.search(r"(\d+)/20\s*ACIERTOS", texto)
+            if not m:
+                m = re.search(r"(\d+)/20", texto)
             
-            if match:
-                aciertos = int(match.group(1))
-                if aciertos >= 14: # 70%+ histórico
+            if m:
+                aciertos = int(m.group(1))
+                if aciertos >= 14:
                     lineas = [l.strip() for l in texto.split("\n") if l.strip()]
-                    
-                    competicion = lineas[0] if len(lineas) > 0 else "Fútbol"
+                    comp = lineas[0] if len(lineas) > 0 else "Fútbol"
                     nombre = lineas[2] if len(lineas) > 2 else tipo
                     equipo = lineas[3] if len(lineas) > 3 else ""
                     partido = "Partido del día"
@@ -61,67 +58,89 @@ async def extraer_tarjetas(page, tipo):
                             mercado = l.strip()
 
                     prob = aciertos / 20.0
-                    cuota_justa = round(1 / prob, 2)
-                    cuota_estimada = 1.85
-
                     candidatos.append({
-                        "comp": competicion,
+                        "comp": comp,
                         "partido": partido,
                         "hora": "Hoy",
                         "nombre": nombre,
                         "equipo": equipo,
                         "mercado": mercado,
                         "casa": "WINAMAX",
-                        "cuota": cuota_estimada,
+                        "cuota": 1.85,
                         "l20": f"{aciertos}/20",
                         "pct": f"{int(prob * 100)}%",
                         "pFinal": prob,
-                        "justa": cuota_justa,
-                        "ev": round(((cuota_estimada * prob) - 1), 2)
+                        "justa": round(1 / prob, 2),
+                        "ev": round(((1.85 * prob) - 1), 2)
                     })
         except Exception:
             continue
-            
     return candidatos
 
 async def run():
-    todos_candidatos = []
-    
+    todos = []
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(viewport={"width": 1440, "height": 900})
         page = await context.new_page()
 
-        print("1. Entrando a ValueStats...")
+        print("1. Accediendo a ValueStats...")
         await page.goto("https://valuestats.com/radar-props", wait_until="domcontentloaded", timeout=60000)
         await page.wait_for_timeout(3000)
 
-        # Cookies si aparecen
         await pulsar(page, "button:has-text('Aceptar'), button:has-text('Aceptar todas')")
 
-        # Comprobar si hay botón de Iniciar sesión y pulsarlo
-        print("2. Comprobando sesión...")
         btn_iniciar = page.locator("button:has-text('Iniciar sesión'), a:has-text('Iniciar sesión'), span:has-text('Iniciar sesión')").first
         if await btn_iniciar.is_visible(timeout=3000):
-            print("Pulsando botón 'Iniciar sesión' para abrir el modal...")
+            print("2. Abriendo modal de login...")
             await btn_iniciar.click()
             await page.wait_for_timeout(2000)
 
-        # Rellenar credenciales si el modal está abierto
-        input_email = page.locator("input[type='email'], input[name='email'], input[placeholder*='correo' i], input[placeholder*='email' i]").first
-        if await input_email.is_visible(timeout=3000):
-            print("Introduciendo usuario y contraseña...")
-            await input_email.fill(USER)
+        inp_email = page.locator("input[type='email'], input[name='email'], input[placeholder*='correo' i], input[placeholder*='email' i]").first
+        if await inp_email.is_visible(timeout=3000):
+            print("3. Introduciendo credenciales...")
+            await inp_email.fill(USER)
             await page.locator("input[type='password'], input[name='password']").first.fill(PASS)
             await pulsar(page, "button[type='submit'], button:has-text('Iniciar sesión'), button:has-text('Entrar')")
             await page.wait_for_timeout(5000)
 
-        # Asegurar que estamos en el radar de props
         if "radar-props" not in page.url:
             await page.goto("https://valuestats.com/radar-props", wait_until="domcontentloaded", timeout=60000)
             await page.wait_for_timeout(4000)
 
-        # ==========================================
-        # 1. BÚSQUEDA JUGADORES
-        # ==========================================
-        print("3. Conf
+        # 1. JUGADORES
+        print("4. Buscando en JUGADORES...")
+        await pulsar(page, "button:has-text('Jugadores'), [role='button']:has-text('Jugadores')")
+        await page.wait_for_timeout(1500)
+        await pulsar(page, "button:has-text('L20'), label:has-text('L20')")
+        await pulsar(page, "button:has-text('Todas'), label:has-text('Todas')")
+
+        await pulsar(page, "button:has-text('Buscar candidatos')")
+        await page.wait_for_timeout(6000)
+        await scroll_y_seguir(page)
+        jugs = await extraer_tarjetas(page, "Jugador")
+        print(f"Jugadores encontrados: {len(jugs)}")
+        todos.extend(jugs)
+
+        # 2. EQUIPOS
+        print("5. Buscando en EQUIPOS...")
+        await pulsar(page, "button:has-text('Equipos'), [role='button']:has-text('Equipos')")
+        await page.wait_for_timeout(1500)
+
+        mercados = ["Córners del equipo", "Tiros del equipo", "Tiros a puerta del equipo", "Faltas del equipo", "Tarjetas del equipo"]
+        for m in mercados:
+            print(f"Revisando: {m}...")
+            try:
+                sel = page.locator("div:has-text('Mercado')").locator("..").locator("div, select").first
+                await sel.click()
+                await page.wait_for_timeout(1000)
+                await pulsar(page, f"li:has-text('{m}'), div:has-text('{m}'), [role='option']:has-text('{m}')")
+            except Exception:
+                pass
+
+            await pulsar(page, "button:has-text('Todas'), label:has-text('Todas')")
+            await pulsar(page, "button:has-text('L20'), label:has-text('L20')")
+            await pulsar(page, "button:has-text('Buscar candidatos')")
+            await page.wait_for_timeout(5000)
+            await scroll_y_seguir(page)
+            eqs =
