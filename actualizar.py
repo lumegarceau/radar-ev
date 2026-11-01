@@ -11,7 +11,6 @@ async def run():
     candidatos = []
     
     async with async_playwright() as p:
-        # Lanzamos un navegador invisible
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -19,10 +18,11 @@ async def run():
         )
         page = await context.new_page()
 
-        print("1. Entrando a ValueStats...")
-        await page.goto("https://valuestats.com/login", wait_until="networkidle", timeout=60000)
+        print("1. Entrando al login de ValueStats...")
+        await page.goto("https://valuestats.com/login", wait_until="domcontentloaded", timeout=60000)
+        await page.wait_for_timeout(3000)
 
-        # Si pide aceptar cookies, pulsamos 'Aceptar'
+        # Aceptar cookies si aparecen
         try:
             btn_cookie = page.locator("button:has-text('Aceptar'), button:has-text('Aceptar todas')").first
             if await btn_cookie.is_visible(timeout=3000):
@@ -30,17 +30,15 @@ async def run():
         except Exception:
             pass
 
-        print("2. Iniciando sesión...")
+        print("2. Poniendo credenciales e iniciando sesión...")
         await page.fill("input[type='email'], input[name='email'], input[name='username']", USER)
         await page.fill("input[type='password'], input[name='password']", PASS)
         await page.click("button[type='submit'], button:has-text('Iniciar sesión'), button:has-text('Entrar')")
-        
-        await page.wait_for_timeout(4000)
+        await page.wait_for_timeout(5000)
 
-        # Vamos directo al Radar de Props
-        print("3. Navegando al Radar de Props...")
-        await page.goto("https://valuestats.com/radar-props", wait_until="networkidle", timeout=60000)
-        await page.wait_for_timeout(3000)
+        print("3. Entrando al Radar de Props...")
+        await page.goto("https://valuestats.com/radar-props", wait_until="domcontentloaded", timeout=60000)
+        await page.wait_for_timeout(6000)
 
         # Seleccionar histórico L20
         try:
@@ -48,24 +46,24 @@ async def run():
             l20_btn = page.locator("button:has-text('L20'), [role='button']:has-text('L20'), label:has-text('L20')").first
             if await l20_btn.is_visible(timeout=5000):
                 await l20_btn.click()
-                await page.wait_for_timeout(3000)
+                print("L20 seleccionado con éxito.")
+                await page.wait_for_timeout(4000)
         except Exception as e:
-            print(f"Aviso al seleccionar L20: {e}")
+            print(f"Aviso con botón L20: {e}")
 
-        # Recorremos tanto la pestaña 'Jugadores' como 'Equipos'
+        # Recorremos pestañas 'Jugadores' y 'Equipos'
         for vista in ["Jugadores", "Equipos"]:
             try:
-                print(f"5. Extrayendo datos de: {vista}...")
+                print(f"5. Extrayendo datos de la pestaña: {vista}...")
                 tab = page.locator(f"button:has-text('{vista}'), a:has-text('{vista}')").first
                 if await tab.is_visible(timeout=3000):
                     await tab.click()
-                    await page.wait_for_timeout(3000)
+                    await page.wait_for_timeout(4000)
 
-                # Extraer las filas o tarjetas que cumplan >= 14 de 20 (70%)
+                # Extraer filas con 14/20 hasta 20/20
                 filas = await page.locator("tr, div[class*='card'], div[class*='row']").all()
                 for f in filas:
                     texto = await f.inner_text()
-                    # Buscamos patrones de L20 con al menos 14 aciertos (14/20 hasta 20/20)
                     for n in range(14, 21):
                         patron = f"{n}/20"
                         if patron in texto:
@@ -92,7 +90,7 @@ async def run():
 
         await browser.close()
 
-    # Guardar en el archivo radar-data.json
+    # Guardar los datos encontrados
     ahora = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
     resultado = {
         "updated_at": ahora,
@@ -106,7 +104,7 @@ async def run():
     with open("radar-data.json", "w", encoding="utf-8") as f:
         json.dump(resultado, f, indent=2, ensure_ascii=False)
 
-    print(f"¡Éxito! Se han guardado {len(candidatos)} candidatos con 14/20 o más.")
+    print(f"¡Éxito total! Se han recopilado {len(candidatos)} candidatos con 14/20 o más.")
 
 if __name__ == "__main__":
     asyncio.run(run())
