@@ -40,17 +40,18 @@ def corners(fid):
         for s in t["statistics"]:
             if s["type"] == "Corner Kicks":
                 d[str(t["team"]["id"])] = s["value"] or 0
-    if len(d) == 2:
-        json.dump(d, open(f, "w"))
+    json.dump(d, open(f, "w"))
     return d
 
 
 def historial(tid):
     out = []
     sin = 0
-    lista = api("/fixtures", team=tid, last=20)
+    lista = api("/fixtures", team=tid, last=40)
     lista = sorted(lista, key=lambda x: x["fixture"]["date"])
-    for x in lista:
+    for x in reversed(lista):
+        if len(out) >= 20:
+            break
         est = x["fixture"]["status"]["short"]
         if est not in ("FT", "AET", "PEN"):
             continue
@@ -68,6 +69,7 @@ def historial(tid):
             })
         else:
             sin += 1
+    out.reverse()
     return out, sin
 
 
@@ -120,9 +122,9 @@ for p in partidos:
     print("")
     print(nombre, p["fixture"]["date"][:16])
     print("  " + loc["name"] + ": " + str(len(hl)) + " partidos con datos"
-          + " (" + str(sl) + " sin datos), corners medios " + media(hl))
+          + " (" + str(sl) + " saltados sin datos), corners medios " + media(hl))
     print("  " + vis["name"] + ": " + str(len(hv)) + " partidos con datos"
-          + " (" + str(sv) + " sin datos), corners medios " + media(hv))
+          + " (" + str(sv) + " saltados sin datos), corners medios " + media(hv))
     if len(hl) < 5 or len(hv) < 5:
         print("  Sin datos suficientes")
         continue
