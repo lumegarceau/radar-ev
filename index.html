@@ -29,6 +29,14 @@ h2{font-size:16px;margin:20px 0 8px}
 .row .g{flex:1;min-width:0}.row small{display:block;color:var(--mu);font-size:12px}
 .v{font-weight:700;font-variant-numeric:tabular-nums}
 .pos{color:var(--ac)}.neg{color:var(--rd)}
+.tr{margin:0}
+.tr>summary.row{cursor:pointer;list-style:none;color:var(--tx);font-size:14px;padding:9px 12px}
+.tr>summary::-webkit-details-marker{display:none}
+.tr:last-child>summary.row{border-bottom:0}
+.tr .ar{color:var(--mu);font-size:12px;transition:transform .15s}
+.tr[open]>summary .ar{transform:rotate(180deg)}
+.tr .tb{padding:10px 12px 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tr:last-child .tb{border-bottom:0}
 .filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:14px}
 .filters label{font-size:12px;color:var(--mu);display:flex;flex-direction:column;gap:3px}
 .filters input,.filters select{font:inherit;font-size:14px;padding:7px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--tx);width:100%}
@@ -46,7 +54,7 @@ h2{font-size:16px;margin:20px 0 8px}
 .met .ev.pos{background:var(--acbg)}.met .ev.neg{background:var(--rdbg)}
 .act{display:flex}
 .best{flex:1;display:flex;justify-content:space-between;align-items:center;background:var(--ac);color:#fff;text-decoration:none;font-weight:700;border-radius:6px;padding:10px 12px}
-details{margin-top:8px}summary{cursor:pointer;color:var(--mu);font-size:13px;padding:4px 0}
+details.mo{margin-top:8px}details.mo>summary{cursor:pointer;color:var(--mu);font-size:13px;padding:4px 0}
 .od{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
 .od a{color:var(--ac);font-weight:700;text-decoration:none}
 .empty{text-align:center;color:var(--mu);padding:40px 12px}
@@ -67,135 +75,4 @@ Las cuotas pueden variar en cualquier momento. Si un jugador no sale de titular,
 <script>
 var AFF={
 "1XBET":"https://aff.tipsterpage.com/v/22626",
-"888 Sports":"https://bdeal.io/888Sport/158811/1",
-"Bet365":"https://bdeal.io/Bet365/162245/1",
-"Betfair":"https://bdeal.io/Betfair/159010/2",
-"Betsson":"https://bdeal.io/Betsson/158599/1",
-"Betway":"https://bdeal.io/Betway/158233/1",
-"Bwin":"https://link2play.com/24375/Superaumentos",
-"Gran Casino Madrid":"https://bdeal.io/CGranMadrid/158231/1",
-"Casino Marbella":"https://bdeal.io/CasinoMarbella/158810/1",
-"Codere":"https://bdeal.io/Codere/158232/1",
-"Daznbet":"https://bdeal.io/daznbet/162598/1",
-"Goldenbull":"https://bdeal.io/goldenbull/159940/1",
-"Interwetten":"https://bdeal.io/Interwetten/159941/1",
-"Kirolbet":"https://bdeal.io/Kirolbet/158600/1",
-"Luckia":"https://bdeal.io/Luckia/158258/1",
-"Marcaapuestas":"https://bdeal.io/marcaapuestas/158240/1",
-"Paf":"https://bdeal.io/PAF/158294/1",
-"Retabet":"https://aff.tipsterpage.com/v/22616",
-"Speedybet":"https://bdeal.io/speedybet/158237/1",
-"Sportium":"https://bdeal.io/Sportium/158239/1",
-"Versus":"https://bdeal.io/Versus/158238/1",
-"William Hill":"https://bdeal.io/WilliamHill/158234/1",
-"Winamax":"https://bdeal.io/Winamax/158235/1",
-"Yosports":"https://bdeal.io/YoSports/158236/1"
-};
-function nk(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"")}
-var AFFN={};Object.keys(AFF).forEach(function(k){AFFN[nk(k)]=AFF[k]});
-function link(b){return AFFN[nk(b)]||"#"}
-
-var DEMO=[
-{pais:"España",liga:"LaLiga",local:"Real Madrid",visitante:"Valencia",hora:"21:00",suceso:"Real Madrid +4,5 córners",l20:"16/20",cond:"9/10",condTxt:"local",rival:"12/20",prob:.78,cuotas:[{b:"Bet365",c:1.80},{b:"Winamax",c:1.73},{b:"Codere",c:1.70},{b:"Betfair",c:1.65}]},
-{pais:"España",liga:"LaLiga",local:"Real Madrid",visitante:"Valencia",hora:"21:00",suceso:"Valencia +3,5 tarjetas",l20:"15/20",cond:"8/10",condTxt:"visitante",rival:"13/20",prob:.74,cuotas:[{b:"Winamax",c:2.30},{b:"Bet365",c:1.85}]},
-{pais:"España",liga:"Segunda División",local:"Eibar",visitante:"Racing",hora:"18:30",suceso:"Más de 2,5 goles",l20:"15/20",cond:"7/10",condTxt:"local",rival:"11/20",prob:.71,cuotas:[{b:"Codere",c:1.62},{b:"Winamax",c:1.60}]},
-{pais:"Inglaterra",liga:"Premier League",local:"Arsenal",visitante:"Brentford",hora:"17:30",suceso:"Arsenal +5,5 córners",l20:"15/20",cond:"8/10",condTxt:"local",rival:"10/20",prob:.72,cuotas:[{b:"Bet365",c:1.95},{b:"Winamax",c:1.88},{b:"Betfair",c:1.80}]},
-{pais:"Italia",liga:"Serie A",local:"Inter",visitante:"Torino",hora:"20:45",suceso:"Inter +11,5 tiros",l20:"17/20",cond:"9/10",condTxt:"local",rival:"14/20",prob:.82,cuotas:[{b:"Winamax",c:1.50},{b:"Bet365",c:1.45}]},
-{pais:"Alemania",liga:"Bundesliga",local:"Leverkusen",visitante:"Mainz",hora:"15:30",suceso:"Más de 22,5 faltas",l20:"14/20",cond:"7/10",condTxt:"local",rival:"12/20",prob:.70,cuotas:[{b:"Codere",c:1.75},{b:"Winamax",c:1.70}]}
-];
-var ORDER=["España","Inglaterra","Italia","Francia","Alemania","Países Bajos","Portugal"];
-var LIGAS=["LaLiga","Segunda División","Liga F","Premier League","Serie A","Ligue 1","Bundesliga","Eredivisie","Primeira Liga"];
-var FLAG={"España":"🇪🇸","Inglaterra":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Italia":"🇮🇹","Francia":"🇫🇷","Alemania":"🇩🇪","Países Bajos":"🇳🇱","Portugal":"🇵🇹"};
-var TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bookies"],["resultados","Resultados"]];
-var S={tab:"radar",data:[],demo:true,minEv:"",minP:"",minC:"",ord:"prob"};
-
-function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
-function f2(n){return n.toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})}
-function pc(n){return Math.round(n*100)+"%"}
-function prep(c){
-  var q=c.cuotas.map(function(o){return{b:o.b,c:o.c,u:link(o.b)}}).sort(function(a,b){return b.c-a.c});
-  c.q=q;c.best=q[0];c.fair=1/c.prob;c.ev=c.prob*q[0].c-1;
-  c.gap=q.length>1?q[0].c/q[1].c-1:0;return c;
-}
-function load(){
-  fetch("radar-data.json?"+Date.now()).then(function(r){return r.json()}).then(function(j){
-    var days=(j&&j.days)||[],d=days[days.length-1],list=d&&d.candidatos||[];
-    list=list.filter(function(c){return c&&c.prob&&c.cuotas&&c.cuotas.length});
-    if(list.length){S.data=list;S.demo=false}
-    if(j&&j.updated_at)document.getElementById("upd").textContent="Act. "+j.updated_at.slice(11,16);
-  }).catch(function(){}).then(function(){
-    if(!S.data.length)S.data=DEMO;
-    S.data=S.data.map(prep).filter(function(c){return c.best.c>=1.4});
-    draw();
-  });
-}
-function nav(){
-  var n=document.getElementById("nav");
-  n.innerHTML=TABS.map(function(t){return '<button role="tab" data-t="'+t[0]+'" aria-selected="'+(S.tab===t[0])+'">'+t[1]+'</button>'}).join("");
-  n.onclick=function(e){var t=e.target.getAttribute("data-t");if(t){S.tab=t;draw()}};
-}
-function evt(c){return (c.ev>=0?"+":"")+(c.ev*100).toFixed(1).replace(".",",")+"%"}
-function topBox(title,arr,fn){
-  return '<div class="box"><h3>'+title+'</h3>'+arr.map(function(c,i){
-    return '<div class="row"><span class="n">'+(i+1)+'</span><div class="g">'+esc(c.suceso)+'<small>'+esc(c.local)+' v '+esc(c.visitante)+' · '+esc(c.hora)+'</small></div>'+fn(c)+'</div>'}).join("")+'</div>';
-}
-function card(c){
-  var evc=c.ev>=0?"pos":"neg";
-  return '<article class="card"><div class="mt"><b>'+esc(c.local)+' v '+esc(c.visitante)+'</b><span>'+esc(c.hora)+' (Madrid)</span></div>'+
-  '<div class="desc">'+esc(c.suceso)+'</div><div class="st">'+
-  '<span class="chip">L20 <b>'+esc(c.l20)+'</b></span>'+
-  '<span class="chip">L10 '+esc(c.condTxt)+' <b>'+esc(c.cond)+'</b></span>'+
-  (c.rival?'<span class="chip">L20 permitido por el rival <b>'+esc(c.rival)+'</b></span>':'')+'</div>'+
-  '<div class="met"><div><span>Probabilidad</span><b>'+pc(c.prob)+'</b></div><div><span>Cuota estimada</span><b>'+f2(c.fair)+'</b></div><div class="ev '+evc+'"><span>EV</span><b class="'+evc+'">'+evt(c)+'</b></div></div>'+
-  '<div class="act"><a class="best" href="'+esc(c.best.u)+'" target="_blank" rel="sponsored noopener"><span>'+esc(c.best.b)+'</span><span>'+f2(c.best.c)+'</span></a></div>'+
-  (c.q.length>1?'<details><summary>Más cuotas ('+(c.q.length-1)+')</summary>'+c.q.slice(1).map(function(o){return '<div class="od"><span>'+esc(o.b)+'</span><a href="'+esc(o.u)+'" target="_blank" rel="sponsored noopener">'+f2(o.c)+'</a></div>'}).join("")+'</details>':'')+'</article>';
-}
-function radar(){
-  var all=S.data,h="";
-  if(!all.length)return '<div class="empty">Hoy no hay selecciones que cumplan los filtros.</div>';
-  var tp=all.slice().sort(function(a,b){return b.prob-a.prob}).slice(0,5);
-  var te=all.slice().sort(function(a,b){return b.ev-a.ev}).slice(0,5);
-  h+='<h2>Lo mejor de hoy</h2><div class="tops">'+topBox("Top 5 probabilidad",tp,function(c){return '<span class="v">'+pc(c.prob)+'</span>'})+
-     topBox("Top 5 EV",te,function(c){return '<span class="v '+(c.ev>=0?"pos":"neg")+'">'+evt(c)+'</span>'})+'</div>';
-  h+='<div class="filters"><label>EV mínimo (%)<input id="fe" type="number" inputmode="decimal" value="'+S.minEv+'"></label>'+
-     '<label>Probabilidad mínima (%)<input id="fp" type="number" inputmode="decimal" value="'+S.minP+'"></label>'+
-     '<label>Cuota mínima<input id="fc" type="number" inputmode="decimal" step="0.01" value="'+S.minC+'"></label>'+
-     '<label>Ordenar por<select id="fo"><option value="prob"'+(S.ord==="prob"?" selected":"")+'>Probabilidad (mayor)</option><option value="ev"'+(S.ord==="ev"?" selected":"")+'>EV (mayor)</option><option value="cuota"'+(S.ord==="cuota"?" selected":"")+'>Cuota (mayor)</option><option value="cuota_asc"'+(S.ord==="cuota_asc"?" selected":"")+'>Cuota (menor)</option></select></label></div>';
-  var l=all.filter(function(c){
-    return (S.minEv===""||c.ev*100>=+S.minEv)&&(S.minP===""||c.prob*100>=+S.minP)&&(S.minC===""||c.best.c>=+S.minC)});
-  var key={prob:function(c){return -c.prob},ev:function(c){return -c.ev},cuota:function(c){return -c.best.c},cuota_asc:function(c){return c.best.c}}[S.ord];
-  l.sort(function(a,b){return key(a)-key(b)});
-  var paises={};l.forEach(function(c){(paises[c.pais]=paises[c.pais]||{});(paises[c.pais][c.liga]=paises[c.pais][c.liga]||[]).push(c)});
-  var ps=Object.keys(paises).sort(function(a,b){var i=ORDER.indexOf(a),j=ORDER.indexOf(b);return (i<0?99:i)-(j<0?99:j)||a.localeCompare(b)});
-  if(!ps.length)h+='<div class="empty">Ninguna selección cumple esos filtros.</div>';
-  ps.forEach(function(p){
-    h+='<div class="country">'+(FLAG[p]||"🌍")+' '+esc(p)+'</div>';
-    Object.keys(paises[p]).sort(function(a,b){var i=LIGAS.indexOf(a),j=LIGAS.indexOf(b);return (i<0?99:i)-(j<0?99:j)}).forEach(function(lg){
-      h+='<div class="league">'+esc(lg)+'</div>'+paises[p][lg].map(card).join("")});
-  });
-  return h;
-}
-function errores(){
-  var l=S.data.filter(function(c){return c.gap>0.25}).sort(function(a,b){return b.gap-a.gap});
-  var h='<h2>Posibles errores de cuota</h2><p class="upd">Selecciones donde la mejor cuota supera en más de un 25 % a la segunda. Puede que una casa haya calculado mal la probabilidad.</p>';
-  return h+(l.length?l.map(card).join(""):'<div class="empty">Hoy no hay diferencias superiores al 25 %.</div>');
-}
-function bookies(){
-  return '<h2>Bookies y bonos de bienvenida</h2><div class="box">'+Object.keys(AFF).map(function(n){
-    return '<div class="row bk"><div class="g"><b>'+esc(n)+'</b><small>Consulta el bono de bienvenida actual en su web.</small></div><a href="'+esc(AFF[n])+'" target="_blank" rel="sponsored noopener">Ver bono</a></div>'}).join("")+'</div>';
-}
-function resultados(){
-  return '<h2>Resultados</h2><div class="empty">Aquí verás el balance por día, semana, mes y año, y por liga. Se activará cuando haya selecciones corregidas.</div>';
-}
-function draw(){
-  nav();
-  var a=document.getElementById("app"),h=S.demo?'<div class="demo">Datos de ejemplo. Se sustituirán por los reales cuando se ejecute la actualización automática.</div>':"";
-  h+=({radar:radar,errores:errores,bookies:bookies,resultados:resultados})[S.tab]();
-  a.innerHTML=h;
-  [["fe","minEv"],["fp","minP"],["fc","minC"]].forEach(function(p){var e=document.getElementById(p[0]);if(e)e.onchange=function(){S[p[1]]=e.value;draw()}});
-  var o=document.getElementById("fo");if(o)o.onchange=function(){S.ord=o.value;draw()};
-}
-load();
-</script>
-</body>
-</html>
+"888 Sp
