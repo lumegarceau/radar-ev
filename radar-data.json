@@ -1,8 +1,1 @@
-{
-  "updated_at": "2026-11-01 10:26 UTC",
-  "days": [
-    {
-      "candidatos": []
-    }
-  ]
-}
+{"updated_at": "2026-11-01T22:41+01:00", "days": [{"fecha": "2026-11-01", "candidatos": [{"pais": "Inglaterra", "liga": "Premier League", "fixture": 1557455, "equipo": "Everton", "linea": 3.5, "local": "Newcastle", "visitante": "Everton", "hora": "02/11 21:00", "suceso": "Everton +3,5 córners", "l20": "14/20", "cond": "7/10", "condTxt": "visitante", "rival": "12/20", "prob": 0.685, "cuotas": [{"b": "1xBet", "c": 1.43}]}, {"pais": "Italia", "liga": "Serie A", "fixture": 1550178, "equipo": "Parma", "linea": 2.5, "local": "Atalanta", "visitante": "Parma", "hora": "02/11 20:45", "suceso": "Parma +2,5 córners", "l20": "14/20", "cond": "4/8", "condTxt": "visitante", "rival": "13/20", "prob": 0.617, "cuotas": [{"b": "Bet365", "c": 1.62}, {"b": "1xBet", "c": 1.51}]}]}]}
