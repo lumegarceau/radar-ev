@@ -1,4 +1,6 @@
 import json
+import re
+import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -8,10 +10,13 @@ BASE = "https://www.valueodds.net"
 
 
 def get(path):
-    h = {"User-Agent": UA, "Accept": "application/json"}
+    h = {"User-Agent": UA, "Accept": "application/json,text/html"}
     req = urllib.request.Request(BASE + path, headers=h)
-    r = urllib.request.urlopen(req, timeout=30)
-    return r.read().decode("utf-8", "ignore")
+    try:
+        r = urllib.request.urlopen(req, timeout=30)
+        return r.status, r.read().decode("utf-8", "ignore")
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode("utf-8", "ignore")
 
 
 def partidos(o, out):
@@ -25,26 +30,30 @@ def partidos(o, out):
             partidos(v, out)
 
 
+st, home = get("/")
+print("Portada:", st, len(home))
+for m in re.finditer(r"api/v1/fixtures\?date", home):
+    a = max(0, m.start() - 500)
+    print("CONTEXTO PORTADA:")
+    print(home[a:m.end() + 500].replace("\n", " "))
+    break
+
 hoy = datetime.now(ZoneInfo("Europe/Madrid")).date()
-for i in range(5):
+for i in range(6):
     f = str(hoy + timedelta(days=i))
-    t = get("/api/v1/fixtures?date=" + f)
-    j = json.loads(t)
+    st, t = get("/api/v1/fixtures?date=" + f)
     print("")
-    print("FECHA", f, "- tamano", len(t))
+    print("FECHA", f, "estado", st, "tamano", len(t))
+    if st != 200:
+        print("  respuesta:", t[:300])
+        continue
+    j = json.loads(t)
     if isinstance(j, dict):
         print("  claves:", list(j.keys()))
-        for k, v in j.items():
-            if not isinstance(v, (list, dict)):
-                print("  ", k, "=", v)
-        if "meta" in j:
-            print("  meta:", json.dumps(j["meta"])[:300])
-    if i == 1:
-        print("  inicio respuesta:", t[:500])
     lst = []
     partidos(j, lst)
     print("  partidos:", len(lst))
-    for o in lst[:30]:
+    for o in lst[:40]:
         comp = (o.get("competition") or {}).get("name", "?")
         a = (o.get("home_team") or {}).get("name", "?")
         b = (o.get("away_team") or {}).get("name", "?")
