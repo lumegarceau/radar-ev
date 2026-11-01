@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Radar EV — Superaumentos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bgDark: '#0d1410',
+            cardDark: '#121c17',
+            borderDark: '#1c2b23',
+            evGreen: '#35d48a',
+            gold: '#f5c13d'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0d1410; color: #e5e7eb; font-family: system-ui, -apple-system, sans-serif; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body class="min-h-screen pb-12">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-[#0d1410]/95 backdrop-blur border-b border-[#1c2b23] px-4 py-3">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <div class="w-3 h-3 rounded-full bg-evGreen animate-pulse"></div>
+        <h1 class="font-bold text-base tracking-wide text-white">RADAR EV</h1>
+        <span class="text-[10px] text-gray-400 border border-[#1c2b23] px-1.5 py-0.5 rounded">Superaumentos</span>
+      </div>
+      <div id="lastUpdate" class="text-[11px] text-gray-400">Actualizando...</div>
+    </div>
+
+    <!-- Pestañas Principales -->
+    <nav class="max-w-md mx-auto flex space-x-1 mt-3 bg-[#121c17] p-1 rounded-lg border border-[#1c2b23]">
+      <button onclick="setTab('radar')" id="tab-radar" class="flex-1 py-1.5 text-xs font-semibold rounded-md bg-evGreen text-[#0d1410] transition">Radar EV</button>
+      <button onclick="setTab('errores')" id="tab-errores" class="flex-1 py-1.5 text-xs font-semibold rounded-md text-gray-400 hover:text-white transition">Errores (+25%)</button>
+      <button onclick="setTab('bookies')" id="tab-bookies" class="flex-1 py-1.5 text-xs font-semibold rounded-md text-gray-400 hover:text-white transition">Bookies y Bonos</button>
+    </nav>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="max-w-md mx-auto px-3 mt-4">
+
+    <!-- SECCIÓN 1: RADAR EV -->
+    <div id="view-radar" class="space-y-4">
+      <div id="radar-container" class="space-y-3">
+        <!-- Tarjetas dinámicas se insertan aquí -->
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2: ERRORES DE CUOTA -->
+    <div id="view-errores" class="hidden space-y-3">
+      <div class="bg-[#121c17] border border-gold/30 rounded-lg p-3 text-xs text-gold/90 mb-3">
+        ⚡ <strong>Desajustes de mercado:</strong> Cuotas que pagan al menos un 25% más en una bookie respecto a la media del resto.
+      </div>
+      <div id="errores-container" class="space-y-3"></div>
+    </div>
+
+    <!-- SECCIÓN 3: BOOKIES Y BONOS -->
+    <div id="view-bookies" class="hidden space-y-2.5">
+      <div id="bookies-container" class="space-y-2"></div>
+    </div>
+
+  </main>
+
+  <script>
+    // 1. TUS ENLACES DE AFILIADO
+    const AFFILIATES = {
+      'BET365': 'https://bdeal.io/Bet365/162245/1',
+      'WINAMAX': 'https://bdeal.io/Winamax/158235/1',
+      'CASUMO': 'https://link2play.com/24375/Superaumentos', // o enlace asignado
+      'BWIN': 'https://link2play.com/24375/Superaumentos',
+      '1XBET': 'https://aff.tipsterpage.com/v/22626',
+      '888SPORT': 'https://bdeal.io/888Sport/158811/1',
+      'BETFAIR': 'https://bdeal.io/Betfair/159010/2',
+      'BETSSON': 'https://bdeal.io/Betsson/158599/1',
+      'BETWAY': 'https://bdeal.io/Betway/158233/1',
+      'GRAN CASINO MADRID': 'https://bdeal.io/CGranMadrid/158231/1',
+      'CASINO MARBELLA': 'https://bdeal.io/CasinoMarbella/158810/1',
+      'CODERE': 'https://bdeal.io/Codere/158232/1',
+      'DAZNBET': 'https://bdeal.io/daznbet/162598/1',
+      'GOLDENBULL': 'https://bdeal.io/goldenbull/159940/1',
+      'INTERWETTEN': 'https://bdeal.io/Interwetten/159941/1',
+      'KIROLBET': 'https://bdeal.io/Kirolbet/158600/1',
+      'LUCKIA': 'https://bdeal.io/Luckia/158258/1',
+      'MARCAAPUESTAS': 'https://bdeal.io/marcaapuestas/158240/1',
+      'PAF': 'https://bdeal.io/PAF/158294/1',
+      'RETABET': 'https://aff.tipsterpage.com/v/22616',
+      'SPEEDYBET': 'https://bdeal.io/speedybet/158237/1',
+      'SPORTIUM': 'https://bdeal.io/Sportium/158239/1',
+      'VERSUS': 'https://bdeal.io/Versus/158238/1',
+      'WILLIAM HILL': 'https://bdeal.io/WilliamHill/158234/1',
+      'YOSPORTS': 'https://bdeal.io/YoSports/158236/1'
+    };
+
+    function getAffLink(bookie) {
+      const b = (bookie || '').toUpperCase().trim();
+      return AFFILIATES[b] || '#';
+    }
+
+    // Navegación por pestañas
+    function setTab(tab) {
+      ['radar', 'errores', 'bookies'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}`).className = 'flex-1 py-1.5 text-xs font-semibold rounded-md text-gray-400 hover:text-white transition';
+      });
+      document.getElementById(`view-${tab}`).classList.remove('hidden');
+      document.getElementById(`tab-${tab}`).className = 'flex-1 py-1.5 text-xs font-semibold rounded-md bg-evGreen text-[#0d1410] transition';
+    }
+
+    // Renderizado de Bookies
+    function renderBookies() {
+      const cont = document.getElementById('bookies-container');
+      cont.innerHTML = Object.entries(AFFILIATES).map(([name, link]) => `
+        <div class="bg-[#121c17] border border-[#1c2b23] p-3 rounded-lg flex items-center justify-between">
+          <div>
+            <div class="font-bold text-sm text-white">${name}</div>
+            <div class="text-[11px] text-gray-400">Bono exclusivo disponible</div>
+          </div>
+          <a href="${link}" target="_blank" class="bg-evGreen/15 border border-evGreen/40 text-evGreen hover:bg-evGreen hover:text-black font-semibold text-xs px-3 py-1.5 rounded transition">
+            Registrarse
+          </a>
+        </div>
+      `).join('');
+    }
+
+    // Cargar datos de radar-data.json
+    async function loadData() {
+      try {
+        const res = await fetch('./radar-data.json');
+        const data = await res.json();
+        document.getElementById('lastUpdate').innerText = `Act: ${data.updated_at ? data.updated_at.slice(11,16) : 'Hoy'}`;
+        const day = data.days && data.days[0] ? data.days[0] : { candidatos: [] };
+        renderRadar(day.candidatos || []);
+        renderErrores(day.candidatos || []);
+      } catch (e) {
+        document.getElementById('lastUpdate').innerText = 'Listo';
+      }
+    }
+
+    function renderRadar(cands) {
+      const cont = document.getElementById('radar-container');
+      if (!cands.length) {
+        cont.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs">Cargando candidatos del día...</div>';
+        return;
+      }
+      cont.innerHTML = cands.map(c => `
+        <div class="bg-[#121c17] border border-[#1c2b23] rounded-lg p-3 space-y-2">
+          <div class="flex justify-between items-start text-[11px] text-gray-400 border-b border-[#1c2b23] pb-1.5">
+            <span>${c.comp || ''} • ${c.partido || ''}</span>
+            <span>${c.hora || ''}</span>
+          </div>
+          <div class="flex justify-between items-center pt-1">
+            <div>
+              <div class="font-bold text-sm text-white">${c.nombre} <span class="text-xs text-gray-400">(${c.equipo || ''})</span></div>
+              <div class="text-xs text-gray-300">${c.mercado}</div>
+            </div>
+            <a href="${getAffLink(c.casa)}" target="_blank" class="text-right bg-evGreen/10 border border-evGreen/40 hover:bg-evGreen hover:text-black px-2.5 py-1 rounded transition">
+              <span class="text-xs font-bold text-white block num">${c.cuota ? c.cuota.toFixed(2) : '-'}</span>
+              <span class="text-[10px] text-evGreen font-semibold uppercase block">${c.casa || 'VER'}</span>
+            </a>
+          </div>
+          <div class="flex justify-between items-center text-[11px] text-gray-400 pt-1 bg-[#0d1410]/50 p-2 rounded">
+            <span>L20: <strong class="text-white num">${c.l20 || '-'}</strong> (${c.pct || '-'})</span>
+            <span>Prob: <strong class="text-white num">${(c.pFinal ? c.pFinal * 100 : c.pEst ? c.pEst * 100 : 0).toFixed(1)}%</strong></span>
+            <span>Justa: <strong class="text-white num">${c.justa || '-'}</strong></span>
+            <span class="text-evGreen font-bold num">EV +${(c.ev ? c.ev * 100 : 0).toFixed(1)}%</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderErrores(cands) {
+      const cont = document.getElementById('errores-container');
+      const errs = cands.filter(c => c.ev && c.ev >= 0.15); // +15% o +25%
+      cont.innerHTML = errs.map(c => `
+        <div class="bg-[#121c17] border border-gold/40 rounded-lg p-3 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-white">${c.nombre} • ${c.mercado}</span>
+            <span class="text-xs bg-gold/20 text-gold font-bold px-2 py-0.5 rounded">Desajuste</span>
+          </div>
+          <div class="text-xs text-gray-400">Cuota destacada en <strong>${c.casa}</strong> a cuota <strong class="text-white">${c.cuota}</strong>.</div>
+          <a href="${getAffLink(c.casa)}" target="_blank" class="block text-center bg-gold text-[#0d1410] font-bold text-xs py-1.5 rounded">
+            Aprovechar cuota en ${c.casa}
+          </a>
+        </div>
+      `).join('');
+    }
+
+    renderBookies();
+    loadData();
+  </script>
+</body>
+</html>
