@@ -1,0 +1,33 @@
+name: Radar diario
+on:
+  workflow_dispatch:
+  push:
+    paths: ["go.txt"]
+  schedule:
+    - cron: "0 7 * * *"
+    - cron: "0 19 * * *"
+permissions:
+  contents: write
+concurrency:
+  group: radar
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Calcular radar
+        run: python radar.py
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+      - name: Guardar datos
+        run: |
+          git config user.name "radar-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git commit -m "radar" || echo "sin cambios"
+          git pull --rebase
+          git push
