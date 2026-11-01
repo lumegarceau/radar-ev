@@ -1,69 +1,51 @@
 import json
-import re
 import urllib.request
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36"
 BASE = "https://www.valueodds.net"
 
 
 def get(path):
-    h = {"User-Agent": UA, "Accept": "application/json,text/html"}
+    h = {"User-Agent": UA, "Accept": "application/json"}
     req = urllib.request.Request(BASE + path, headers=h)
     r = urllib.request.urlopen(req, timeout=30)
     return r.read().decode("utf-8", "ignore")
 
 
-home = get("/")
-ids = re.findall(r'/partidos/[^"]*?-(\d+)"', home)
-fid = ids[0] if ids else "19636778"
-print("Fixture:", fid)
-
-t = get("/api/v1/fixtures/" + fid + "/odds?format=compact")
-print("Tamano respuesta:", len(t))
-try:
-    j = json.loads(t)
-except Exception:
-    print(t[:800])
-    raise SystemExit
-if isinstance(j, dict):
-    print("Claves:", list(j.keys()))
-print("--- Inicio ---")
-print(json.dumps(j, ensure_ascii=False)[:1500])
-
-pat = r"team_corners|team_cards|team_fouls|team_shots|corners_over|cards_over"
-hits = []
-
-
-def buscar(o, ruta):
-    if len(hits) >= 6:
-        return
+def partidos(o, out):
     if isinstance(o, dict):
-        txt = [v for v in o.values() if isinstance(v, str)]
-        if any(re.search(pat, v, re.I) for v in txt):
-            hits.append((ruta, json.dumps(o, ensure_ascii=False)[:900]))
-        for k, v in o.items():
-            if re.search(pat, str(k), re.I):
-                hits.append((ruta + "/" + str(k), json.dumps(v, ensure_ascii=False)[:900]))
-            buscar(v, ruta + "/" + str(k))
+        if "home_team" in o and "away_team" in o:
+            out.append(o)
+        for v in o.values():
+            partidos(v, out)
     elif isinstance(o, list):
-        for i, v in enumerate(o[:80]):
-            buscar(v, ruta + "/" + str(i))
+        for v in o:
+            partidos(v, out)
 
 
-buscar(j, "")
-print("")
-print("--- Mercados de equipo ---")
-for r, s in hits[:6]:
-    print(r)
-    print(s)
+hoy = datetime.now(ZoneInfo("Europe/Madrid")).date()
+for i in range(5):
+    f = str(hoy + timedelta(days=i))
+    t = get("/api/v1/fixtures?date=" + f)
+    j = json.loads(t)
     print("")
-
-js = get("/assets/fixture.js?v=bdbcf40ca6")
-i = js.find("team_corners")
-print("--- Nombres de mercados (fixture.js) ---")
-print(js[max(0, i - 200):i + 900].replace("\n", " "))
-
-print("")
-print("--- Direcciones de listado ---")
-for m in sorted(set(re.findall(r"/api/v1/[a-zA-Z0-9_/\-\?=\$\{\}\.]{0,70}", home + js))):
-    print(m)
+    print("FECHA", f, "- tamano", len(t))
+    if isinstance(j, dict):
+        print("  claves:", list(j.keys()))
+        for k, v in j.items():
+            if not isinstance(v, (list, dict)):
+                print("  ", k, "=", v)
+        if "meta" in j:
+            print("  meta:", json.dumps(j["meta"])[:300])
+    if i == 1:
+        print("  inicio respuesta:", t[:500])
+    lst = []
+    partidos(j, lst)
+    print("  partidos:", len(lst))
+    for o in lst[:30]:
+        comp = (o.get("competition") or {}).get("name", "?")
+        a = (o.get("home_team") or {}).get("name", "?")
+        b = (o.get("away_team") or {}).get("name", "?")
+        print("   ", str(o.get("starts_at"))[:16], comp, "|", a, "v", b)
