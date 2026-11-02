@@ -1,3 +1,4 @@
+import difflib
 import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -74,8 +75,8 @@ except Exception as e:
 print("winamax:", len(wm), "partidos")
 
 nuevos = []
-sin = []
-emp = 0
+sin_u = {}
+con_u = set()
 n_part = 0
 for lid, (pais, liga) in LIGAS.items():
     fx = api("/fixtures", league=lid, season=TEMP, **rango) or []
@@ -92,25 +93,23 @@ for lid, (pais, liga) in LIGAS.items():
         n_part += 1
         jl, nl = hist(loc["id"])
         jv, nv = hist(vis["id"])
-        print(loc["name"], "v", vis["name"], "| partidos con datos",
-              nl, nv, "| cuotas jugador", len(w["jugador"]))
         for stat, nom, sr, lado, n, c in w["jugador"]:
             if c < 1.40:
                 continue
             es_local = lado == "home"
             jug = jl if es_local else jv
+            eq = loc if es_local else vis
             pid = rjug.buscar(nom, jug)
             if pid is None:
-                sin.append(nom)
+                sin_u[(eq["name"], nom)] = jug
                 continue
+            con_u.add((eq["name"], pid))
             e = jug[pid]
             if stat == "saves" and e["pos"] != "G":
                 continue
             r = rjug.prob_jug(e["g"], stat, n, es_local)
             if r is None or r["hits"] < 0.7 * r["N"]:
                 continue
-            emp += 1
-            eq = loc if es_local else vis
             suc = nom + " " + str(n) + "+ " + NOM[stat]
             nuevos.append({
                 "tipo": "jugador",
@@ -148,5 +147,13 @@ data["updated_at"] = ahora
 json.dump(data, open(fn, "w"), ensure_ascii=False)
 print("partidos con Winamax:", n_part)
 print("props de jugador:", len(nuevos))
-print("jugadores sin emparejar:", len(sin), sin[:12])
+print("jugadores emparejados:", len(con_u))
+print("jugadores sin emparejar:", len(sin_u))
+for (eqn, nom), jug in list(sin_u.items())[:25]:
+    alvo = rjug.norm(nom)
+    cands = sorted(
+        jug.values(),
+        key=lambda e: -difflib.SequenceMatcher(
+            None, alvo, rjug.norm(e["n"])).ratio())[:2]
+    print("  ", eqn, "|", nom, "->", [c["n"] for c in cands])
 print("peticiones API-Football:", gasto[0])
