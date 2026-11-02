@@ -43,7 +43,8 @@ def historial(tid):
     for x in reversed(lista):
         if len(out) >= 20:
             break
-        if x["fixture"]["status"]["short"] not in ("FT", "AET", "PEN"):
+        est = x["fixture"]["status"]["short"]
+        if est not in ("FT", "AET", "PEN"):
             continue
         h = x["teams"]["home"]["id"]
         a = x["teams"]["away"]["id"]
@@ -70,27 +71,38 @@ def historial(tid):
     return out
 
 
-def analizar(h, hr, stat, linea, es_local):
+def tasa(vals, linea, sentido):
+    if sentido == "under":
+        return sum(1 for v in vals if v < linea)
+    return sum(1 for v in vals if v > linea)
+
+
+def mezcla(hits, n, hc, nc):
+    p = hits / n
+    if nc:
+        w = nc / (nc + 10)
+        p = (1 - w) * p + w * hc / nc
+    return p
+
+
+def analizar(h, hr, stat, linea, es_local, sentido="over"):
     a = [(x["local"], x["pro"][stat]) for x in h if stat in x["pro"]]
     b = [x["contra"][stat] for x in hr if stat in x["contra"]]
     n = len(a)
     nr = len(b)
     if n < 14 or nr < 10:
         return None
-    hits = sum(1 for _, v in a if v > linea)
+    hits = tasa([v for _, v in a], linea, sentido)
     cond = [v for lc, v in a if lc == es_local][-10:]
     nc = len(cond)
-    hc = sum(1 for v in cond if v > linea)
-    p = hits / n
-    if nc:
-        w = nc / (nc + 10)
-        p = ((1 - w) * p + w * hc / nc)
-    r20 = sum(1 for v in b if v > linea)
-    r10 = sum(1 for v in b[-10:] if v > linea)
+    hc = tasa(cond, linea, sentido)
+    p = mezcla(hits, n, hc, nc)
+    r20 = tasa(b, linea, sentido)
+    r10 = tasa(b[-10:], linea, sentido)
     wr = 0.25
     if 5 <= r10 <= 7:
         wr = 0.15
-    pf = ((1 - wr) * p + wr * r20 / nr)
+    pf = (1 - wr) * p + wr * r20 / nr
     return {
         "n": n,
         "hits": hits,
@@ -98,4 +110,39 @@ def analizar(h, hr, stat, linea, es_local):
         "cond": str(hc) + "/" + str(nc),
         "rival": str(r20) + "/" + str(nr),
         "prob": round(pf, 3),
+    }
+
+
+def tot_vals(h, stat):
+    out = []
+    for x in h:
+        if stat in x["pro"] and stat in x["contra"]:
+            out.append((x["local"], x["pro"][stat] + x["contra"][stat]))
+    return out
+
+
+def analizar_total(hl, hv, stat, linea, sentido):
+    a = tot_vals(hl, stat)
+    b = tot_vals(hv, stat)
+    if len(a) < 14 or len(b) < 14:
+        return None
+    ha = tasa([v for _, v in a], linea, sentido)
+    hb = tasa([v for _, v in b], linea, sentido)
+    if ha < 0.7 * len(a) or hb < 0.7 * len(b):
+        return None
+    ca = [v for lc, v in a if lc][-10:]
+    cb = [v for lc, v in b if not lc][-10:]
+    hca = tasa(ca, linea, sentido)
+    hcb = tasa(cb, linea, sentido)
+    pa = mezcla(ha, len(a), hca, len(ca))
+    pb = mezcla(hb, len(b), hcb, len(cb))
+    l20 = "%d/%d y %d/%d" % (ha, len(a), hb, len(b))
+    cond = "%d/%d y %d/%d" % (hca, len(ca), hcb, len(cb))
+    return {
+        "n": len(a),
+        "hits": ha,
+        "l20": l20,
+        "cond": cond,
+        "rival": None,
+        "prob": round((pa + pb) / 2, 3),
     }
