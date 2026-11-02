@@ -12,6 +12,7 @@ STATS = {
     "Yellow Cards": "yc",
     "Red Cards": "rc",
 }
+SIN_NULO = ("corners", "fouls", "shots")
 
 
 def stats(fid, viejo):
@@ -26,8 +27,14 @@ def stats(fid, viejo):
         e = {}
         for s in t["statistics"]:
             k = STATS.get(s["type"])
-            if k:
-                e[k] = s["value"] or 0
+            if not k:
+                continue
+            v = s["value"]
+            if v is None:
+                if k in SIN_NULO:
+                    continue
+                v = 0
+            e[k] = v
         if "yc" in e:
             e["cards"] = e["yc"] + e.get("rc", 0)
         d[str(t["team"]["id"])] = e
@@ -62,6 +69,10 @@ def historial(tid):
             continue
         pro = dict(c[str(tid)])
         con = dict(c[str(rival)])
+        for k in SIN_NULO:
+            if pro.get(k) == 0 and con.get(k) == 0:
+                pro.pop(k, None)
+                con.pop(k, None)
         pro["goals"] = gh if es_h else ga
         con["goals"] = ga if es_h else gh
         out.append({"local": es_h, "pro": pro, "contra": con})
@@ -145,4 +156,4 @@ def analizar_total(hl, hv, stat, linea, sentido):
         "cond": cond,
         "rival": None,
         "prob": round((pa + pb) / 2, 3),
-    }
+        }
