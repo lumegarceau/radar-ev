@@ -34,6 +34,9 @@ jobs:
         env:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
           LIMITE: "3000"
+      - name: Guardar historial
+        run: python guardar.py
+        continue-on-error: true
       - name: Guardar datos
         if: always()
         run: |
