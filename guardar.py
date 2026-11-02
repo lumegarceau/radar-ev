@@ -43,9 +43,10 @@ H = cargar(FH, {"meta": {}, "sel": {}})
 meta = H.setdefault("meta", {})
 sel = H.setdefault("sel", {})
 if meta.get("updated_at") == radar.get("updated_at"):
-    if meta.get("v") == 5:
+    if meta.get("v") == 6:
         print("sin cambios desde la ultima vez")
         raise SystemExit
+props_ok = bool(radar.get("props_ok"))
 ahora = datetime.now(MAD)
 ts = ahora.isoformat(timespec="minutes")
 nuevas = 0
@@ -112,13 +113,16 @@ for k, r in sel.items():
         continue
     if ahora >= datetime.fromisoformat(r["inicio"]):
         continue
+    if r.get("tipo") == "jugador" and not props_ok:
+        continue
     r["aus"] = r.get("aus", 0) + 1
     r["vigente"] = r["aus"] < 2
     if not r["vigente"]:
         ocultas += 1
 meta["updated_at"] = radar.get("updated_at")
-meta["v"] = 5
+meta["v"] = 6
 json.dump(H, open(FH, "w"), ensure_ascii=False)
+print("pasada de props completa:", props_ok)
 print("selecciones nuevas:", nuevas, "| actualizadas:", act)
 print("ocultas por dejar de cumplir:", ocultas)
 print("total en historial:", len(sel))
