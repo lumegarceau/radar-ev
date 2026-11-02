@@ -8,6 +8,19 @@ from datetime import date, timedelta
 from rcommon import api
 
 CORTE = str(date.today() - timedelta(days=5))
+VARIANTES = {
+    "sam": "samuel", "joe": "joseph", "joey": "joseph",
+    "danny": "daniel", "dan": "daniel", "rob": "robert",
+    "robbie": "robert", "bob": "robert", "leo": "leonardo",
+    "ben": "benjamin", "tom": "thomas", "tommy": "thomas",
+    "jim": "james", "jimmy": "james", "will": "william",
+    "bill": "william", "matt": "matthew", "mike": "michael",
+    "nick": "nicholas", "alex": "alexander", "andy": "andrew",
+    "tony": "anthony", "chris": "christopher", "ed": "edward",
+    "eddie": "edward", "fred": "frederick", "josh": "joshua",
+    "zach": "zachary", "mo": "mohamed", "mohammed": "mohamed",
+    "muhammad": "mohamed", "mohammad": "mohamed",
+}
 
 
 def norm(s):
@@ -17,14 +30,24 @@ def norm(s):
     return " ".join(s.split())
 
 
+def canon_nombre(n):
+    t = norm(n).split()
+    if t:
+        t[0] = VARIANTES.get(t[0], t[0])
+    return t
+
+
 def jugadores_fixture(fid, viejo):
     f = "cache/p" + str(fid) + ".json"
+    ant = None
     if os.path.exists(f):
-        return json.load(open(f))
+        ant = json.load(open(f))
+        if ant.get("v") == 2:
+            return ant
     r = api("/fixtures/players", fixture=fid)
     if r is None:
-        return {}
-    d = {}
+        return ant or {}
+    d = {"v": 2}
     for eq in r:
         lista = []
         for p in eq["players"]:
@@ -33,6 +56,7 @@ def jugadores_fixture(fid, viejo):
             sh = st.get("shots") or {}
             fo = st.get("fouls") or {}
             go = st.get("goals") or {}
+            tk = st.get("tackles") or {}
             lista.append({
                 "id": p["player"]["id"],
                 "n": p["player"]["name"],
@@ -44,9 +68,10 @@ def jugadores_fixture(fid, viejo):
                 "fouls": fo.get("committed") or 0,
                 "drawn": fo.get("drawn") or 0,
                 "saves": go.get("saves") or 0,
+                "tk": tk.get("total") or 0,
             })
         d[str(eq["team"]["id"])] = lista
-    if len(d) == 2 or viejo:
+    if len(d) == 3 or viejo:
         json.dump(d, open(f, "w"))
     return d
 
@@ -101,68 +126,62 @@ def hist_jug(tid):
     return jug, usados
 
 
-def partes(n):
-    t = norm(n).split()
-    if not t:
-        return "", [], ""
-    return t[0], t[1:], "".join(t[1:])
+def unico(c):
+    if len(c) == 1:
+        return c[0]
+    return None
 
 
-def mismo_nombre(g1, g2):
-    if len(g1) == 1 or len(g2) == 1:
-        return g1[:1] == g2[:1]
-    r = difflib.SequenceMatcher(None, g1, g2).ratio()
-    return r >= 0.75
-
-
-def mismo_apellido(s1, s2, t1, t2):
-    if not s1 or not s2:
-        return False
-    if s1 == s2:
+def compat(f1, f2):
+    if f1 == f2:
         return True
-    corto = min(len(s1), len(s2))
-    if corto >= 5 and (s1.startswith(s2) or s2.startswith(s1)):
+    if len(f2) == 1 and f1[:1] == f2:
         return True
-    if t1 and t2 and (set(t1) <= set(t2) or set(t2) <= set(t1)):
+    if len(f1) == 1 and f2[:1] == f1:
         return True
-    r = difflib.SequenceMatcher(None, s1, s2).ratio()
-    return r >= 0.88 or (corto >= 8 and r >= 0.85)
+    return difflib.SequenceMatcher(None, f1, f2).ratio() >= 0.75
 
 
 def buscar(nombre, jug):
     full = norm(nombre)
-    tok = full.split()
-    if not tok:
+    if not full:
         return None
     for pid, e in jug.items():
         if norm(e["n"]) == full:
             return pid
-    g, t, s = partes(nombre)
-    cand = []
-    for pid, e in jug.items():
-        ng = norm(e["n"]).split()
-        if not ng:
-            continue
-        if len(ng) == 1:
-            if len(tok) > 1 and ng[0] in tok:
-                cand.append(pid)
-            continue
-        if len(tok) == 1:
-            if tok[0] in ng:
-                cand.append(pid)
-            continue
-        g2, t2, s2 = partes(e["n"])
-        if not mismo_nombre(g, g2):
-            continue
-        if mismo_apellido(s, s2, t, t2):
-            cand.append(pid)
-    if len(cand) == 1:
-        return cand[0]
+    t = canon_nombre(nombre)
+    items = [(pid, canon_nombre(e["n"])) for pid, e in jug.items()]
+    items = [(p, u) for p, u in items if u]
+    c = [p for p, u in items if sorted(u) == sorted(t)]
+    if c:
+        return unico(c)
+    f2 = " ".join(t)
+    c = [p for p, u in items
+         if difflib.SequenceMatcher(None, f2, " ".join(u)).ratio() >= 0.9]
+    if c:
+        return unico(c)
+    if len(t) >= 2:
+        c = [p for p, u in items if len(u) >= 2
+             and (set(t) <= set(u) or set(u) <= set(t))]
+        if c:
+            return unico(c)
+    ape = t[-1]
+    cs = [(p, u) for p, u in items if u[-1] == ape]
+    if len(cs) == 1:
+        p, u = cs[0]
+        if len(t) == 1 or len(u) == 1:
+            if len(ape) >= 4:
+                return p
+        elif len(ape) >= 6 or compat(t[0], u[0]):
+            return p
+    elif len(cs) > 1 and len(t) > 1:
+        c = [p for p, u in cs if len(u) > 1 and compat(t[0], u[0])]
+        return unico(c)
     return None
 
 
 def prob_jug(juegos, stat, n, es_local):
-    jj = [g for g in juegos if g["min"] > 0]
+    jj = [g for g in juegos if g["min"] > 0 and g.get(stat) is not None]
     N = len(jj)
     if N < 14:
         return None
@@ -179,7 +198,7 @@ def prob_jug(juegos, stat, n, es_local):
 
 
 def extras(juegos, stat):
-    jj = [g for g in juegos if g["min"] > 0]
+    jj = [g for g in juegos if g["min"] > 0 and g.get(stat) is not None]
     vacio = {"serie": [], "media": None, "minmed": None,
              "por90": None, "tit": None}
     if not jj:
@@ -199,4 +218,4 @@ def extras(juegos, stat):
         "minmed": round(mins / len(jj)),
         "por90": por90,
         "tit": tit,
-            }
+        }
