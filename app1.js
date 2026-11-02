@@ -2,6 +2,21 @@ var S={tab:"radar",data:[],demo:true,minEv:"",minP:"",minC:"",ord:"prob"};
 function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function f2(n){return n.toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})}
 function pc(n){return Math.round(n*100)+"%"}
+(function(){
+  var s=document.createElement("style");
+  s.textContent=".lw{display:flex;align-items:center;justify-content:center;background:#fff;border-radius:5px;padding:2px 8px;min-width:78px;height:30px;font-weight:800;font-size:13px;color:#18222d}"+
+  ".lw img{max-height:22px;max-width:92px;display:block}"+
+  ".lw .lt{display:none;font-size:12px}"+
+  ".bkb{display:flex;justify-content:space-between;align-items:center;gap:10px;text-decoration:none;background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px 10px;margin-top:6px}"+
+  ".bkb .lw{padding:0;min-width:0;justify-content:flex-start}"+
+  ".bkb b{color:var(--ac);font-size:15px}";
+  document.head.appendChild(s);
+})();
+function lgErr(i){i.style.display="none";i.nextSibling.style.display="inline"}
+function logo(n){
+  var k=nk(n);
+  return '<span class="lw"><img src="logos/'+k+'.png" alt="" title="'+esc(n)+'" onerror="lgErr(this)"><span class="lt">'+esc(n)+'</span></span>';
+}
 function prep(c){
   var q=c.cuotas.map(function(o){return{b:o.b,c:o.c,u:link(o.b)}}).sort(function(a,b){return b.c-a.c});
   c.q=q;c.best=q[0];c.fair=1/c.prob;c.ev=c.prob*q[0].c-1;
@@ -34,10 +49,10 @@ function cbody(c){
   h+='</div><div class="met"><div><span>Probabilidad</span><b>'+pc(c.prob)+'</b></div>';
   h+='<div><span>Cuota estimada</span><b>'+f2(c.fair)+'</b></div>';
   h+='<div class="ev '+evc+'"><span>EV</span><b class="'+evc+'">'+evt(c)+'</b></div></div>';
-  h+='<div class="act"><a class="best" href="'+esc(c.best.u)+'" target="_blank" rel="sponsored noopener"><span>'+esc(c.best.b)+'</span><span>'+f2(c.best.c)+'</span></a></div>';
+  h+='<div class="act"><a class="best" href="'+esc(c.best.u)+'" target="_blank" rel="sponsored noopener">'+logo(c.best.b)+'<span>'+f2(c.best.c)+'</span></a></div>';
   if(c.q.length>1){
     h+='<details class="mo"><summary>Más cuotas ('+(c.q.length-1)+')</summary>';
-    h+=c.q.slice(1).map(function(o){return '<div class="od"><span>'+esc(o.b)+'</span><a href="'+esc(o.u)+'" target="_blank" rel="sponsored noopener">'+f2(o.c)+'</a></div>'}).join("");
+    h+=c.q.slice(1).map(function(o){return '<a class="bkb" href="'+esc(o.u)+'" target="_blank" rel="sponsored noopener">'+logo(o.b)+'<b>'+f2(o.c)+'</b></a>'}).join("");
     h+='</details>';
   }
   return h;
