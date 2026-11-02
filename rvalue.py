@@ -7,13 +7,29 @@ from datetime import datetime
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36"
 BASE = "https://www.valueodds.net"
-MERC = {
+STAT = {
     "team_corners": "corners",
     "team_cards": "cards",
     "team_fouls": "fouls",
     "team_shots": "shots",
     "team_shots_on_target": "sot",
     "team_goals": "goals",
+}
+TOT = {
+    "total_corners": "corners",
+    "total_cards": "cards",
+    "total_fouls": "fouls",
+    "total_shots": "shots",
+    "total_shots_on_target": "sot",
+    "total_goals": "goals",
+}
+JUG = {
+    "player_shots": "shots",
+    "player_shots_on_target": "sot",
+    "player_fouls_committed": "fouls",
+    "player_fouls_drawn": "drawn",
+    "player_saves": "saves",
+    "player_tackles": "tk",
 }
 ALIAS = {
     "1xbet": "1XBET",
@@ -53,6 +69,7 @@ STOP = set([
 ])
 tipos = {}
 saltadas = {}
+omitidas = {"tarjetas": 0}
 
 
 def vget(path):
@@ -130,39 +147,85 @@ def emparejar(loc, vis, dt, lista):
     return None
 
 
-def leer_cuotas(j):
+def tarjetas_ok(m):
+    seg = str(m.get("comparison_key", "")).split("|")
+    extra = seg[5] if len(seg) > 5 else ""
+    if not extra or "count" in extra:
+        return True
+    omitidas["tarjetas"] += 1
+    return False
+
+
+def cotizar(m, nombres, ahora):
+    out = {}
+    for s in m.get("selections") or []:
+        code = s.get("code")
+        if code not in ("over", "under"):
+            continue
+        for q in s.get("quotes") or []:
+            nom = nombres.get(q[0], q[0])
+            can = canon(nom)
+            if not can:
+                saltadas[nom] = saltadas.get(nom, 0) + 1
+                continue
+            if ahora - q[2] > 86400:
+                continue
+            try:
+                c = float(q[1])
+            except Exception:
+                continue
+            d = out.setdefault(code, {})
+            if c > d.get(can, 0):
+                d[can] = c
+    return out
+
+
+def acumular(dest, clave, q):
+    d = dest.setdefault(clave, {})
+    for casa, c in q.items():
+        if c > d.get(casa, 0):
+            d[casa] = c
+
+
+def leer(j):
     nombres = {}
     for k, v in (j.get("bookmakers") or {}).items():
         nombres[k] = v.get("name", k)
-    out = {}
+    eq = {}
+    tot = {}
+    jug = {}
     ahora = time.time()
     for m in j.get("markets") or []:
         t = m.get("type")
         tipos[t] = tipos.get(t, 0) + 1
-        if t not in MERC or m.get("period") != "full_time":
-            continue
-        if m.get("settlement_label"):
-            continue
-        pt = m.get("participant") or {}
-        if pt.get("kind") != "team":
+        if m.get("period") != "full_time" or m.get("settlement_label"):
             continue
         try:
             ln = float(m["line"])
         except Exception:
             continue
-        for s in m.get("selections") or []:
-            if s.get("code") != "over":
-                continue
-            for q in s.get("quotes") or []:
-                nom = nombres.get(q[0], q[0])
-                can = canon(nom)
-                if not can:
-                    saltadas[nom] = saltadas.get(nom, 0) + 1
-                    continue
-                if ahora - q[2] > 86400:
-                    continue
-                c = float(q[1])
-                d = out.setdefault((t, pt.get("team_side"), ln), {})
-                if c > d.get(can, 0):
-                    d[can] = c
-    return out
+        if abs(ln % 1 - 0.5) > 0.001:
+            continue
+        pt = m.get("participant") or {}
+        kind = pt.get("kind")
+        if t in STAT and kind == "team":
+            stat = STAT[t]
+        elif t in TOT and kind == "none":
+            stat = TOT[t]
+        elif t in JUG and kind == "player":
+            stat = JUG[t]
+        else:
+            continue
+        if stat == "cards" and not tarjetas_ok(m):
+            continue
+        q = cotizar(m, nombres, ahora)
+        for code, cu in q.items():
+            if t in STAT:
+                acumular(eq, (stat, pt.get("team_side"), ln, code), cu)
+            elif t in TOT:
+                acumular(tot, (stat, ln, code), cu)
+            elif code == "over":
+                nom = (pt.get("player") or {}).get("name")
+                if nom:
+                    acumular(jug, (stat, nom, ln), cu)
+    return eq, tot, jug
