@@ -1,3 +1,5 @@
+import difflib
+import html
 import json
 import os
 import unicodedata
@@ -8,16 +10,10 @@ CORTE = str(date.today() - timedelta(days=5))
 
 
 def norm(s):
-    s = unicodedata.normalize("NFD", str(s or "").lower())
+    s = html.unescape(str(s or ""))
+    s = unicodedata.normalize("NFD", s.lower())
     s = "".join(c for c in s if c.isalnum() or c == " ")
     return " ".join(s.split())
-
-
-def clave(n):
-    t = norm(n).split()
-    if len(t) < 2:
-        return None
-    return (t[0][0], t[-1])
 
 
 def jugadores_fixture(fid, viejo):
@@ -80,6 +76,34 @@ def hist_jug(tid):
     return jug, usados
 
 
+def partes(n):
+    t = norm(n).split()
+    if not t:
+        return "", [], ""
+    return t[0], t[1:], "".join(t[1:])
+
+
+def mismo_nombre(g1, g2):
+    if len(g1) == 1 or len(g2) == 1:
+        return g1[:1] == g2[:1]
+    r = difflib.SequenceMatcher(None, g1, g2).ratio()
+    return r >= 0.75
+
+
+def mismo_apellido(s1, s2, t1, t2):
+    if not s1 or not s2:
+        return False
+    if s1 == s2:
+        return True
+    corto = min(len(s1), len(s2))
+    if corto >= 5 and (s1.startswith(s2) or s2.startswith(s1)):
+        return True
+    if t1 and t2 and (set(t1) <= set(t2) or set(t2) <= set(t1)):
+        return True
+    r = difflib.SequenceMatcher(None, s1, s2).ratio()
+    return r >= 0.88 or (corto >= 8 and r >= 0.85)
+
+
 def buscar(nombre, jug):
     full = norm(nombre)
     tok = full.split()
@@ -88,32 +112,27 @@ def buscar(nombre, jug):
     for pid, e in jug.items():
         if norm(e["n"]) == full:
             return pid
-    if len(tok) == 1:
-        a = []
-        for pid, e in jug.items():
-            if tok[0] in norm(e["n"]).split():
-                a.append(pid)
-        if len(a) == 1:
-            return a[0]
-        return None
-    k = (tok[0][0], tok[-1])
-    a = []
+    g, t, s = partes(nombre)
+    cand = []
     for pid, e in jug.items():
-        if clave(e["n"]) == k:
-            a.append(pid)
-    if len(a) == 1:
-        return a[0]
-    if a:
-        return None
-    b = []
-    for pid, e in jug.items():
-        t = norm(e["n"]).split()
-        if len(t) < 2:
+        ng = norm(e["n"]).split()
+        if not ng:
             continue
-        if t[0][0] == tok[0][0] and t[-1] in tok[1:]:
-            b.append(pid)
-    if len(b) == 1:
-        return b[0]
+        if len(ng) == 1:
+            if len(tok) > 1 and ng[0] in tok:
+                cand.append(pid)
+            continue
+        if len(tok) == 1:
+            if tok[0] in ng:
+                cand.append(pid)
+            continue
+        g2, t2, s2 = partes(e["n"])
+        if not mismo_nombre(g, g2):
+            continue
+        if mismo_apellido(s, s2, t, t2):
+            cand.append(pid)
+    if len(cand) == 1:
+        return cand[0]
     return None
 
 
