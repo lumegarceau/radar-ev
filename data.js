@@ -8,6 +8,7 @@ var AFF={
 "Bwin":"https://link2play.com/24375/Superaumentos",
 "Gran Casino Madrid":"https://bdeal.io/CGranMadrid/158231/1",
 "Casino Marbella":"https://bdeal.io/CasinoMarbella/158810/1",
+"Casumo":"https://aff.tipsterpage.com/v/22617",
 "Codere":"https://bdeal.io/Codere/158232/1",
 "Daznbet":"https://bdeal.io/daznbet/162598/1",
 "Goldenbull":"https://bdeal.io/goldenbull/159940/1",
