@@ -41,12 +41,14 @@ H = cargar(FH, {"meta": {}, "sel": {}})
 meta = H.setdefault("meta", {})
 sel = H.setdefault("sel", {})
 if meta.get("updated_at") == radar.get("updated_at"):
-    print("sin cambios desde la ultima vez")
-    raise SystemExit
+    if meta.get("v") == 2:
+        print("sin cambios desde la ultima vez")
+        raise SystemExit
 ahora = datetime.now(MAD)
 ts = ahora.isoformat(timespec="minutes")
 nuevas = 0
 act = 0
+vistas = set()
 for c in radar["days"][-1]["candidatos"]:
     ini = inicio_de(c.get("hora", ""), ahora)
     if ini is None or ahora >= ini:
@@ -54,9 +56,20 @@ for c in radar["days"][-1]["candidatos"]:
     cu, b = mejor(c)
     obs = {"c": cu, "b": b, "t": ts}
     k = str(c["fixture"]) + "|" + c["suceso"]
+    vistas.add(k)
+    extra = {
+        "hora": c.get("hora"),
+        "l20": c.get("l20"),
+        "cond": c.get("cond"),
+        "rival": c.get("rival"),
+        "cuotas": c["cuotas"],
+        "dia": ini.strftime("%Y-%m-%d"),
+        "aus": 0,
+        "vigente": True,
+    }
     r = sel.get(k)
     if r is None:
-        sel[k] = {
+        r = {
             "fixture": c["fixture"],
             "pais": c["pais"],
             "liga": c["liga"],
@@ -76,16 +89,32 @@ for c in radar["days"][-1]["candidatos"]:
             "max": obs,
             "estado": "pendiente",
         }
+        r.update(extra)
+        sel[k] = r
         nuevas += 1
         continue
     if r["estado"] != "pendiente":
         continue
+    r.update(extra)
     r["prob"] = c["prob"]
     r["ultima"] = obs
     if cu > r["max"]["c"]:
         r["max"] = obs
     act += 1
+ocultas = 0
+for k, r in sel.items():
+    r.setdefault("dia", str(r["inicio"])[:10])
+    if k in vistas or r["estado"] != "pendiente":
+        continue
+    if ahora >= datetime.fromisoformat(r["inicio"]):
+        continue
+    r["aus"] = r.get("aus", 0) + 1
+    r["vigente"] = r["aus"] < 2
+    if not r["vigente"]:
+        ocultas += 1
 meta["updated_at"] = radar.get("updated_at")
+meta["v"] = 2
 json.dump(H, open(FH, "w"), ensure_ascii=False)
 print("selecciones nuevas:", nuevas, "| actualizadas:", act)
+print("ocultas por dejar de cumplir:", ocultas)
 print("total en historial:", len(sel))
