@@ -110,13 +110,19 @@ for lid, (pais, liga) in LIGAS.items():
             r = rjug.prob_jug(e["g"], stat, n, es_local)
             if r is None or r["hits"] < 0.7 * r["N"]:
                 continue
+            ex = rjug.extras(e["g"], stat)
             suc = nom + " " + str(n) + "+ " + NOM[stat]
             nuevos.append({
                 "tipo": "jugador",
                 "pais": pais,
                 "liga": liga,
+                "lid": lid,
                 "fixture": x["fixture"]["id"],
                 "equipo": eq["name"],
+                "tid": eq["id"],
+                "hid": loc["id"],
+                "aid": vis["id"],
+                "pid": pid,
                 "mercado": stat,
                 "linea": n,
                 "local": loc["name"],
@@ -128,6 +134,11 @@ for lid, (pais, liga) in LIGAS.items():
                 "condTxt": "local" if es_local else "visitante",
                 "rival": None,
                 "prob": r["prob"],
+                "serie": ex["serie"],
+                "media": ex["media"],
+                "minmed": ex["minmed"],
+                "por90": ex["por90"],
+                "tit": ex["tit"],
                 "cuotas": [{"b": "Winamax", "c": c}],
             })
 
