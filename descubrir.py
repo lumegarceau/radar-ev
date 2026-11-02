@@ -7,37 +7,53 @@ frames = []
 
 
 def vigila(ws):
-    print("  websocket abierto:", ws.url[:120])
-    ws.on("framesent", lambda p: frames.append(("ENV", p)))
-    ws.on("framereceived", lambda p: frames.append(("REC", p)))
+    ws.on("framesent", lambda p: frames.append(("ENV", str(p))))
+    ws.on("framereceived", lambda p: frames.append(("REC", str(p))))
 
 
-def texto(p):
-    if isinstance(p, str):
-        return p
-    return str(p)
+def env(n):
+    k = 0
+    for tipo, t in frames:
+        if tipo == "ENV" and len(t) > 12:
+            print("   ENV", t[:500].replace("\n", " "))
+            k += 1
+            if k >= n:
+                break
 
 
-def resumen(n):
-    print("  frames:", len(frames))
-    for tipo, p in frames[:n]:
-        t = texto(p)
-        print("  ", tipo, len(t), t[:380].replace("\n", " "))
-
-
-def palabras(pal, n):
-    c = 0
-    for tipo, p in frames:
-        t = texto(p)
+def rec(pal, n):
+    k = 0
+    for tipo, t in frames:
+        if tipo != "REC":
+            continue
         m = re.search(pal, t)
         if not m:
             continue
-        a = max(0, m.start() - 200)
-        print("  ", tipo, t[a:m.end() + 300].replace("\n", " "))
-        c += 1
-        if c >= n:
+        a = max(0, m.start() - 250)
+        print("   REC", len(t), t[a:m.end() + 450].replace("\n", " "))
+        k += 1
+        if k >= n:
             break
-    print("  coincidencias mostradas:", c)
+    print("   coincidencias:", k)
+
+
+def cuerpo(page, n):
+    try:
+        t = page.inner_text("body")
+        print("   texto:", t[:n].replace("\n", " | "))
+    except Exception as e:
+        print("   sin texto", str(e)[:80])
+
+
+def enlaces(page, pat, n):
+    try:
+        hs = page.eval_on_selector_all(
+            "a", "els => els.map(e => e.href)")
+    except Exception:
+        hs = []
+    hs = sorted(set(h for h in hs if re.search(pat, h)))
+    print("   enlaces", pat, len(hs), hs[:n])
+    return hs
 
 
 with sync_playwright() as pw:
@@ -50,29 +66,49 @@ with sync_playwright() as pw:
     )
     page = ctx.new_page()
     page.on("websocket", vigila)
-    print("A) PORTADA")
-    page.goto(WEB, wait_until="domcontentloaded", timeout=60000)
+
+    print("A) SECCION FUTBOL")
+    page.goto(WEB + "/sports/1", wait_until="domcontentloaded",
+              timeout=60000)
     page.wait_for_timeout(15000)
-    print("  titulo:", page.title())
-    resumen(14)
-    ids = []
-    pats = [r'"matchId":(\d+)', r'"matches":\{"(\d+)"']
-    for tipo, p in frames:
-        t = texto(p)
-        for pat in pats:
-            for x in re.findall(pat, t):
-                if x not in ids:
-                    ids.append(x)
-    print("  partidos vistos:", len(ids), ids[:6])
-    if ids:
-        frames.clear()
-        print("")
-        print("B) PARTIDO", ids[0])
-        url = WEB + "/match/" + ids[0]
-        page.goto(url, wait_until="domcontentloaded", timeout=60000)
+    print("   titulo:", page.title())
+    cuerpo(page, 700)
+    enlaces(page, "match", 8)
+    print("   frames:", len(frames))
+    env(12)
+    rec(r'"title"', 2)
+
+    print("")
+    print("B) CLIC EN LALIGA")
+    frames.clear()
+    for nombre in ("LaLiga", "La Liga", "España"):
+        try:
+            page.get_by_text(nombre, exact=True).first.click(timeout=8000)
+            print("   clic en", nombre)
+            break
+        except Exception as e:
+            print("   no hay", nombre, str(e)[:60])
+    page.wait_for_timeout(12000)
+    print("   url:", page.url)
+    cuerpo(page, 600)
+    hs = enlaces(page, "match", 8)
+    env(8)
+    rec(r"(?i)real madrid|barcelona|sevilla|osasuna", 2)
+
+    print("")
+    print("C) UN PARTIDO")
+    frames.clear()
+    try:
+        if hs:
+            page.goto(hs[0], wait_until="domcontentloaded", timeout=60000)
+        else:
+            page.get_by_text("Osasuna").first.click(timeout=8000)
         page.wait_for_timeout(15000)
-        print("  titulo:", page.title())
-        resumen(8)
-        print("  --- buscando corners")
-        palabras(r"(?i)c[oó]rner|esquina", 4)
+        print("   url:", page.url)
+        cuerpo(page, 900)
+        env(8)
+        print("   --- corners")
+        rec(r"(?i)c[oó]rner|esquina", 3)
+    except Exception as e:
+        print("   fallo", str(e)[:120])
     b.close()
