@@ -1,5 +1,6 @@
 import difflib
 import json
+import time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from rcommon import api, gasto
@@ -71,6 +72,16 @@ def buscar_wina(loc, vis, dt, lista):
     return None
 
 
+def leer_winamax(ts):
+    for i in range(3):
+        try:
+            return rw.partidos(SRIDS, ts, ts + (DIAS + 1) * 86400)
+        except Exception as e:
+            print("winamax intento", i + 1, "fallo", repr(e)[:100])
+            time.sleep(30)
+    return None
+
+
 hoy = datetime.now(MAD).date()
 fechas = [str(hoy + timedelta(days=i)) for i in range(DIAS + 1)]
 rango = {"from": fechas[0], "to": fechas[-1]}
@@ -81,11 +92,11 @@ for f in fechas:
 vo = list(vo.values())
 print("valueodds:", len(vo), "partidos")
 ts = datetime.now(MAD).timestamp()
-try:
-    wm = rw.partidos(SRIDS, ts, ts + (DIAS + 1) * 86400)
-except Exception as e:
-    print("winamax fallo general", repr(e)[:150])
-    raise SystemExit
+wm = leer_winamax(ts)
+wina_ok = wm is not None
+if not wina_ok:
+    wm = []
+    print("SIN WINAMAX en esta pasada: solo valueodds")
 print("winamax:", len(wm), "partidos")
 
 nuevos = []
@@ -213,10 +224,12 @@ dia = data["days"][-1]
 dia["candidatos"] = [c for c in dia["candidatos"]
                      if c.get("tipo") != "jugador"] + nuevos
 data["updated_at"] = ahora
+data["props_ok"] = wina_ok
 json.dump(data, open(fn, "w"), ensure_ascii=False)
 por = {}
 for c in nuevos:
     por[c["mercado"]] = por.get(c["mercado"], 0) + 1
+print("pasada completa (con Winamax):", wina_ok)
 print("partidos con cuotas de jugador:", n_part)
 print("props de jugador:", len(nuevos), por)
 print("con dorsal:", sum(1 for c in nuevos if c.get("num")))
