@@ -182,12 +182,20 @@ for lid, (pais, liga) in LIGAS.items():
             r = analizar(h, ho, stat, ln, es_local)
             if r is None or r["hits"] < 0.7 * r["n"]:
                 continue
+            vals = [x2["pro"][stat] for x2 in h if stat in x2["pro"]]
+            serie = list(reversed(vals))[:10]
+            media = round(sum(vals) / len(vals), 2)
             txt = eq["name"] + " +" + str(ln).replace(".", ",")
             res.append({
+                "tipo": "equipo",
                 "pais": pais,
                 "liga": liga,
+                "lid": lid,
                 "fixture": x["fixture"]["id"],
                 "equipo": eq["name"],
+                "tid": eq["id"],
+                "hid": loc["id"],
+                "aid": vis["id"],
                 "mercado": stat,
                 "linea": ln,
                 "local": loc["name"],
@@ -199,6 +207,8 @@ for lid, (pais, liga) in LIGAS.items():
                 "condTxt": "local" if es_local else "visitante",
                 "rival": r["rival"],
                 "prob": r["prob"],
+                "serie": serie,
+                "media": media,
                 "cuotas": [{"b": b, "c": c} for b, c in q.items()],
             })
 
@@ -213,7 +223,5 @@ print(len(res), "selecciones;", gasto[0], "peticiones API-Football")
 print("Partidos con cuotas de valueodds:", con_vo)
 print("Partidos con cuotas de Winamax:", con_wi)
 print("Sin pareja en valueodds:", len(sin_par), sin_par[:6])
-vt = sorted(rv.tipos.items(), key=lambda kv: -kv[1])
-print("Mercados vistos:", vt[:40])
 sa = sorted(rv.saltadas.items(), key=lambda kv: -kv[1])
 print("Casas sin afiliado:", sa[:20])
