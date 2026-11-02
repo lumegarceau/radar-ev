@@ -32,11 +32,24 @@ def titulares(fid, tid):
     return d.get(str(tid))
 
 
-def valor_equipo(r, fx, st, tid):
+def valor(r, fx, st, th, ta):
     m = r["mercado"]
+    if r["tipo"] == "total":
+        if m == "goals":
+            a = fx["goals"]["home"]
+            b = fx["goals"]["away"]
+            if a is None or b is None:
+                return None
+            return a + b
+        va = (st.get(str(th)) or {}).get(m)
+        vb = (st.get(str(ta)) or {}).get(m)
+        if va is None or vb is None:
+            return None
+        return va + vb
+    es_h = r["condTxt"] == "local"
     if m == "goals":
-        lado = "home" if r["condTxt"] == "local" else "away"
-        return fx["goals"][lado]
+        return fx["goals"]["home" if es_h else "away"]
+    tid = th if es_h else ta
     return (st.get(str(tid)) or {}).get(m)
 
 
@@ -66,8 +79,8 @@ for fid, ks in pend.items():
         continue
     fx = fx[0]
     est = fx["fixture"]["status"]["short"]
-    h = fx["teams"]["home"]["id"]
-    a = fx["teams"]["away"]["id"]
+    th = fx["teams"]["home"]["id"]
+    ta = fx["teams"]["away"]["id"]
     if est in NULAS:
         for k in ks:
             sel[k]["estado"] = "nula"
@@ -75,17 +88,16 @@ for fid, ks in pend.items():
         continue
     if est not in FIN:
         continue
-    st = rmodelo.stats(fid, True)
+    hay_e = any(sel[k]["tipo"] != "jugador" for k in ks)
     hay_j = any(sel[k]["tipo"] == "jugador" for k in ks)
-    pj = {}
-    if hay_j:
-        pj = rjug.jugadores_fixture(fid, True)
+    st = rmodelo.stats(fid, True) if hay_e else {}
+    pj = rjug.jugadores_fixture(fid, True) if hay_j else {}
     for k in ks:
         r = sel[k]
-        es_h = r["condTxt"] == "local"
-        tid = h if es_h else a
+        sent = r.get("sentido") or "over"
         lin = r["linea"]
         if r["tipo"] == "jugador":
+            tid = th if r["condTxt"] == "local" else ta
             lista = pj.get(str(tid)) or []
             jug = {p["id"]: {"n": p["n"]} for p in lista}
             pre = " " + str(lin) + "+ "
@@ -102,14 +114,16 @@ for fid, ks in pend.items():
                 r["estado"] = "nula"
                 r["motivo"] = "no titular"
                 continue
-            p = [x for x in lista if x["id"] == pid][0]
+            p = [y for y in lista if y["id"] == pid][0]
             v = p.get(r["mercado"])
-            gana = v is not None and v >= lin
-        else:
-            v = valor_equipo(r, fx, st, tid)
             if v is None:
                 continue
-            gana = v > lin
+            gana = v >= lin
+        else:
+            v = valor(r, fx, st, th, ta)
+            if v is None:
+                continue
+            gana = (v < lin) if sent == "under" else (v > lin)
         r["valor"] = v
         r["estado"] = "ganada" if gana else "perdida"
         r["resuelta"] = ahora.isoformat(timespec="minutes")
