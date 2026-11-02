@@ -37,6 +37,7 @@ def jugadores_fixture(fid, viejo):
                 "n": p["player"]["name"],
                 "min": g.get("minutes") or 0,
                 "pos": g.get("position"),
+                "sub": g.get("substitute"),
                 "shots": sh.get("total") or 0,
                 "sot": sh.get("on") or 0,
                 "fouls": fo.get("committed") or 0,
@@ -151,3 +152,27 @@ def prob_jug(juegos, stat, n, es_local):
         p = ((1 - w) * p + w * hc / nc)
     return {"N": N, "hits": hits, "hc": hc, "nc": nc,
             "prob": round(p, 3)}
+
+
+def extras(juegos, stat):
+    jj = [g for g in juegos if g["min"] > 0]
+    vacio = {"serie": [], "media": None, "minmed": None,
+             "por90": None, "tit": None}
+    if not jj:
+        return vacio
+    vals = [g[stat] for g in jj]
+    mins = sum(g["min"] for g in jj)
+    por90 = None
+    if mins > 0:
+        por90 = round(sum(vals) * 90 / mins, 2)
+    fl = [g for g in jj if g.get("sub") is not None]
+    tit = None
+    if len(fl) >= 5:
+        tit = round(100 * sum(1 for g in fl if g["sub"] is False) / len(fl))
+    return {
+        "serie": list(reversed(vals))[:10],
+        "media": round(sum(vals) / len(vals), 2),
+        "minmed": round(mins / len(jj)),
+        "por90": por90,
+        "tit": tit,
+            }
