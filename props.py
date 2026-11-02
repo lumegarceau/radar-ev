@@ -32,6 +32,7 @@ NOM = {
     "fouls": "faltas cometidas",
     "drawn": "faltas recibidas",
     "saves": "paradas",
+    "tk": "entradas",
 }
 memo = {}
 sqm = {}
@@ -73,6 +74,12 @@ def buscar_wina(loc, vis, dt, lista):
 hoy = datetime.now(MAD).date()
 fechas = [str(hoy + timedelta(days=i)) for i in range(DIAS + 1)]
 rango = {"from": fechas[0], "to": fechas[-1]}
+vo = {}
+for f in fechas:
+    for o in rv.listar(f):
+        vo[rv.idde(o)] = o
+vo = list(vo.values())
+print("valueodds:", len(vo), "partidos")
 ts = datetime.now(MAD).timestamp()
 try:
     wm = rw.partidos(SRIDS, ts, ts + (DIAS + 1) * 86400)
@@ -83,8 +90,10 @@ print("winamax:", len(wm), "partidos")
 
 nuevos = []
 sin_u = {}
+sin_v = set()
 con_u = set()
 n_part = 0
+n_vo = 0
 for lid, (pais, liga) in LIGAS.items():
     fx = api("/fixtures", league=lid, season=TEMP, **rango) or []
     for x in fx:
@@ -95,23 +104,60 @@ for lid, (pais, liga) in LIGAS.items():
         iso = x["fixture"]["date"]
         dt = datetime.fromisoformat(iso).astimezone(MAD)
         w = buscar_wina(loc["name"], vis["name"], dt, wm)
-        if not w:
+        pv = {}
+        o = rv.emparejar(loc["name"], vis["name"], dt, vo)
+        if o:
+            ruta = "/api/v1/fixtures/" + str(rv.idde(o))
+            j = rv.vget(ruta + "/odds?format=compact")
+            if j:
+                pv = rv.leer(j)[2]
+        if not w and not pv:
             continue
         n_part += 1
         jl, nl = hist(loc["id"])
         jv, nv = hist(vis["id"])
-        for stat, nom, sr, lado, n, c in w["jugador"]:
-            if c < 1.40:
+        cu = {}
+        disp = {}
+        if w:
+            for stat, nom, sr, lado, n, c in w["jugador"]:
+                jug = jl if lado == "home" else jv
+                eqx = loc if lado == "home" else vis
+                pid = rjug.buscar(nom, jug)
+                if pid is None:
+                    sin_u[(eqx["name"], nom)] = jug
+                    continue
+                disp.setdefault(pid, nom)
+                d = cu.setdefault((stat, pid, n, lado), {})
+                if c > d.get("Winamax", 0):
+                    d["Winamax"] = c
+        for (stat, nom, ln), q in pv.items():
+            n = int(ln + 0.5)
+            a = rjug.buscar(nom, jl)
+            b = rjug.buscar(nom, jv)
+            if (a is None) == (b is None):
+                sin_v.add(nom)
+                continue
+            lado = "home"
+            pid = a
+            if a is None:
+                lado = "away"
+                pid = b
+            n_vo += 1
+            disp.setdefault(pid, nom)
+            d = cu.setdefault((stat, pid, n, lado), {})
+            for casa, c in q.items():
+                if c > d.get(casa, 0):
+                    d[casa] = c
+        for key in sorted(cu, key=str):
+            stat, pid, n, lado = key
+            q = cu[key]
+            if max(q.values()) < 1.40:
                 continue
             es_local = lado == "home"
             jug = jl if es_local else jv
             eq = loc if es_local else vis
-            pid = rjug.buscar(nom, jug)
-            if pid is None:
-                sin_u[(eq["name"], nom)] = jug
-                continue
-            con_u.add((eq["name"], pid))
             e = jug[pid]
+            con_u.add((eq["name"], pid))
             if stat == "saves" and e["pos"] != "G":
                 continue
             r = rjug.prob_jug(e["g"], stat, n, es_local)
@@ -120,7 +166,8 @@ for lid, (pais, liga) in LIGAS.items():
             ex = rjug.extras(e["g"], stat)
             sq = squad(eq["id"])
             num = (sq.get(str(pid)) or {}).get("num")
-            suc = nom + " " + str(n) + "+ " + NOM[stat]
+            nombre = disp.get(pid, e["n"])
+            suc = nombre + " " + str(n) + "+ " + NOM[stat]
             nuevos.append({
                 "tipo": "jugador",
                 "pais": pais,
@@ -150,7 +197,7 @@ for lid, (pais, liga) in LIGAS.items():
                 "minmed": ex["minmed"],
                 "por90": ex["por90"],
                 "tit": ex["tit"],
-                "cuotas": [{"b": "Winamax", "c": c}],
+                "cuotas": [{"b": b, "c": c} for b, c in q.items()],
             })
 
 fn = "radar-data.json"
@@ -167,16 +214,21 @@ dia["candidatos"] = [c for c in dia["candidatos"]
                      if c.get("tipo") != "jugador"] + nuevos
 data["updated_at"] = ahora
 json.dump(data, open(fn, "w"), ensure_ascii=False)
-print("partidos con Winamax:", n_part)
-print("props de jugador:", len(nuevos))
+por = {}
+for c in nuevos:
+    por[c["mercado"]] = por.get(c["mercado"], 0) + 1
+print("partidos con cuotas de jugador:", n_part)
+print("props de jugador:", len(nuevos), por)
 print("con dorsal:", sum(1 for c in nuevos if c.get("num")))
+print("cuotas de valueodds emparejadas:", n_vo)
 print("jugadores emparejados:", len(con_u))
-print("jugadores sin emparejar:", len(sin_u))
-for (eqn, nom), jug in list(sin_u.items())[:25]:
+print("sin emparejar Winamax:", len(sin_u))
+for (eqn, nom), jug in list(sin_u.items())[:12]:
     alvo = rjug.norm(nom)
     cands = sorted(
         jug.values(),
         key=lambda e: -difflib.SequenceMatcher(
             None, alvo, rjug.norm(e["n"])).ratio())[:2]
     print("  ", eqn, "|", nom, "->", [c["n"] for c in cands])
+print("sin emparejar valueodds:", len(sin_v), sorted(sin_v)[:15])
 print("peticiones API-Football:", gasto[0])
