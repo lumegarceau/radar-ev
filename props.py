@@ -34,12 +34,19 @@ NOM = {
     "saves": "paradas",
 }
 memo = {}
+sqm = {}
 
 
 def hist(tid):
     if tid not in memo:
         memo[tid] = rjug.hist_jug(tid)
     return memo[tid]
+
+
+def squad(tid):
+    if tid not in sqm:
+        sqm[tid] = rjug.plantilla(tid)
+    return sqm[tid]
 
 
 def buscar_wina(loc, vis, dt, lista):
@@ -111,6 +118,8 @@ for lid, (pais, liga) in LIGAS.items():
             if r is None or r["hits"] < 0.7 * r["N"]:
                 continue
             ex = rjug.extras(e["g"], stat)
+            sq = squad(eq["id"])
+            num = (sq.get(str(pid)) or {}).get("num")
             suc = nom + " " + str(n) + "+ " + NOM[stat]
             nuevos.append({
                 "tipo": "jugador",
@@ -123,6 +132,8 @@ for lid, (pais, liga) in LIGAS.items():
                 "hid": loc["id"],
                 "aid": vis["id"],
                 "pid": pid,
+                "num": num,
+                "pos": e["pos"],
                 "mercado": stat,
                 "linea": n,
                 "local": loc["name"],
@@ -158,6 +169,7 @@ data["updated_at"] = ahora
 json.dump(data, open(fn, "w"), ensure_ascii=False)
 print("partidos con Winamax:", n_part)
 print("props de jugador:", len(nuevos))
+print("con dorsal:", sum(1 for c in nuevos if c.get("num")))
 print("jugadores emparejados:", len(con_u))
 print("jugadores sin emparejar:", len(sin_u))
 for (eqn, nom), jug in list(sin_u.items())[:25]:
