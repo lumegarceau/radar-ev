@@ -27,6 +27,7 @@ ALIAS = {
     "grancasinomadrid": "Gran Casino Madrid",
     "casinogranmadrid": "Gran Casino Madrid",
     "casinomarbella": "Casino Marbella",
+    "casumo": "Casumo",
     "codere": "Codere",
     "daznbet": "Daznbet",
     "goldenbull": "Goldenbull",
