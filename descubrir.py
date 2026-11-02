@@ -1,144 +1,71 @@
 import json
-import re
-import time
-import uuid
+import urllib.request
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
-import socketio
-
-SRV = "https://sports-eu-west-3.winamax.es"
-URL = SRV + "?language=ES&version=3.72.1&embed=false"
-PATH = "uof-sports-server/socket.io"
-WEB = "https://www.winamax.es/apuestas-deportivas"
-H = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120",
-    "Origin": "https://www.winamax.es",
-    "Referer": WEB,
-}
-recibidos = []
-sio = socketio.Client()
-
-
-@sio.on("m")
-def al_recibir(d):
-    if isinstance(d, dict):
-        recibidos.append(d)
-
-
-def fusiona(m, datos):
-    for k, v in m.items():
-        if not isinstance(v, dict):
-            datos[k] = v
-            continue
-        dest = datos.setdefault(k, {})
-        for i, x in v.items():
-            old = dest.get(i)
-            if isinstance(x, dict) and isinstance(old, dict):
-                old.update(x)
-            else:
-                dest[i] = x
-
-
-def pedir(ruta, espera=12):
-    recibidos.clear()
-    msg = {"route": ruta}
-    if not ruta.startswith("match"):
-        msg["requestId"] = str(uuid.uuid4())
-    sio.emit("m", msg)
-    time.sleep(espera)
-    datos = {}
-    for m in list(recibidos):
-        fusiona(m, datos)
-    return datos
-
-
-sio.connect(URL, socketio_path=PATH, transports=["websocket"],
-            headers=H, wait_timeout=20)
-
-print("A) TORNEOS DE FUTBOL")
-d = pedir("sport:1", 10)
-tor = d.get("tournaments", {})
-print("   claves:", {k: len(v) for k, v in d.items()
-                     if hasattr(v, "__len__")})
-buscados = ["laliga", "segunda", "premier", "championship",
-            "serie a", "ligue 1", "bundesliga", "eredivisie", "liga portugal"]
-for k, v in tor.items():
-    if not isinstance(v, dict):
-        continue
-    nom = str(v.get("title") or v.get("name"))
-    if any(x in nom.lower() for x in buscados):
-        print("  ", k, nom, "cat", v.get("categoryId"))
-cats = d.get("categories", {})
-for k, v in list(cats.items())[:5]:
-    print("   cat", k, json.dumps(v, ensure_ascii=False)[:150])
-
-print("")
-print("B) PARTIDO DE LALIGA")
-t = pedir("tournament:36")
-ms = t.get("matches", {})
-cand = [k for k, m in ms.items()
-        if isinstance(m, dict) and m.get("period") == "not_started"]
-mid = cand[0]
-m = ms[mid]
-print("   claves del partido:", sorted(m.keys()))
-for k in sorted(m.keys()):
-    if re.search(r"(?i)start|time|date|competitor|title", k):
-        print("     ", k, "=", m[k])
-
-d = pedir("match:" + str(mid), 15)
-bets = d.get("bets", {})
-outs = d.get("outcomes", {})
-odds = d.get("odds", {})
-lista = [b for b in bets.values() if isinstance(b, dict)]
-print("   mercados:", len(lista))
-print("")
-print("C) JUGADORES (muestra)")
-pl = d.get("players", {})
-for k, v in list(pl.items())[:3]:
-    print("  ", k, json.dumps(v, ensure_ascii=False)[:300])
-
-
-def tit(b):
-    return str(b.get("betTitle") or b.get("betTypeName") or "")
-
-
-def crudo(b, n=5):
-    base = {k: v for k, v in b.items() if k != "outcomes"}
-    print("  BET", json.dumps(base, ensure_ascii=False)[:380])
-    for o in (b.get("outcomes") or [])[:n]:
-        x = json.dumps(outs.get(str(o)), ensure_ascii=False)
-        print("     ", o, x[:260], "| cuota", odds.get(str(o)))
-
-
-print("")
-print("D) EJEMPLOS CRUDOS")
-objetivos = [
-    r"^Número de tiros por",
-    r"^Número de tiros a puerta por",
-    r"^Número exacto de córneres [A-Z]",
-    r"^Realiza 2 o más remates$",
-    r"^Realiza 2 o más remates a puerta$",
-    r"^Comete 2 o más faltas$",
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120 Safari/537.36"
+BASE = "https://www.valueodds.net"
+QUIERO = [
+    "player_tackles", "player_shots", "player_shots_on_target",
+    "player_fouls_committed", "player_fouls_drawn", "player_saves",
+    "total_corners", "total_cards", "total_fouls", "total_shots",
+    "total_shots_on_target", "total_goals",
 ]
-for pat in objetivos:
-    hit = [b for b in lista if re.search(pat, tit(b))]
-    print(" PATRON", pat, "->", len(hit))
-    if hit:
-        crudo(hit[0])
+
+
+def get(path):
+    h = {"User-Agent": UA, "Accept": "application/json"}
+    req = urllib.request.Request(BASE + path, headers=h)
+    r = urllib.request.urlopen(req, timeout=30)
+    return json.loads(r.read().decode("utf-8", "ignore"))
+
+
+def partidos(o, out):
+    if isinstance(o, dict):
+        if "home_team" in o and "away_team" in o:
+            out.append(o)
+        for v in o.values():
+            partidos(v, out)
+    elif isinstance(o, list):
+        for v in o:
+            partidos(v, out)
+
+
+hoy = datetime.now(ZoneInfo("Europe/Madrid")).date()
+vistos = {}
+cuenta = {}
+usados = 0
+for i in range(4):
+    f = str(hoy + timedelta(days=i))
+    lst = []
+    partidos(get("/api/v1/fixtures?date=" + f), lst)
+    print(f, len(lst), "partidos")
+    for o in lst:
+        if usados >= 30 or len(vistos) == len(QUIERO):
+            break
+        fid = o.get("sportmonks_id") or o.get("id")
+        nombre = (o.get("home_team") or {}).get("name", "?")
+        try:
+            od = get("/api/v1/fixtures/" + str(fid) + "/odds?format=compact")
+        except Exception as e:
+            print("fallo", fid, str(e)[:50])
+            continue
+        usados += 1
+        for m in od.get("markets") or []:
+            t = m.get("type")
+            cuenta[t] = cuenta.get(t, 0) + 1
+            if t in QUIERO and t not in vistos:
+                vistos[t] = (nombre, m)
 
 print("")
-print("E) PARADAS, FALTAS RECIBIDAS, ENTRADAS")
-pat = r"(?i)parad|portero|recibe|entrada|despej|fuera de juego"
-for x in sorted(set(tit(b) for b in lista if re.search(pat, tit(b)))):
-    print("   -", x)
-
-print("")
-print("F) TODOS LOS TITULOS")
-tt = sorted(set(tit(b) for b in lista))
-linea = ""
-for x in tt:
-    if len(linea) + len(x) > 850:
-        print(linea)
-        linea = ""
-    linea += x + " ; "
-print(linea)
-sio.disconnect()
+print("Fixtures revisados:", usados)
+print("Encontrados:", sorted(vistos))
+print("Faltan:", [t for t in QUIERO if t not in vistos])
+for t in QUIERO:
+    if t not in vistos:
+        continue
+    nombre, m = vistos[t]
+    print("")
+    print("=== " + t + " (" + nombre + ") ===")
+    print("claves:", sorted(m.keys()))
+    print(json.dumps(m, ensure_ascii=False)[:650])
