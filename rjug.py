@@ -2,6 +2,7 @@ import difflib
 import html
 import json
 import os
+import time
 import unicodedata
 from datetime import date, timedelta
 from rcommon import api
@@ -48,6 +49,29 @@ def jugadores_fixture(fid, viejo):
     if len(d) == 2 or viejo:
         json.dump(d, open(f, "w"))
     return d
+
+
+def plantilla(tid):
+    f = "cache/sq" + str(tid) + ".json"
+    if os.path.exists(f):
+        try:
+            d = json.load(open(f))
+            if d.get("t", 0) > time.time() - 7 * 86400:
+                return d.get("p", {})
+        except Exception:
+            pass
+    r = api("/players/squads", team=tid)
+    if r is None:
+        return {}
+    p = {}
+    for eq in r:
+        for pl in eq.get("players") or []:
+            p[str(pl["id"])] = {
+                "num": pl.get("number"),
+                "pos": pl.get("position"),
+            }
+    json.dump({"t": time.time(), "p": p}, open(f, "w"))
+    return p
 
 
 def hist_jug(tid):
