@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 from rcommon import api, gasto
 from rmodelo import historial, analizar
 import rvalue as rv
+import rwina as rw
 
 MAD = ZoneInfo("Europe/Madrid")
 TEMP = 2026
@@ -18,6 +19,18 @@ LIGAS = {
     78: ("Alemania", "Bundesliga"),
     88: ("Países Bajos", "Eredivisie"),
     94: ("Portugal", "Primeira Liga"),
+}
+SRIDS = set([
+    "sr:tournament:8", "sr:tournament:54", "sr:tournament:17",
+    "sr:tournament:18", "sr:tournament:23", "sr:tournament:34",
+    "sr:tournament:35", "sr:tournament:37", "sr:tournament:238",
+])
+TIPO = {
+    "corners": "team_corners",
+    "shots": "team_shots",
+    "sot": "team_shots_on_target",
+    "fouls": "team_fouls",
+    "goals": "team_goals",
 }
 NOM = {
     "corners": "córners",
@@ -74,6 +87,34 @@ def unir(a, b):
     return a
 
 
+def buscar_wina(loc, vis, dt, lista):
+    mejor = None
+    pm = 0
+    for w in lista:
+        if not w.get("inicio"):
+            continue
+        if abs(w["inicio"] - dt.timestamp()) > 10800:
+            continue
+        s1 = rv.sim(loc, w["c1"])
+        s2 = rv.sim(vis, w["c2"])
+        if min(s1, s2) < 0.5:
+            continue
+        p = (s1 + s2) / 2
+        if p > pm:
+            mejor = w
+            pm = p
+    if pm >= 0.62:
+        return mejor
+    return None
+
+
+def anadir_wina(cu, w):
+    for stat, lado, ln, c in w["equipo"]:
+        d = cu.setdefault((TIPO[stat], lado, ln), {})
+        if c > d.get("Winamax", 0):
+            d["Winamax"] = c
+
+
 hoy = datetime.now(MAD).date()
 fechas = [str(hoy + timedelta(days=i)) for i in range(DIAS + 1)]
 vo = {}
@@ -83,9 +124,21 @@ for f in fechas:
 vo = list(vo.values())
 print("valueodds:", len(vo), "partidos")
 
+ts = datetime.now(MAD).timestamp()
+try:
+    wm = rw.partidos(SRIDS, ts, ts + (DIAS + 1) * 86400)
+except Exception as e:
+    print("winamax fallo general", repr(e)[:150])
+    wm = []
+ne = sum(len(w["equipo"]) for w in wm)
+nj = sum(len(w["jugador"]) for w in wm)
+print("winamax:", len(wm), "partidos;", ne, "cuotas de equipo;",
+      nj, "de jugador")
+
 res = []
 sin_par = []
 con_vo = 0
+con_wi = 0
 rango = {"from": fechas[0], "to": fechas[-1]}
 for lid, (pais, liga) in LIGAS.items():
     fx = api("/fixtures", league=lid, season=TEMP, **rango) or []
@@ -95,17 +148,23 @@ for lid, (pais, liga) in LIGAS.items():
             continue
         loc = x["teams"]["home"]
         vis = x["teams"]["away"]
-        dt = datetime.fromisoformat(x["fixture"]["date"]).astimezone(MAD)
+        iso = x["fixture"]["date"]
+        dt = datetime.fromisoformat(iso).astimezone(MAD)
         cu = {}
         o = rv.emparejar(loc["name"], vis["name"], dt, vo)
         if o:
-            j = rv.vget("/api/v1/fixtures/" + str(rv.idde(o)) + "/odds?format=compact")
+            ruta = "/api/v1/fixtures/" + str(rv.idde(o))
+            j = rv.vget(ruta + "/odds?format=compact")
             if j:
                 cu = rv.leer_cuotas(j)
                 con_vo += 1
         else:
             sin_par.append(loc["name"] + " v " + vis["name"])
         cu = unir(cu, cuotas_af(x["fixture"]["id"]))
+        w = buscar_wina(loc["name"], vis["name"], dt, wm)
+        if w:
+            con_wi += 1
+            anadir_wina(cu, w)
         if not cu:
             continue
         hl = hist(loc["id"])
@@ -152,6 +211,7 @@ else:
     print("Sin selecciones: no se toca radar-data.json")
 print(len(res), "selecciones;", gasto[0], "peticiones API-Football")
 print("Partidos con cuotas de valueodds:", con_vo)
+print("Partidos con cuotas de Winamax:", con_wi)
 print("Sin pareja en valueodds:", len(sin_par), sin_par[:6])
 vt = sorted(rv.tipos.items(), key=lambda kv: -kv[1])
 print("Mercados vistos:", vt[:40])
