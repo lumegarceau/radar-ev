@@ -5,6 +5,8 @@ from zoneinfo import ZoneInfo
 MAD = ZoneInfo("Europe/Madrid")
 FH = "historial.json"
 FR = "radar-data.json"
+CAMPOS = ["tid", "hid", "aid", "lid", "pid", "serie", "media",
+          "minmed", "por90", "tit"]
 
 
 def cargar(f, vacio):
@@ -41,7 +43,7 @@ H = cargar(FH, {"meta": {}, "sel": {}})
 meta = H.setdefault("meta", {})
 sel = H.setdefault("sel", {})
 if meta.get("updated_at") == radar.get("updated_at"):
-    if meta.get("v") == 2:
+    if meta.get("v") == 3:
         print("sin cambios desde la ultima vez")
         raise SystemExit
 ahora = datetime.now(MAD)
@@ -67,6 +69,8 @@ for c in radar["days"][-1]["candidatos"]:
         "aus": 0,
         "vigente": True,
     }
+    for campo in CAMPOS:
+        extra[campo] = c.get(campo)
     r = sel.get(k)
     if r is None:
         r = {
@@ -113,7 +117,7 @@ for k, r in sel.items():
     if not r["vigente"]:
         ocultas += 1
 meta["updated_at"] = radar.get("updated_at")
-meta["v"] = 2
+meta["v"] = 3
 json.dump(H, open(FH, "w"), ensure_ascii=False)
 print("selecciones nuevas:", nuevas, "| actualizadas:", act)
 print("ocultas por dejar de cumplir:", ocultas)
