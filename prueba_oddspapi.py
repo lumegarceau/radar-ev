@@ -17,8 +17,7 @@ CASAS = [
     "bwin.es", "codere.es", "interwetten",
     "paf.es", "williamhill", "winamax.es",
 ]
-FAM = ["corner", "card", "booking", "foul",
-       "shot", "tackle"]
+OTROS = ["foul", "shot", "tackle", "offside"]
 
 
 def api(path, **p):
@@ -35,7 +34,6 @@ def api(path, **p):
         except urllib.error.HTTPError as e:
             txt = e.read().decode("utf-8", "ignore")
             if e.code == 429:
-                print("429, espero")
                 time.sleep(3)
                 continue
             print("HTTP", e.code, path, txt[:200])
@@ -65,59 +63,77 @@ rango = {"from": str(hoy), "to": str(fin)}
 j = api("fixtures", sportId=10,
         tournamentId=8, **rango)
 fx = items(j)
-print("Partidos LaLiga:", len(fx))
 if not fx:
+    print("Sin partidos")
     raise SystemExit
 fid = fx[0][1]["fixtureId"]
-print("Fixture:", fid)
-
 od = api("odds", fixtureId=fid) or {}
 bo = od.get("bookmakerOdds") or {}
-print("Casas con cuotas:", len(bo))
+print("Fixture", fid, "casas", len(bo))
 
-nombres = {}
+cat = {}
 for k, v in items(api("markets")):
-    if not isinstance(v, dict):
-        continue
-    mid = str(v.get("marketId", k))
+    if isinstance(v, dict):
+        cat[str(v.get("marketId", k))] = v
+nombres = {}
+for mid, v in cat.items():
     nombres[mid] = str(v.get("marketName", ""))
-print("Mercados en catalogo:", len(nombres))
 
 print("")
-print("MERCADOS POR CASA")
-for s in CASAS:
-    if s not in bo:
-        print(" ", s, "-> sin cuotas en este partido")
-        continue
-    mer = (bo[s] or {}).get("markets") or {}
-    cuenta = {}
-    for mid in mer:
-        n = nombres.get(str(mid), "").lower()
-        for fam in FAM:
-            if fam in n:
-                cuenta[fam] = cuenta.get(fam, 0) + 1
-    print(" ", s, "| total", len(mer), "|", cuenta)
-
-vis = {}
-ejemplo = None
+print("A) MERCADOS DE EQUIPO POR CASA")
 for s in CASAS:
     mer = ((bo.get(s) or {}).get("markets")) or {}
-    for mid, m in mer.items():
+    c = {}
+    for mid in mer:
         n = nombres.get(str(mid), "")
-        if not any(f in n.lower() for f in FAM):
+        if "Over Under Team" not in n:
             continue
-        vis.setdefault(n, set()).add(s)
-        if ejemplo is None and "corner" in n.lower():
-            ejemplo = (s, mid, n, m)
+        fam = n.split(" - ")[0]
+        c[fam] = c.get(fam, 0) + 1
+    print(" ", s, "| total", len(mer), "|", c)
 
 print("")
-print("NOMBRES DE MERCADO (corners, tarjetas...)")
-for n in sorted(vis)[:70]:
+print("B) FALTAS / TIROS / ENTRADAS")
+vis = {}
+for s in CASAS:
+    mer = ((bo.get(s) or {}).get("markets")) or {}
+    for mid in mer:
+        n = nombres.get(str(mid), "")
+        if any(f in n.lower() for f in OTROS):
+            vis.setdefault(n, set()).add(s)
+if not vis:
+    print("  ninguno")
+for n in sorted(vis)[:40]:
     print(" ", n, "|", len(vis[n]), "casas")
 
-if ejemplo:
-    print("")
-    print("EJEMPLO:", ejemplo[0], ejemplo[1], ejemplo[2])
-    print(json.dumps(ejemplo[3])[:700])
 print("")
+print("C) COMO SE DEFINE UNA LINEA")
+objs = ["Corners - Over Under Team 1",
+        "Bookings - Over Under Team 1"]
+for obj in objs:
+    n = 0
+    for mid, v in cat.items():
+        if v.get("marketName") == obj:
+            print("CATALOGO", mid, json.dumps(v)[:420])
+            n += 1
+            if n >= 2:
+                break
+
+print("")
+print("D) CUOTAS REALES DE CORNERS DEL EQUIPO 1")
+for s in ("codere.es", "bet365", "winamax.es"):
+    mer = ((bo.get(s) or {}).get("markets")) or {}
+    n = 0
+    for mid, m in mer.items():
+        if nombres.get(str(mid)) != objs[0]:
+            continue
+        pr = {}
+        for oid, o in (m.get("outcomes") or {}).items():
+            p = (o.get("players") or {}).get("0") or {}
+            pr[oid] = p.get("price")
+        hc = cat[str(mid)].get("handicap")
+        print(" ", s, mid, hc, pr)
+        n += 1
+        if n >= 5:
+            break
 print("Peticiones usadas:", usadas[0])
