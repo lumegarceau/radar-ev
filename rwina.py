@@ -18,6 +18,13 @@ EQUIPO = [
     ("fouls", r"^Número de faltas cometidas por (.+)$"),
     ("goals", r"^Número total de goles marcados por (.+)$"),
 ]
+TOTAL = [
+    ("corners", r"^Número total córneres$"),
+    ("fouls", r"^Número de faltas cometidas$"),
+    ("shots", r"^Número de tiros$"),
+    ("sot", r"^Número de tiros a puerta$"),
+    ("goals", r"^Número total de goles$"),
+]
 JUGADOR = [
     ("shots", r"^Realiza (\d+) o más remates$"),
     ("sot", r"^Realiza (\d+) o más remates a puerta$"),
@@ -55,6 +62,26 @@ def numero(v):
     if m:
         return float(m.group())
     return None
+
+
+def medio(ln):
+    return ln is not None and abs(ln % 1 - 0.5) < 0.001
+
+
+def sentido(label):
+    s = str(label or "")
+    if s.startswith("Más de"):
+        return "over"
+    if s.startswith("Menos de"):
+        return "under"
+    return None
+
+
+def ok_sel(x, b):
+    if x.get("available") is False:
+        return False
+    bx = x.get("betId")
+    return bx is None or bx == b.get("betId")
 
 
 def fusiona(m, datos):
@@ -127,26 +154,50 @@ def sube(v):
     return True
 
 
+def baja(v):
+    v = sorted(v)
+    for i in range(1, len(v)):
+        if v[i][1] > v[i - 1][1] + 0.0001:
+            return False
+    return True
+
+
 def limpiar(res):
+    desc = 0
     g = {}
     for t in res["equipo"]:
-        g.setdefault((t[0], t[1]), []).append(t)
+        g.setdefault((t[0], t[1], t[4]), []).append(t)
     malos = set()
     for k, v in g.items():
-        if not sube([(x[2], x[3]) for x in v]):
+        pares = [(x[2], x[3]) for x in v]
+        ok = sube(pares) if k[2] == "over" else baja(pares)
+        if not ok:
             malos.add(k)
     res["equipo"] = [t for t in res["equipo"]
-                     if (t[0], t[1]) not in malos]
+                     if (t[0], t[1], t[4]) not in malos]
+    desc += len(malos)
+    g = {}
+    for t in res["total"]:
+        g.setdefault((t[0], t[3]), []).append(t)
+    malos = set()
+    for k, v in g.items():
+        pares = [(x[1], x[2]) for x in v]
+        ok = sube(pares) if k[1] == "over" else baja(pares)
+        if not ok:
+            malos.add(k)
+    res["total"] = [t for t in res["total"] if (t[0], t[3]) not in malos]
+    desc += len(malos)
     g = {}
     for t in res["jugador"]:
         g.setdefault((t[0], t[1]), []).append(t)
-    malosj = set()
+    malos = set()
     for k, v in g.items():
         if not sube([(x[4], x[5]) for x in v]):
-            malosj.add(k)
+            malos.add(k)
     res["jugador"] = [t for t in res["jugador"]
-                      if (t[0], t[1]) not in malosj]
-    res["descartes"] = len(malos) + len(malosj)
+                      if (t[0], t[1]) not in malos]
+    desc += len(malos)
+    res["descartes"] = desc
     return res
 
 
@@ -159,7 +210,7 @@ def parsear(mid, meta, d):
     res = {
         "id": mid, "c1": c1, "c2": c2,
         "inicio": meta.get("matchStart"),
-        "equipo": [], "jugador": [],
+        "equipo": [], "total": [], "jugador": [],
     }
     for b in bets.values():
         if not isinstance(b, dict):
@@ -169,26 +220,31 @@ def parsear(mid, meta, d):
         if str(b.get("matchId")) != str(mid):
             continue
         t = str(b.get("betTitle") or "").strip()
+        ln = numero(b.get("specialBetValue"))
         for stat, pat in EQUIPO:
             m = re.match(pat, t)
             if not m:
                 continue
             lado = lado_de(m.group(1), c1, c2)
-            ln = numero(b.get("specialBetValue"))
-            if lado is None or ln is None:
+            if lado is None or not medio(ln):
                 continue
             for o in b.get("outcomes") or []:
                 x = outs.get(str(o)) or {}
-                if x.get("available") is False:
-                    continue
-                bx = x.get("betId")
-                if bx is not None and bx != b.get("betId"):
-                    continue
+                s = sentido(x.get("label"))
                 c = odds.get(str(o))
-                if not str(x.get("label", "")).startswith("Más de"):
+                if s is None or not c or not ok_sel(x, b):
                     continue
-                if c:
-                    res["equipo"].append((stat, lado, ln, float(c)))
+                res["equipo"].append((stat, lado, ln, float(c), s))
+        for stat, pat in TOTAL:
+            if not re.match(pat, t) or not medio(ln):
+                continue
+            for o in b.get("outcomes") or []:
+                x = outs.get(str(o)) or {}
+                s = sentido(x.get("label"))
+                c = odds.get(str(o))
+                if s is None or not c or not ok_sel(x, b):
+                    continue
+                res["total"].append((stat, ln, float(c), s))
         for stat, pat in JUGADOR:
             m = re.match(pat, t)
             if not m:
@@ -196,13 +252,8 @@ def parsear(mid, meta, d):
             n = int(m.group(1))
             for o in b.get("outcomes") or []:
                 x = outs.get(str(o)) or {}
-                if x.get("available") is False:
-                    continue
-                bx = x.get("betId")
-                if bx is not None and bx != b.get("betId"):
-                    continue
                 c = odds.get(str(o))
-                if not c:
+                if not c or not ok_sel(x, b):
                     continue
                 lado = "away"
                 if x.get("team") == 1:
