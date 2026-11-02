@@ -1,0 +1,209 @@
+import re
+import time
+import unicodedata
+import uuid
+
+import socketio
+
+SRV = "https://sports-eu-west-3.winamax.es"
+URL = SRV + "?language=ES&version=3.72.1&embed=false"
+PATH = "uof-sports-server/socket.io"
+WEB = "https://www.winamax.es/apuestas-deportivas"
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120"
+H = {"User-Agent": UA, "Origin": "https://www.winamax.es", "Referer": WEB}
+EQUIPO = [
+    ("shots", r"^Número de tiros por (.+)$"),
+    ("sot", r"^Número de tiros a puerta por (.+)$"),
+    ("corners", r"^Número total córneres (.+)$"),
+    ("fouls", r"^Número de faltas cometidas por (.+)$"),
+    ("goals", r"^Número total de goles marcados por (.+)$"),
+]
+JUGADOR = [
+    ("shots", r"^Realiza (\d+) o más remates$"),
+    ("sot", r"^Realiza (\d+) o más remates a puerta$"),
+    ("fouls", r"^Comete (\d+) o más faltas$"),
+    ("drawn", r"^Recibe (\d+) o más faltas$"),
+    ("saves", r"^Realiza (\d+) o más paradas$"),
+]
+recibidos = []
+estado = {"sio": None}
+
+
+def norm(s):
+    s = unicodedata.normalize("NFD", str(s or "").lower())
+    s = "".join(c for c in s if c.isalnum() or c == " ")
+    return " ".join(s.split())
+
+
+def lado_de(nombre, c1, c2):
+    n = norm(nombre)
+    a = norm(c1)
+    b = norm(c2)
+    if not n:
+        return None
+    ya = n in a or (a != "" and a in n)
+    yb = n in b or (b != "" and b in n)
+    if ya and not yb:
+        return "home"
+    if yb and not ya:
+        return "away"
+    return None
+
+
+def numero(v):
+    m = re.search(r"-?\d+(?:\.\d+)?", str(v or ""))
+    if m:
+        return float(m.group())
+    return None
+
+
+def fusiona(m, datos):
+    for k, v in m.items():
+        if not isinstance(v, dict):
+            datos[k] = v
+            continue
+        dest = datos.setdefault(k, {})
+        for i, x in v.items():
+            old = dest.get(i)
+            if isinstance(x, dict) and isinstance(old, dict):
+                old.update(x)
+            else:
+                dest[i] = x
+
+
+def cerrar():
+    s = estado["sio"]
+    if s is not None:
+        try:
+            s.disconnect()
+        except Exception:
+            pass
+    estado["sio"] = None
+
+
+def conectar():
+    cerrar()
+    sio = socketio.Client(reconnection=False)
+
+    @sio.on("m")
+    def al_recibir(d):
+        if isinstance(d, dict):
+            recibidos.append(d)
+
+    sio.connect(URL, socketio_path=PATH, transports=["websocket"],
+                headers=H, wait_timeout=20)
+    estado["sio"] = sio
+
+
+def pedir(ruta, clave, maximo=25):
+    recibidos.clear()
+    msg = {"route": ruta}
+    if not ruta.startswith("match"):
+        msg["requestId"] = str(uuid.uuid4())
+    estado["sio"].emit("m", msg)
+    t0 = time.time()
+    visto = 0
+    ultimo = None
+    while time.time() - t0 < maximo:
+        time.sleep(0.5)
+        n = len(recibidos)
+        if n != visto:
+            visto = n
+            ultimo = time.time()
+        tiene = any(clave in m for m in list(recibidos))
+        if tiene and ultimo and time.time() - ultimo > 2.5:
+            break
+    datos = {}
+    for m in list(recibidos):
+        fusiona(m, datos)
+    return datos
+
+
+def parsear(mid, meta, d):
+    bets = d.get("bets", {})
+    outs = d.get("outcomes", {})
+    odds = d.get("odds", {})
+    c1 = meta.get("competitor1Name", "")
+    c2 = meta.get("competitor2Name", "")
+    res = {
+        "id": mid, "c1": c1, "c2": c2,
+        "inicio": meta.get("matchStart"),
+        "equipo": [], "jugador": [],
+    }
+    for b in bets.values():
+        if not isinstance(b, dict):
+            continue
+        if b.get("available") is False:
+            continue
+        t = str(b.get("betTitle") or "").strip()
+        for stat, pat in EQUIPO:
+            m = re.match(pat, t)
+            if not m:
+                continue
+            lado = lado_de(m.group(1), c1, c2)
+            ln = numero(b.get("specialBetValue"))
+            if lado is None or ln is None:
+                continue
+            for o in b.get("outcomes") or []:
+                x = outs.get(str(o)) or {}
+                c = odds.get(str(o))
+                if not str(x.get("label", "")).startswith("Más de"):
+                    continue
+                if c:
+                    res["equipo"].append((stat, lado, ln, float(c)))
+        for stat, pat in JUGADOR:
+            m = re.match(pat, t)
+            if not m:
+                continue
+            n = int(m.group(1))
+            for o in b.get("outcomes") or []:
+                x = outs.get(str(o)) or {}
+                c = odds.get(str(o))
+                if not c:
+                    continue
+                lado = "away"
+                if x.get("team") == 1:
+                    lado = "home"
+                nom = str(x.get("label", "")).strip()
+                sr = x.get("srPlayerId")
+                res["jugador"].append((stat, nom, sr, lado, n, float(c)))
+    return res
+
+
+def partidos(srids, desde, hasta):
+    conectar()
+    d = pedir("sport:1", "matches", 40)
+    ms = d.get("matches", {})
+    sin = [m for m in ms.values()
+           if isinstance(m, dict) and "srTournamentId" not in m]
+    print("winamax: partidos en total", len(ms), "sin torneo", len(sin))
+    sel = []
+    for mid, m in ms.items():
+        if not isinstance(m, dict):
+            continue
+        if m.get("srTournamentId") not in srids:
+            continue
+        ini = m.get("matchStart") or 0
+        if ini < desde or ini > hasta:
+            continue
+        if m.get("status") != "PREMATCH":
+            continue
+        sel.append((mid, m))
+    print("winamax: partidos de mis ligas", len(sel))
+    out = []
+    for i, (mid, m) in enumerate(sel):
+        try:
+            if i and i % 12 == 0:
+                conectar()
+            dd = pedir("match:" + str(mid), "bets", 25)
+        except Exception as e:
+            print("winamax fallo", mid, repr(e)[:80])
+            try:
+                conectar()
+            except Exception:
+                break
+            continue
+        meta = (dd.get("matches") or {}).get(str(mid)) or m
+        out.append(parsear(mid, meta, dd))
+    cerrar()
+    return out
