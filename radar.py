@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from rcommon import api, gasto
-from rmodelo import historial, analizar
+from rmodelo import historial, analizar, analizar_total
 import rvalue as rv
 import rwina as rw
 
@@ -25,13 +25,6 @@ SRIDS = set([
     "sr:tournament:18", "sr:tournament:23", "sr:tournament:34",
     "sr:tournament:35", "sr:tournament:37", "sr:tournament:238",
 ])
-TIPO = {
-    "corners": "team_corners",
-    "shots": "team_shots",
-    "sot": "team_shots_on_target",
-    "fouls": "team_fouls",
-    "goals": "team_goals",
-}
 NOM = {
     "corners": "córners",
     "cards": "tarjetas",
@@ -47,6 +40,10 @@ def hist(tid):
     if tid not in memo:
         memo[tid] = historial(tid)
     return memo[tid]
+
+
+def fl(n):
+    return str(n).replace(".", ",")
 
 
 def cuotas_af(fid):
@@ -72,7 +69,10 @@ def cuotas_af(fid):
                         c = float(v["odd"])
                     except Exception:
                         continue
-                    d = out.setdefault(("team_corners", lado, ln), {})
+                    if abs(ln % 1 - 0.5) > 0.001:
+                        continue
+                    k = ("eq", "corners", lado, ln, "over")
+                    d = out.setdefault(k, {})
                     if c > d.get(can, 0):
                         d[can] = c
     return out
@@ -85,6 +85,15 @@ def unir(a, b):
             if c > d.get(casa, 0):
                 d[casa] = c
     return a
+
+
+def desde_vo(eqv, totv):
+    cu = {}
+    for (stat, lado, ln, s), q in eqv.items():
+        cu[("eq", stat, lado, ln, s)] = dict(q)
+    for (stat, ln, s), q in totv.items():
+        cu[("tot", stat, "total", ln, s)] = dict(q)
+    return cu
 
 
 def buscar_wina(loc, vis, dt, lista):
@@ -109,8 +118,12 @@ def buscar_wina(loc, vis, dt, lista):
 
 
 def anadir_wina(cu, w):
-    for stat, lado, ln, c in w["equipo"]:
-        d = cu.setdefault((TIPO[stat], lado, ln), {})
+    for stat, lado, ln, c, s in w["equipo"]:
+        d = cu.setdefault(("eq", stat, lado, ln, s), {})
+        if c > d.get("Winamax", 0):
+            d["Winamax"] = c
+    for stat, ln, c, s in w["total"]:
+        d = cu.setdefault(("tot", stat, "total", ln, s), {})
         if c > d.get("Winamax", 0):
             d["Winamax"] = c
 
@@ -131,9 +144,8 @@ except Exception as e:
     print("winamax fallo general", repr(e)[:150])
     wm = []
 ne = sum(len(w["equipo"]) for w in wm)
-nj = sum(len(w["jugador"]) for w in wm)
-print("winamax:", len(wm), "partidos;", ne, "cuotas de equipo;",
-      nj, "de jugador")
+nt = sum(len(w["total"]) for w in wm)
+print("winamax:", len(wm), "partidos;", ne, "de equipo;", nt, "de totales")
 
 res = []
 sin_par = []
@@ -156,7 +168,8 @@ for lid, (pais, liga) in LIGAS.items():
             ruta = "/api/v1/fixtures/" + str(rv.idde(o))
             j = rv.vget(ruta + "/odds?format=compact")
             if j:
-                cu = rv.leer_cuotas(j)
+                eqv, totv, _ = rv.leer(j)
+                cu = desde_vo(eqv, totv)
                 con_vo += 1
         else:
             sin_par.append(loc["name"] + " v " + vis["name"])
@@ -171,29 +184,44 @@ for lid, (pais, liga) in LIGAS.items():
         hv = hist(vis["id"])
         if not hl or not hv:
             continue
-        for (tipo, lado, ln), q in sorted(cu.items()):
+        orden = sorted(cu.items(), key=lambda kv: str(kv[0]))
+        for (kind, stat, lado, ln, sent), q in orden:
             if max(q.values()) < 1.40:
                 continue
-            stat = rv.MERC[tipo]
-            es_local = lado == "home"
-            eq = loc if es_local else vis
-            h = hl if es_local else hv
-            ho = hv if es_local else hl
-            r = analizar(h, ho, stat, ln, es_local)
-            if r is None or r["hits"] < 0.7 * r["n"]:
-                continue
-            vals = [x2["pro"][stat] for x2 in h if stat in x2["pro"]]
-            serie = list(reversed(vals))[:10]
-            media = round(sum(vals) / len(vals), 2)
-            txt = eq["name"] + " +" + str(ln).replace(".", ",")
+            if kind == "eq":
+                es_local = lado == "home"
+                eqp = loc if es_local else vis
+                h = hl if es_local else hv
+                ho = hv if es_local else hl
+                r = analizar(h, ho, stat, ln, es_local, sent)
+                if r is None or r["hits"] < 0.7 * r["n"]:
+                    continue
+                vals = [y["pro"][stat] for y in h if stat in y["pro"]]
+                serie = list(reversed(vals))[:10]
+                media = round(sum(vals) / len(vals), 2)
+                nombre = eqp["name"]
+                tid = eqp["id"]
+                cond_txt = "local" if es_local else "visitante"
+            else:
+                r = analizar_total(hl, hv, stat, ln, sent)
+                if r is None:
+                    continue
+                serie = []
+                media = None
+                nombre = "Total del partido"
+                tid = None
+                cond_txt = "local y visitante"
+            frase = " +" if sent == "over" else " menos de "
+            suceso = nombre + frase + fl(ln) + " " + NOM[stat]
             res.append({
-                "tipo": "equipo",
+                "tipo": "equipo" if kind == "eq" else "total",
+                "sentido": sent,
                 "pais": pais,
                 "liga": liga,
                 "lid": lid,
                 "fixture": x["fixture"]["id"],
-                "equipo": eq["name"],
-                "tid": eq["id"],
+                "equipo": nombre,
+                "tid": tid,
                 "hid": loc["id"],
                 "aid": vis["id"],
                 "mercado": stat,
@@ -201,11 +229,11 @@ for lid, (pais, liga) in LIGAS.items():
                 "local": loc["name"],
                 "visitante": vis["name"],
                 "hora": dt.strftime("%d/%m %H:%M"),
-                "suceso": txt + " " + NOM[stat],
+                "suceso": suceso,
                 "l20": r["l20"],
                 "cond": r["cond"],
-                "condTxt": "local" if es_local else "visitante",
-                "rival": r["rival"],
+                "condTxt": cond_txt,
+                "rival": r.get("rival"),
                 "prob": r["prob"],
                 "serie": serie,
                 "media": media,
@@ -219,9 +247,15 @@ if res:
     json.dump(out, open("radar-data.json", "w"), ensure_ascii=False)
 else:
     print("Sin selecciones: no se toca radar-data.json")
+cnt = {}
+for c in res:
+    k = c["tipo"] + "_" + c["sentido"]
+    cnt[k] = cnt.get(k, 0) + 1
 print(len(res), "selecciones;", gasto[0], "peticiones API-Football")
+print("Por tipo:", cnt)
 print("Partidos con cuotas de valueodds:", con_vo)
 print("Partidos con cuotas de Winamax:", con_wi)
 print("Sin pareja en valueodds:", len(sin_par), sin_par[:6])
+print("Tarjetas omitidas (formato distinto):", rv.omitidas["tarjetas"])
 sa = sorted(rv.saltadas.items(), key=lambda kv: -kv[1])
 print("Casas sin afiliado:", sa[:20])
