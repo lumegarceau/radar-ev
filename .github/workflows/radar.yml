@@ -27,6 +27,13 @@ jobs:
         run: python radar.py
         env:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          LIMITE: "4200"
+      - name: Props de jugadores
+        run: python props.py
+        continue-on-error: true
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          LIMITE: "3000"
       - name: Guardar datos
         if: always()
         run: |
