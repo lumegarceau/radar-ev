@@ -83,13 +83,22 @@ def hist_jug(tid):
 def buscar(nombre, jug):
     full = norm(nombre)
     tok = full.split()
-    if len(tok) < 2:
+    if not tok:
+        return None
+    for pid, e in jug.items():
+        if norm(e["n"]) == full:
+            return pid
+    if len(tok) == 1:
+        a = []
+        for pid, e in jug.items():
+            if tok[0] in norm(e["n"]).split():
+                a.append(pid)
+        if len(a) == 1:
+            return a[0]
         return None
     k = (tok[0][0], tok[-1])
     a = []
     for pid, e in jug.items():
-        if norm(e["n"]) == full:
-            return pid
         if clave(e["n"]) == k:
             a.append(pid)
     if len(a) == 1:
