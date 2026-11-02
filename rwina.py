@@ -119,6 +119,37 @@ def pedir(ruta, clave, maximo=25):
     return datos
 
 
+def sube(v):
+    v = sorted(v)
+    for i in range(1, len(v)):
+        if v[i][1] < v[i - 1][1] - 0.0001:
+            return False
+    return True
+
+
+def limpiar(res):
+    g = {}
+    for t in res["equipo"]:
+        g.setdefault((t[0], t[1]), []).append(t)
+    malos = set()
+    for k, v in g.items():
+        if not sube([(x[2], x[3]) for x in v]):
+            malos.add(k)
+    res["equipo"] = [t for t in res["equipo"]
+                     if (t[0], t[1]) not in malos]
+    g = {}
+    for t in res["jugador"]:
+        g.setdefault((t[0], t[1]), []).append(t)
+    malosj = set()
+    for k, v in g.items():
+        if not sube([(x[4], x[5]) for x in v]):
+            malosj.add(k)
+    res["jugador"] = [t for t in res["jugador"]
+                      if (t[0], t[1]) not in malosj]
+    res["descartes"] = len(malos) + len(malosj)
+    return res
+
+
 def parsear(mid, meta, d):
     bets = d.get("bets", {})
     outs = d.get("outcomes", {})
@@ -135,6 +166,8 @@ def parsear(mid, meta, d):
             continue
         if b.get("available") is False:
             continue
+        if str(b.get("matchId")) != str(mid):
+            continue
         t = str(b.get("betTitle") or "").strip()
         for stat, pat in EQUIPO:
             m = re.match(pat, t)
@@ -146,6 +179,11 @@ def parsear(mid, meta, d):
                 continue
             for o in b.get("outcomes") or []:
                 x = outs.get(str(o)) or {}
+                if x.get("available") is False:
+                    continue
+                bx = x.get("betId")
+                if bx is not None and bx != b.get("betId"):
+                    continue
                 c = odds.get(str(o))
                 if not str(x.get("label", "")).startswith("Más de"):
                     continue
@@ -158,6 +196,11 @@ def parsear(mid, meta, d):
             n = int(m.group(1))
             for o in b.get("outcomes") or []:
                 x = outs.get(str(o)) or {}
+                if x.get("available") is False:
+                    continue
+                bx = x.get("betId")
+                if bx is not None and bx != b.get("betId"):
+                    continue
                 c = odds.get(str(o))
                 if not c:
                     continue
@@ -167,7 +210,7 @@ def parsear(mid, meta, d):
                 nom = str(x.get("label", "")).strip()
                 sr = x.get("srPlayerId")
                 res["jugador"].append((stat, nom, sr, lado, n, float(c)))
-    return res
+    return limpiar(res)
 
 
 def partidos(srids, desde, hasta):
@@ -191,6 +234,7 @@ def partidos(srids, desde, hasta):
         sel.append((mid, m))
     print("winamax: partidos de mis ligas", len(sel))
     out = []
+    desc = 0
     for i, (mid, m) in enumerate(sel):
         try:
             if i and i % 12 == 0:
@@ -204,6 +248,9 @@ def partidos(srids, desde, hasta):
                 break
             continue
         meta = (dd.get("matches") or {}).get(str(mid)) or m
-        out.append(parsear(mid, meta, dd))
+        r = parsear(mid, meta, dd)
+        desc += r.get("descartes", 0)
+        out.append(r)
     cerrar()
+    print("winamax: descartes por cuotas incoherentes:", desc)
     return out
