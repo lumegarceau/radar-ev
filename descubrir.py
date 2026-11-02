@@ -14,13 +14,6 @@ H = {
     "Origin": "https://www.winamax.es",
     "Referer": WEB,
 }
-FAM = {
-    "corners": r"(?i)c[oó]rner|esquina",
-    "tarjetas": r"(?i)tarjeta|amarill",
-    "faltas": r"(?i)falta",
-    "tiros": r"(?i)tiro|remate|disparo",
-    "entradas": r"(?i)entrada|tackle",
-}
 recibidos = []
 sio = socketio.Client()
 
@@ -48,97 +41,104 @@ def fusiona(m, datos):
 def pedir(ruta, espera=12):
     recibidos.clear()
     msg = {"route": ruta}
-    if ruta.startswith("tournament"):
+    if not ruta.startswith("match"):
         msg["requestId"] = str(uuid.uuid4())
     sio.emit("m", msg)
     time.sleep(espera)
     datos = {}
     for m in list(recibidos):
         fusiona(m, datos)
-    print("   mensajes:", len(recibidos))
-    res = {}
-    for k, v in datos.items():
-        if hasattr(v, "__len__"):
-            res[k] = len(v)
-    print("   claves:", res)
     return datos
-
-
-def titulo(b):
-    for k in ("betTitle", "title", "betTypeName", "betType", "name"):
-        v = b.get(k)
-        if isinstance(v, str) and v:
-            return v
-    return ""
-
-
-def texto(b):
-    t = titulo(b)
-    if t:
-        return t
-    s = json.dumps(b, ensure_ascii=False)
-    return s.replace("skillcorner", "")
 
 
 sio.connect(URL, socketio_path=PATH, transports=["websocket"],
             headers=H, wait_timeout=20)
-print("A) LALIGA (torneo 36)")
+
+print("A) TORNEOS DE FUTBOL")
+d = pedir("sport:1", 10)
+tor = d.get("tournaments", {})
+print("   claves:", {k: len(v) for k, v in d.items()
+                     if hasattr(v, "__len__")})
+buscados = ["laliga", "segunda", "premier", "championship",
+            "serie a", "ligue 1", "bundesliga", "eredivisie", "liga portugal"]
+for k, v in tor.items():
+    if not isinstance(v, dict):
+        continue
+    nom = str(v.get("title") or v.get("name"))
+    if any(x in nom.lower() for x in buscados):
+        print("  ", k, nom, "cat", v.get("categoryId"))
+cats = d.get("categories", {})
+for k, v in list(cats.items())[:5]:
+    print("   cat", k, json.dumps(v, ensure_ascii=False)[:150])
+
+print("")
+print("B) PARTIDO DE LALIGA")
 t = pedir("tournament:36")
 ms = t.get("matches", {})
-cand = []
-for mid, m in ms.items():
-    if isinstance(m, dict) and m.get("period") == "not_started":
-        cand.append(mid)
-if not cand:
-    cand = list(ms.keys())
-print("   partidos:", len(cand))
-for mid in cand[:3]:
-    print("  ", mid, json.dumps(ms[mid], ensure_ascii=False)[:450])
-if not cand:
-    sio.disconnect()
-    raise SystemExit
-
+cand = [k for k, m in ms.items()
+        if isinstance(m, dict) and m.get("period") == "not_started"]
 mid = cand[0]
-print("")
-print("B) PARTIDO", mid)
+m = ms[mid]
+print("   claves del partido:", sorted(m.keys()))
+for k in sorted(m.keys()):
+    if re.search(r"(?i)start|time|date|competitor|title", k):
+        print("     ", k, "=", m[k])
+
 d = pedir("match:" + str(mid), 15)
 bets = d.get("bets", {})
 outs = d.get("outcomes", {})
 odds = d.get("odds", {})
 lista = [b for b in bets.values() if isinstance(b, dict)]
-print("   mercados:", len(lista), "selecciones:", len(outs),
-      "cuotas:", len(odds))
-if lista:
-    print("   claves:", sorted(lista[0].keys()))
-    print("   ejemplo:", json.dumps(lista[0], ensure_ascii=False)[:600])
+print("   mercados:", len(lista))
+print("")
+print("C) JUGADORES (muestra)")
+pl = d.get("players", {})
+for k, v in list(pl.items())[:3]:
+    print("  ", k, json.dumps(v, ensure_ascii=False)[:300])
 
 
-def mostrar(b):
-    print("  ", titulo(b), "|", b.get("specialBetValue"),
-          "|", b.get("marketId"))
-    for o in (b.get("outcomes") or [])[:6]:
-        x = outs.get(str(o), {})
-        print("      ", x.get("label"), odds.get(str(o)), x.get("code"))
+def tit(b):
+    return str(b.get("betTitle") or b.get("betTypeName") or "")
+
+
+def crudo(b, n=5):
+    base = {k: v for k, v in b.items() if k != "outcomes"}
+    print("  BET", json.dumps(base, ensure_ascii=False)[:380])
+    for o in (b.get("outcomes") or [])[:n]:
+        x = json.dumps(outs.get(str(o)), ensure_ascii=False)
+        print("     ", o, x[:260], "| cuota", odds.get(str(o)))
 
 
 print("")
-print("C) FAMILIAS DE MERCADOS")
-for fam, pat in FAM.items():
-    hit = [b for b in lista if re.search(pat, texto(b))]
-    tit = sorted(set(titulo(b) for b in hit))
-    print(" ", fam, ":", len(hit), "mercados")
-    for x in tit[:10]:
-        print("     -", x)
+print("D) EJEMPLOS CRUDOS")
+objetivos = [
+    r"^Número de tiros por",
+    r"^Número de tiros a puerta por",
+    r"^Número exacto de córneres [A-Z]",
+    r"^Realiza 2 o más remates$",
+    r"^Realiza 2 o más remates a puerta$",
+    r"^Comete 2 o más faltas$",
+]
+for pat in objetivos:
+    hit = [b for b in lista if re.search(pat, tit(b))]
+    print(" PATRON", pat, "->", len(hit))
     if hit:
-        print("   ejemplo de", fam)
-        mostrar(hit[0])
-        if len(hit) > 3:
-            mostrar(hit[3])
+        crudo(hit[0])
 
 print("")
-print("D) TODOS LOS TITULOS")
-tt = sorted(set(titulo(b) for b in lista))
-print("  ", len(tt), "titulos distintos")
-for x in tt[:70]:
+print("E) PARADAS, FALTAS RECIBIDAS, ENTRADAS")
+pat = r"(?i)parad|portero|recibe|entrada|despej|fuera de juego"
+for x in sorted(set(tit(b) for b in lista if re.search(pat, tit(b)))):
     print("   -", x)
+
+print("")
+print("F) TODOS LOS TITULOS")
+tt = sorted(set(tit(b) for b in lista))
+linea = ""
+for x in tt:
+    if len(linea) + len(x) > 850:
+        print(linea)
+        linea = ""
+    linea += x + " ; "
+print(linea)
 sio.disconnect()
