@@ -8,8 +8,9 @@ function bnz(a){
   return bn(a.b);
 }
 function t5Html(){
+  var hoy=hoyS();
   var rows=R.data.filter(function(r){
-    return okT(r)&&r.vigente!==false&&enPer(fmd(r))&&cuo(r)>0;
+    return okT(r)&&r.vigente!==false&&enPer(fmd(r))&&fmd(r)<=hoy&&cuo(r)>0;
   });
   var D={};
   rows.forEach(function(r){
@@ -20,14 +21,14 @@ function t5Html(){
   if(!dias.length){
     return '<h2>Rendimiento de los Top 5</h2><div class="empty">Todavía no hay selecciones en este periodo.</div>';
   }
-  var A={p:acc(),e:acc(),t:acc()},fila=[];
+  var A={p:acc(),e:acc(),g:acc(),t:acc()},fila=[];
   dias.forEach(function(d){
     var L=D[d];
     var tp=top5(L,function(r){return r.prob});
     var te=top5(L,function(r){return r.prob*cuo(r)-1});
     var a1=acc(),a2=acc();
-    tp.forEach(function(r){suma(a1,r);suma(A.p,r)});
-    te.forEach(function(r){suma(a2,r);suma(A.e,r)});
+    tp.forEach(function(r){suma(a1,r);suma(A.p,r);suma(A.g,r)});
+    te.forEach(function(r){suma(a2,r);suma(A.e,r);suma(A.g,r)});
     L.forEach(function(r){suma(A.t,r)});
     fila.push([
       d.slice(8)+"/"+d.slice(5,7),
@@ -37,9 +38,15 @@ function t5Html(){
       bnz(a2)
     ]);
   });
+  var T=A.t;
   var h="<h2>Rendimiento de los Top 5</h2>";
-  h+=tabla(["Lista","G","P","N","Pte.","Acierto","Benef.","ROI"],[ln5("Top 5 prob.",A.p),ln5("Top 5 EV",A.e),ln5("Todas",A.t)]);
-  h+='<p class="upd">Pte. = pendientes de jugar o a revisar. Cada Top 5 se calcula al cierre del día, dentro del filtro elegido, con la cuota seleccionada arriba. Con pocos días el dato no es fiable.</p>';
+  h+=tabla(["Lista","G","P","N","Pte.","Acierto","Benef.","ROI"],[
+    ln5("Top 5 prob.",A.p),
+    ln5("Top 5 EV",A.e),
+    ln5("Global (prob. + EV)",A.g)
+  ]);
+  h+='<p class="upd">Global = las dos listas juntas: 10 selecciones por día (una selección que esté en las dos cuenta dos veces). Pte. = pendientes de jugar o a revisar. El día de hoy es provisional: el Top 5 se recalcula con cada pasada.</p>';
+  h+='<p class="upd">Referencia, todas las selecciones del periodo hasta hoy: '+T.g+' ganadas · '+T.p+' perdidas · '+T.n+' nulas · '+(T.pen+T.rev)+' pendientes · beneficio '+bn(T.b)+'.</p>';
   h+="<h2>Top 5 por día</h2>"+tabla(["Día","Prob.","Benef.","EV","Benef."],fila.slice(0,31));
   return h;
 }
