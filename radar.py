@@ -10,6 +10,8 @@ MAD = ZoneInfo("Europe/Madrid")
 TEMP = 2026
 DIAS = 3
 LIGAS = {
+    2: ("Europa", "Champions League"),
+    3: ("Europa", "Europa League"),
     140: ("España", "LaLiga"),
     141: ("España", "Segunda División"),
     39: ("Inglaterra", "Premier League"),
@@ -24,6 +26,7 @@ SRIDS = set([
     "sr:tournament:8", "sr:tournament:54", "sr:tournament:17",
     "sr:tournament:18", "sr:tournament:23", "sr:tournament:34",
     "sr:tournament:35", "sr:tournament:37", "sr:tournament:238",
+    "sr:tournament:7", "sr:tournament:679",
 ])
 NOM = {
     "corners": "córners",
@@ -194,7 +197,7 @@ for lid, (pais, liga) in LIGAS.items():
                 h = hl if es_local else hv
                 ho = hv if es_local else hl
                 r = analizar(h, ho, stat, ln, es_local, sent)
-                if r is None or r["hits"] < 0.7 * r["n"]:
+                if r is None:
                     continue
                 vals = [y["pro"][stat] for y in h if stat in y["pro"]]
                 serie = list(reversed(vals))[:10]
@@ -231,6 +234,7 @@ for lid, (pais, liga) in LIGAS.items():
                 "hora": dt.strftime("%d/%m %H:%M"),
                 "suceso": suceso,
                 "l20": r["l20"],
+                "l10": r.get("l10"),
                 "cond": r["cond"],
                 "condTxt": cond_txt,
                 "rival": r.get("rival"),
