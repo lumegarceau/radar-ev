@@ -165,6 +165,10 @@ def buscar(nombre, jug):
              and (set(t) <= set(u) or set(u) <= set(t))]
         if c:
             return unico(c)
+        unos = [p for p, u in items
+                if len(u) == 1 and len(u[0]) >= 4 and u[0] in t]
+        if len(unos) == 1:
+            return unos[0]
     ape = t[-1]
     cs = [(p, u) for p, u in items if u[-1] == ape]
     if len(cs) == 1:
@@ -218,4 +222,4 @@ def extras(juegos, stat):
         "minmed": round(mins / len(jj)),
         "por90": por90,
         "tit": tit,
-        }
+            }
