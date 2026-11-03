@@ -12,6 +12,8 @@ MAD = ZoneInfo("Europe/Madrid")
 TEMP = 2026
 DIAS = 3
 LIGAS = {
+    2: ("Europa", "Champions League"),
+    3: ("Europa", "Europa League"),
     140: ("España", "LaLiga"),
     141: ("España", "Segunda División"),
     39: ("Inglaterra", "Premier League"),
@@ -26,6 +28,7 @@ SRIDS = set([
     "sr:tournament:8", "sr:tournament:54", "sr:tournament:17",
     "sr:tournament:18", "sr:tournament:23", "sr:tournament:34",
     "sr:tournament:35", "sr:tournament:37", "sr:tournament:238",
+    "sr:tournament:7", "sr:tournament:679",
 ])
 NOM = {
     "shots": "remates",
@@ -221,6 +224,7 @@ for lid, (pais, liga) in LIGAS.items():
                 "hora": dt.strftime("%d/%m %H:%M"),
                 "suceso": suc,
                 "l20": str(r["hits"]) + "/" + str(r["N"]),
+                "l10": str(r["h10"]) + "/10",
                 "cond": str(r["hc"]) + "/" + str(r["nc"]),
                 "condTxt": "local" if es_local else "visitante",
                 "rival": None,
