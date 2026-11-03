@@ -54,12 +54,18 @@ function radar(){
   h+='<label>EV mínimo (%)<input id="fe" type="number" inputmode="decimal" value="'+S.minEv+'"></label>';
   h+='<label>Probabilidad mínima (%)<input id="fp" type="number" inputmode="decimal" value="'+S.minP+'"></label>';
   h+='<label>Cuota mínima<input id="fc" type="number" inputmode="decimal" step="0.01" value="'+S.minC+'"></label>';
-  h+='<label>Ordenar por<select id="fo">'+sel("prob","Probabilidad (mayor)")+sel("ev","EV (mayor)")+sel("cuota","Cuota (mayor)")+sel("cuota_asc","Cuota (menor)")+'</select></label></div>';
+  h+='<label>Orden dentro de cada partido<select id="fo">'+sel("prob","Probabilidad (mayor)")+sel("ev","EV (mayor)")+sel("cuota","Cuota (mayor)")+sel("cuota_asc","Cuota (menor)")+'</select></label></div>';
   var l=all.filter(function(c){
     return (S.minEv===""||c.ev*100>=+S.minEv)&&(S.minP===""||c.prob*100>=+S.minP)&&(S.minC===""||c.best.c>=+S.minC);
   });
   var key={prob:function(c){return -c.prob},ev:function(c){return -c.ev},cuota:function(c){return -c.best.c},cuota_asc:function(c){return c.best.c}}[S.ord];
-  l.sort(function(a,b){return key(a)-key(b)});
+  l.sort(function(a,b){
+    var d=(a.fin||0)-(b.fin||0);
+    if(d)return d;
+    var fa=String(a.fixture),fb=String(b.fixture);
+    if(fa!==fb)return fa<fb?-1:1;
+    return key(a)-key(b);
+  });
   var P={};
   l.forEach(function(c){P[c.pais]=P[c.pais]||{};(P[c.pais][c.liga]=P[c.pais][c.liga]||[]).push(c)});
   var ps=Object.keys(P).sort(function(a,b){var i=ORDER.indexOf(a),j=ORDER.indexOf(b);return (i<0?99:i)-(j<0?99:j)||a.localeCompare(b)});
