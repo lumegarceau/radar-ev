@@ -1,3 +1,4 @@
+import difflib
 import json
 import os
 from datetime import datetime, timedelta
@@ -10,6 +11,7 @@ MAD = ZoneInfo("Europe/Madrid")
 FH = "historial.json"
 NULAS = ("PST", "CANC", "ABD", "AWD", "WO")
 FIN = ("FT", "AET", "PEN")
+REV = ("jugador no encontrado", "sin datos del jugador", "sin alineacion")
 
 
 def alineacion(fid):
@@ -33,6 +35,23 @@ def alineacion(fid):
         return None
     json.dump(d, open(f, "w"))
     return d
+
+
+def sin_parecido(nombre, nombres):
+    t = set(x for x in rjug.norm(nombre).split() if len(x) >= 3)
+    if not t:
+        return False
+    for n in nombres:
+        u = set(rjug.norm(n).split())
+        if t & u:
+            return False
+        for a in t:
+            for b in u:
+                if len(a) >= 5 and len(b) >= 5:
+                    r = difflib.SequenceMatcher(None, a, b).ratio()
+                    if r >= 0.8:
+                        return False
+    return True
 
 
 def valor(r, fx, st, th, ta):
@@ -65,9 +84,7 @@ sel = H["sel"]
 ahora = datetime.now(MAD)
 pend = {}
 for k, r in sel.items():
-    rev = (r["estado"] == "revisar"
-           and r.get("motivo") in ("jugador no encontrado",
-                                   "sin datos del jugador"))
+    rev = r["estado"] == "revisar" and r.get("motivo") in REV
     if r["estado"] != "pendiente" and not rev:
         continue
     ini = datetime.fromisoformat(r["inicio"])
@@ -106,31 +123,59 @@ for fid, ks in pend.items():
         if r["tipo"] == "jugador":
             es_h = r["condTxt"] == "local"
             tid = th if es_h else ta
-            if al is None:
+            lista = pj.get(str(tid)) or []
+            xi = []
+            sb = []
+            nombres = [p["n"] for p in lista]
+            if al is not None:
+                xi = al["xi"].get(str(tid)) or []
+                sb = al["sub"].get(str(tid)) or []
+                nombres += [al["n"].get(str(i), "") for i in xi + sb]
+            if not nombres:
                 continue
-            xi = al["xi"].get(str(tid)) or []
-            sb = al["sub"].get(str(tid)) or []
             pid = r.get("pid")
+            pre = " " + str(lin) + "+ "
+            nombre = r["suceso"].rsplit(pre, 1)[0]
             if pid is None:
-                jug = {i: {"n": al["n"][str(i)]} for i in xi + sb}
-                pre = " " + str(lin) + "+ "
-                nombre = r["suceso"].rsplit(pre, 1)[0]
+                jug = {}
+                for p in lista:
+                    jug[p["id"]] = {"n": p["n"]}
+                for i in xi + sb:
+                    jug[i] = {"n": al["n"].get(str(i), "")}
                 pid = rjug.buscar(nombre, jug)
             if pid is None:
-                r["estado"] = "revisar"
-                r["motivo"] = "jugador no encontrado"
+                if sin_parecido(nombre, nombres):
+                    r["estado"] = "nula"
+                    r["motivo"] = "no convocado"
+                else:
+                    r["estado"] = "revisar"
+                    r["motivo"] = "jugador no encontrado"
                 continue
-            if pid not in xi:
-                r["estado"] = "nula"
-                r["motivo"] = "suplente" if pid in sb else "no convocado"
-                continue
-            lista = pj.get(str(tid)) or []
-            p = [y for y in lista if y["id"] == pid]
-            if not p:
+            p0 = [y for y in lista if y["id"] == pid]
+            if al is not None:
+                if pid not in xi:
+                    r["estado"] = "nula"
+                    r["motivo"] = "suplente" if pid in sb else "no convocado"
+                    continue
+            else:
+                if not p0:
+                    r["estado"] = "nula"
+                    r["motivo"] = "no convocado"
+                    continue
+                sub = p0[0].get("sub")
+                if sub is None:
+                    r["estado"] = "revisar"
+                    r["motivo"] = "sin alineacion"
+                    continue
+                if sub:
+                    r["estado"] = "nula"
+                    r["motivo"] = "suplente"
+                    continue
+            if not p0:
                 r["estado"] = "revisar"
                 r["motivo"] = "sin datos del jugador"
                 continue
-            v = p[0].get(r["mercado"])
+            v = p0[0].get(r["mercado"])
             if v is None:
                 continue
             gana = v >= lin
@@ -148,4 +193,8 @@ cuenta = {}
 for r in sel.values():
     cuenta[r["estado"]] = cuenta.get(r["estado"], 0) + 1
 print("estados:", cuenta)
+for r in sel.values():
+    if r["estado"] == "revisar":
+        print("A REVISAR:", r["suceso"], "|", r["local"], "v",
+              r["visitante"], "|", r.get("motivo"))
 print("peticiones API-Football:", gasto[0])
