@@ -12,24 +12,27 @@ NULAS = ("PST", "CANC", "ABD", "AWD", "WO")
 FIN = ("FT", "AET", "PEN")
 
 
-def titulares(fid, tid):
-    f = "cache/l" + str(fid) + ".json"
-    d = None
+def alineacion(fid):
+    f = "cache/L" + str(fid) + ".json"
     if os.path.exists(f):
-        d = json.load(open(f))
-    else:
-        r = api("/fixtures/lineups", fixture=fid)
-        if r:
-            d = {}
-            for t in r:
-                xi = t.get("startXI") or []
-                d[str(t["team"]["id"])] = [
-                    p["player"]["id"] for p in xi]
-            if len(d) == 2:
-                json.dump(d, open(f, "w"))
-    if not d:
+        return json.load(open(f))
+    r = api("/fixtures/lineups", fixture=fid)
+    if not r:
         return None
-    return d.get(str(tid))
+    d = {"xi": {}, "sub": {}, "n": {}}
+    for t in r:
+        tid = str(t["team"]["id"])
+        xi = t.get("startXI") or []
+        sb = t.get("substitutes") or []
+        d["xi"][tid] = [p["player"]["id"] for p in xi]
+        d["sub"][tid] = [p["player"]["id"] for p in sb]
+        for p in xi + sb:
+            d["n"][str(p["player"]["id"])] = p["player"]["name"]
+    ok = len(d["xi"]) == 2 and all(d["xi"].values())
+    if not ok:
+        return None
+    json.dump(d, open(f, "w"))
+    return d
 
 
 def valor(r, fx, st, th, ta):
@@ -62,7 +65,10 @@ sel = H["sel"]
 ahora = datetime.now(MAD)
 pend = {}
 for k, r in sel.items():
-    if r["estado"] != "pendiente":
+    rev = (r["estado"] == "revisar"
+           and r.get("motivo") in ("jugador no encontrado",
+                                   "sin datos del jugador"))
+    if r["estado"] != "pendiente" and not rev:
         continue
     ini = datetime.fromisoformat(r["inicio"])
     if ahora > ini + timedelta(hours=72):
@@ -92,30 +98,39 @@ for fid, ks in pend.items():
     hay_j = any(sel[k]["tipo"] == "jugador" for k in ks)
     st = rmodelo.stats(fid, True) if hay_e else {}
     pj = rjug.jugadores_fixture(fid, True) if hay_j else {}
+    al = alineacion(fid) if hay_j else None
     for k in ks:
         r = sel[k]
         sent = r.get("sentido") or "over"
         lin = r["linea"]
         if r["tipo"] == "jugador":
-            tid = th if r["condTxt"] == "local" else ta
-            lista = pj.get(str(tid)) or []
-            jug = {p["id"]: {"n": p["n"]} for p in lista}
-            pre = " " + str(lin) + "+ "
-            nombre = r["suceso"].rsplit(pre, 1)[0]
-            pid = rjug.buscar(nombre, jug)
+            es_h = r["condTxt"] == "local"
+            tid = th if es_h else ta
+            if al is None:
+                continue
+            xi = al["xi"].get(str(tid)) or []
+            sb = al["sub"].get(str(tid)) or []
+            pid = r.get("pid")
+            if pid is None:
+                jug = {i: {"n": al["n"][str(i)]} for i in xi + sb}
+                pre = " " + str(lin) + "+ "
+                nombre = r["suceso"].rsplit(pre, 1)[0]
+                pid = rjug.buscar(nombre, jug)
             if pid is None:
                 r["estado"] = "revisar"
                 r["motivo"] = "jugador no encontrado"
                 continue
-            xi = titulares(fid, tid)
-            if xi is None:
-                continue
             if pid not in xi:
                 r["estado"] = "nula"
-                r["motivo"] = "no titular"
+                r["motivo"] = "suplente" if pid in sb else "no convocado"
                 continue
-            p = [y for y in lista if y["id"] == pid][0]
-            v = p.get(r["mercado"])
+            lista = pj.get(str(tid)) or []
+            p = [y for y in lista if y["id"] == pid]
+            if not p:
+                r["estado"] = "revisar"
+                r["motivo"] = "sin datos del jugador"
+                continue
+            v = p[0].get(r["mercado"])
             if v is None:
                 continue
             gana = v >= lin
@@ -125,6 +140,7 @@ for fid, ks in pend.items():
                 continue
             gana = (v < lin) if sent == "under" else (v > lin)
         r["valor"] = v
+        r.pop("motivo", None)
         r["estado"] = "ganada" if gana else "perdida"
         r["resuelta"] = ahora.isoformat(timespec="minutes")
 json.dump(H, open(FH, "w"), ensure_ascii=False)
