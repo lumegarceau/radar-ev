@@ -193,11 +193,17 @@ def prob_jug(juegos, stat, n, es_local):
     cond = [g for g in jj if g["local"] == es_local][-10:]
     nc = len(cond)
     hc = sum(1 for g in cond if g[stat] >= n)
+    ult = jj[-10:]
+    h10 = sum(1 for g in ult if g[stat] >= n)
+    if len(ult) < 10 or h10 < 7:
+        return None
+    if nc and hc < 0.7 * nc:
+        return None
     p = hits / N
     if nc:
         w = nc / (nc + 10)
         p = ((1 - w) * p + w * hc / nc)
-    return {"N": N, "hits": hits, "hc": hc, "nc": nc,
+    return {"N": N, "hits": hits, "h10": h10, "hc": hc, "nc": nc,
             "prob": round(p, 3)}
 
 
