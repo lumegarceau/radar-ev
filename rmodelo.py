@@ -104,9 +104,18 @@ def analizar(h, hr, stat, linea, es_local, sentido="over"):
     if n < 14 or nr < 10:
         return None
     hits = tasa([v for _, v in a], linea, sentido)
+    umbral = 0.75 if sentido == "under" else 0.7
+    if hits < umbral * n:
+        return None
+    ult = [v for _, v in a][-10:]
+    h10 = tasa(ult, linea, sentido)
+    if len(ult) < 10 or h10 < 7:
+        return None
     cond = [v for lc, v in a if lc == es_local][-10:]
     nc = len(cond)
     hc = tasa(cond, linea, sentido)
+    if nc and hc < 0.7 * nc:
+        return None
     p = mezcla(hits, n, hc, nc)
     r20 = tasa(b, linea, sentido)
     r10 = tasa(b[-10:], linea, sentido)
@@ -118,6 +127,7 @@ def analizar(h, hr, stat, linea, es_local, sentido="over"):
         "n": n,
         "hits": hits,
         "l20": str(hits) + "/" + str(n),
+        "l10": str(h10) + "/" + str(len(ult)),
         "cond": str(hc) + "/" + str(nc),
         "rival": str(r20) + "/" + str(nr),
         "prob": round(pf, 3),
@@ -139,21 +149,31 @@ def analizar_total(hl, hv, stat, linea, sentido):
         return None
     ha = tasa([v for _, v in a], linea, sentido)
     hb = tasa([v for _, v in b], linea, sentido)
-    if ha < 0.7 * len(a) or hb < 0.7 * len(b):
+    if ha < 0.75 * len(a) or hb < 0.75 * len(b):
+        return None
+    ua = [v for _, v in a][-10:]
+    ub = [v for _, v in b][-10:]
+    h10a = tasa(ua, linea, sentido)
+    h10b = tasa(ub, linea, sentido)
+    if len(ua) < 10 or len(ub) < 10 or h10a < 7 or h10b < 7:
         return None
     ca = [v for lc, v in a if lc][-10:]
     cb = [v for lc, v in b if not lc][-10:]
     hca = tasa(ca, linea, sentido)
     hcb = tasa(cb, linea, sentido)
+    if (ca and hca < 0.7 * len(ca)) or (cb and hcb < 0.7 * len(cb)):
+        return None
     pa = mezcla(ha, len(a), hca, len(ca))
     pb = mezcla(hb, len(b), hcb, len(cb))
     l20 = "%d/%d y %d/%d" % (ha, len(a), hb, len(b))
     cond = "%d/%d y %d/%d" % (hca, len(ca), hcb, len(cb))
+    l10 = "%d/10 y %d/10" % (h10a, h10b)
     return {
         "n": len(a),
         "hits": ha,
         "l20": l20,
+        "l10": l10,
         "cond": cond,
         "rival": None,
         "prob": round((pa + pb) / 2, 3),
-        }
+    }
