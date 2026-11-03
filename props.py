@@ -51,6 +51,16 @@ def squad(tid):
     return sqm[tid]
 
 
+def bajas(fid):
+    out = {}
+    for i in api("/injuries", fixture=fid) or []:
+        p = i.get("player") or {}
+        if p.get("id") is None:
+            continue
+        out[p["id"]] = (p.get("type") or "", p.get("reason") or "")
+    return out
+
+
 def buscar_wina(loc, vis, dt, lista):
     mejor = None
     pm = 0
@@ -105,6 +115,8 @@ sin_v = set()
 con_u = set()
 n_part = 0
 n_vo = 0
+n_inj = 0
+omit_baja = 0
 for lid, (pais, liga) in LIGAS.items():
     fx = api("/fixtures", league=lid, season=TEMP, **rango) or []
     for x in fx:
@@ -125,6 +137,8 @@ for lid, (pais, liga) in LIGAS.items():
         if not w and not pv:
             continue
         n_part += 1
+        inj = bajas(x["fixture"]["id"])
+        n_inj += len(inj)
         jl, nl = hist(loc["id"])
         jv, nv = hist(vis["id"])
         cu = {}
@@ -171,6 +185,13 @@ for lid, (pais, liga) in LIGAS.items():
             con_u.add((eq["name"], pid))
             if stat == "saves" and e["pos"] != "G":
                 continue
+            duda = None
+            ib = inj.get(pid)
+            if ib:
+                if "Missing" in ib[0]:
+                    omit_baja += 1
+                    continue
+                duda = ib[1] or "en duda"
             r = rjug.prob_jug(e["g"], stat, n, es_local)
             if r is None or r["hits"] < 0.7 * r["N"]:
                 continue
@@ -192,6 +213,7 @@ for lid, (pais, liga) in LIGAS.items():
                 "pid": pid,
                 "num": num,
                 "pos": e["pos"],
+                "duda": duda,
                 "mercado": stat,
                 "linea": n,
                 "local": loc["name"],
@@ -232,6 +254,9 @@ for c in nuevos:
 print("pasada completa (con Winamax):", wina_ok)
 print("partidos con cuotas de jugador:", n_part)
 print("props de jugador:", len(nuevos), por)
+print("lesionados o sancionados detectados:", n_inj)
+print("props omitidos por baja confirmada:", omit_baja)
+print("props con duda:", sum(1 for c in nuevos if c.get("duda")))
 print("con dorsal:", sum(1 for c in nuevos if c.get("num")))
 print("cuotas de valueodds emparejadas:", n_vo)
 print("jugadores emparejados:", len(con_u))
