@@ -6,7 +6,7 @@ MAD = ZoneInfo("Europe/Madrid")
 FH = "historial.json"
 FR = "radar-data.json"
 CAMPOS = ["tid", "hid", "aid", "lid", "pid", "num", "pos", "serie",
-          "media", "minmed", "por90", "tit", "sentido"]
+          "media", "minmed", "por90", "tit", "sentido", "duda"]
 
 
 def cargar(f, vacio):
@@ -43,7 +43,7 @@ H = cargar(FH, {"meta": {}, "sel": {}})
 meta = H.setdefault("meta", {})
 sel = H.setdefault("sel", {})
 if meta.get("updated_at") == radar.get("updated_at"):
-    if meta.get("v") == 6:
+    if meta.get("v") == 7:
         print("sin cambios desde la ultima vez")
         raise SystemExit
 props_ok = bool(radar.get("props_ok"))
@@ -120,7 +120,7 @@ for k, r in sel.items():
     if not r["vigente"]:
         ocultas += 1
 meta["updated_at"] = radar.get("updated_at")
-meta["v"] = 6
+meta["v"] = 7
 json.dump(H, open(FH, "w"), ensure_ascii=False)
 print("pasada de props completa:", props_ok)
 print("selecciones nuevas:", nuevas, "| actualizadas:", act)
