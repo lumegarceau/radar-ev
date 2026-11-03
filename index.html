@@ -4,14 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
+<meta name="theme-color" content="#0f9d58">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Radar EV">
 <title>Radar EV · Apuestas de valor en fútbol</title>
-<link rel="stylesheet" href="style.css?v=13">
-<link rel="stylesheet" href="ficha.css?v=13">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="ficha.css?v=15">
 </head>
 <body>
 <div id="err"></div>
 <header><div class="wrap">
-<div class="top"><div class="logo">Radar <b>EV</b></div><div class="upd" id="upd"></div></div>
+<div class="top"><div class="logo">Radar <b>EV</b></div><button id="appbtn" onclick="abrirApp()">Descargar app</button><div class="upd" id="upd"></div></div>
 <nav role="tablist" id="nav"></nav>
 </div></header>
 <main class="wrap" id="app"></main>
@@ -21,21 +26,24 @@ Las cuotas pueden variar en cualquier momento. Si un jugador no sale de titular,
 <script>
 window.onerror=function(m,s,l){var e=document.getElementById("err");e.style.display="block";e.textContent="Error: "+m+" ("+String(s).split("/").pop()+":"+l+")"};
 </script>
-<script src="config.js?v=13"></script>
-<script src="data.js?v=13"></script>
-<script src="app1.js?v=13"></script>
-<script src="app2.js?v=13"></script>
-<script src="app3.js?v=13"></script>
-<script src="app4.js?v=13"></script>
-<script src="app5.js?v=13"></script>
-<script src="app6.js?v=13"></script>
-<script src="app7.js?v=13"></script>
-<script src="app8.js?v=13"></script>
-<script src="app9.js?v=13"></script>
-<script src="app10.js?v=13"></script>
-<script src="app11.js?v=13"></script>
-<script src="app12.js?v=13"></script>
-<script src="app13.js?v=13"></script>
-<script src="app14.js?v=13"></script>
+<script src="config.js?v=15"></script>
+<script src="data.js?v=15"></script>
+<script src="app1.js?v=15"></script>
+<script src="app2.js?v=15"></script>
+<script src="app3.js?v=15"></script>
+<script src="app4.js?v=15"></script>
+<script src="app5.js?v=15"></script>
+<script src="app6.js?v=15"></script>
+<script src="app7.js?v=15"></script>
+<script src="app8.js?v=15"></script>
+<script src="app9.js?v=15"></script>
+<script src="app10.js?v=15"></script>
+<script src="app11.js?v=15"></script>
+<script src="app12.js?v=15"></script>
+<script src="app13.js?v=15"></script>
+<script src="app14.js?v=15"></script>
+<script src="app15.js?v=15"></script>
+<script src="app16.js?v=15"></script>
+<script src="app17.js?v=15"></script>
 </body>
 </html>
