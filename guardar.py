@@ -63,6 +63,7 @@ for c in radar["days"][-1]["candidatos"]:
     extra = {
         "hora": c.get("hora"),
         "l20": c.get("l20"),
+        "l10": c.get("l10"),
         "cond": c.get("cond"),
         "rival": c.get("rival"),
         "cuotas": c["cuotas"],
