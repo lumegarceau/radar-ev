@@ -21,11 +21,24 @@ VARIANTES = {
     "zach": "zachary", "mo": "mohamed", "mohammed": "mohamed",
     "muhammad": "mohamed", "mohammad": "mohamed",
 }
+ESPECIAL = str.maketrans({
+    "ø": "o", "đ": "d", "ł": "l", "ß": "ss", "æ": "ae", "œ": "oe",
+    "ı": "i", "ð": "d", "þ": "th",
+})
+
+
+def arreglar(s):
+    if "Ã" in s or "Ä" in s or "Å" in s:
+        try:
+            return s.encode("latin-1").decode("utf-8")
+        except Exception:
+            return s
+    return s
 
 
 def norm(s):
-    s = html.unescape(str(s or ""))
-    s = unicodedata.normalize("NFD", s.lower())
+    s = arreglar(html.unescape(str(s or "")))
+    s = unicodedata.normalize("NFD", s.lower().translate(ESPECIAL))
     s = "".join(c for c in s if c.isalnum() or c == " ")
     return " ".join(s.split())
 
@@ -161,6 +174,12 @@ def buscar(nombre, jug):
     if c:
         return unico(c)
     if len(t) >= 2:
+        k = "".join(t[1:])
+        if len(k) >= 4:
+            c = [p for p, u in items if len(u) >= 2
+                 and "".join(u[1:]) == k and compat(t[0], u[0])]
+            if c:
+                return unico(c)
         c = [p for p, u in items if len(u) >= 2
              and (set(t) <= set(u) or set(u) <= set(t))]
         if c:
@@ -181,6 +200,10 @@ def buscar(nombre, jug):
     elif len(cs) > 1 and len(t) > 1:
         c = [p for p, u in cs if len(u) > 1 and compat(t[0], u[0])]
         return unico(c)
+    if len(t) == 1 and len(t[0]) >= 5:
+        c = [p for p, u in items if len(u) >= 2 and u[0] == t[0]]
+        if len(c) == 1:
+            return c[0]
     return None
 
 
@@ -228,4 +251,4 @@ def extras(juegos, stat):
         "minmed": round(mins / len(jj)),
         "por90": por90,
         "tit": tit,
-            }
+        }
