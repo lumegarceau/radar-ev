@@ -155,6 +155,23 @@ def compat(f1, f2):
     return difflib.SequenceMatcher(None, f1, f2).ratio() >= 0.75
 
 
+def inic(t, u):
+    com = [w for w in t if len(w) >= 4 and w in u]
+    if len(com) != 1:
+        return False
+    w = com[0]
+    rt = list(t)
+    ru = list(u)
+    rt.remove(w)
+    ru.remove(w)
+    if not rt or not ru:
+        return False
+    if not all(len(x) == 1 for x in ru):
+        return False
+    letras = set(x[0] for x in rt)
+    return any(x in letras for x in ru)
+
+
 def buscar(nombre, jug):
     full = norm(nombre)
     if not full:
@@ -180,6 +197,10 @@ def buscar(nombre, jug):
                  and "".join(u[1:]) == k and compat(t[0], u[0])]
             if c:
                 return unico(c)
+        c = [p for p, u in items if len(u) >= 2
+             and (inic(t, u) or inic(u, t))]
+        if c:
+            return unico(c)
         c = [p for p, u in items if len(u) >= 2
              and (set(t) <= set(u) or set(u) <= set(t))]
         if c:
@@ -251,4 +272,4 @@ def extras(juegos, stat):
         "minmed": round(mins / len(jj)),
         "por90": por90,
         "tit": tit,
-        }
+            }
