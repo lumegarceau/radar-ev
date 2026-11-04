@@ -43,4 +43,12 @@ with sync_playwright() as pw:
         try:
             print(pg.evaluate(JS_CLICK, p))
             pg.wait_for_timeout(6000)
-            print("pestanas:", pg.evaluate
+            print("pestanas:", pg.evaluate(JS_SEL))
+            t = pg.inner_text("body")
+            z = zona(t).replace("\n", " | ")
+            print("TEXTO (3500 car.):")
+            print(z[:3500])
+        except Exception as e:
+            print("fallo", repr(e)[:300])
+    br.close()
+print("fin")
