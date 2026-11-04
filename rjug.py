@@ -112,6 +112,11 @@ def plantilla(tid):
     return p
 
 
+def amistoso(x):
+    n = str((x.get("league") or {}).get("name") or "").lower()
+    return "friendl" in n or "amistos" in n
+
+
 def hist_jug(tid):
     jug = {}
     usados = 0
@@ -121,6 +126,8 @@ def hist_jug(tid):
         if usados >= 20:
             break
         if x["fixture"]["status"]["short"] not in ("FT", "AET", "PEN"):
+            continue
+        if amistoso(x):
             continue
         fid = x["fixture"]["id"]
         viejo = x["fixture"]["date"][:10] < CORTE
@@ -272,4 +279,4 @@ def extras(juegos, stat):
         "minmed": round(mins / len(jj)),
         "por90": por90,
         "tit": tit,
-            }
+    }
