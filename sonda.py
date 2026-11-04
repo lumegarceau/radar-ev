@@ -6,6 +6,16 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 BASE = "https://betway.es"
 CLAVES = re.compile(r"c[oó]rner|esquina|tarjeta|remate|tiros|faltas", re.I)
+BETFAIR = [
+    "https://www.betfair.com/sport/football",
+    "https://www.betfair.it/sport/football",
+    "https://www.betfair.de/sport/football",
+    "https://www.betfair.ro/sport/football",
+    "https://www.betfair.com.au/",
+    "https://www.betfair.dk/",
+    "https://www.betfair.se/",
+    "https://www.betfair.com/exchange/plus/football",
+]
 jsons = []
 frames = []
 
@@ -31,6 +41,20 @@ def ws(w):
 
 with sync_playwright() as pw:
     br = pw.chromium.launch()
+    print("=== BETFAIR en otros paises ===")
+    for u in BETFAIR:
+        c = br.new_context(user_agent=UA, locale="es-ES",
+                           viewport={"width": 1366, "height": 900})
+        p = c.new_page()
+        try:
+            r = p.goto(u, timeout=40000, wait_until="domcontentloaded")
+            p.wait_for_timeout(4000)
+            t = p.inner_text("body")[:160].replace("\n", " | ")
+            print(u, "->", r.status if r else None, "|", t)
+        except Exception as e:
+            print(u, "fallo", repr(e)[:120])
+        c.close()
+    print("\n=== BETWAY ===")
     ctx = br.new_context(user_agent=UA, locale="es-ES",
                          timezone_id="Europe/Madrid",
                          viewport={"width": 1366, "height": 900})
