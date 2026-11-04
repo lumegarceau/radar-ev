@@ -28,14 +28,7 @@
     var h=r0();
     if(R.data===null)return h;
     var all=R.data;
-    var pub=pickRep(all.filter(function(r){return r.vigente!==false&&cuo(r)>0}));
-    var D={};
-    all.filter(function(r){return r.vigente!==false&&cuo(r)>0}).forEach(function(r){(D[fmd(r)]=D[fmd(r)]||[]).push(r)});
-    Object.keys(D).forEach(function(d){
-      var a=D[d];
-      a.slice().sort(function(x,y){return y.prob-x.prob}).slice(0,5).forEach(function(r){pub[kf(r)]=1});
-      a.slice().sort(function(x,y){return (y.prob*cuo(y))-(x.prob*cuo(x))}).slice(0,5).forEach(function(r){pub[kf(r)]=1});
-    });
+    var pub=pubSet(all);
     var L=all.filter(function(r){
       if(!pub[kf(r)]||!enPer(fmd(r))||cuo(r)<=0)return false;
       return (RF.minP===""||r.prob*100>=+RF.minP)&&(RF.minEv===""||evR(r)>=+RF.minEv);
