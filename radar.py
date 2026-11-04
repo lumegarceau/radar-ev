@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from rcommon import api, gasto
-from rmodelo import historial, analizar, analizar_total
+from rmodelo import historial, analizar, analizar_total, tot_vals
 import rvalue as rv
 import rwina as rw
 import rnivel
@@ -210,6 +210,8 @@ for lid, (pais, liga) in LIGAS.items():
                 nombre = eqp["name"]
                 tid = eqp["id"]
                 cond_txt = "local" if es_local else "visitante"
+                serie_l = None
+                serie_v = None
             else:
                 r = analizar_total(hl, hv, stat, ln, sent)
                 if r is None:
@@ -219,6 +221,10 @@ for lid, (pais, liga) in LIGAS.items():
                 nombre = "Total del partido"
                 tid = None
                 cond_txt = "local y visitante"
+                vl = [v for _, v in tot_vals(hl, stat)]
+                vv = [v for _, v in tot_vals(hv, stat)]
+                serie_l = list(reversed(vl))[:10]
+                serie_v = list(reversed(vv))[:10]
             frase = " +" if sent == "over" else " menos de "
             suceso = nombre + frase + fl(ln) + " " + NOM[stat]
             res.append({
@@ -245,6 +251,8 @@ for lid, (pais, liga) in LIGAS.items():
                 "rival": r.get("rival"),
                 "prob": r["prob"],
                 "serie": serie,
+                "serieL": serie_l,
+                "serieV": serie_v,
                 "media": media,
                 "cuotas": [{"b": b, "c": c} for b, c in q.items()],
             })
