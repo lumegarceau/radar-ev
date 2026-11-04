@@ -5,6 +5,7 @@ from rcommon import api, gasto
 from rmodelo import historial, analizar, analizar_total
 import rvalue as rv
 import rwina as rw
+import rnivel
 
 MAD = ZoneInfo("Europe/Madrid")
 TEMP = 2026
@@ -194,6 +195,10 @@ for lid, (pais, liga) in LIGAS.items():
             if kind == "eq":
                 es_local = lado == "home"
                 eqp = loc if es_local else vis
+                riv = vis if es_local else loc
+                if lid in (2, 3) and rnivel.bloquea(
+                        eqp["id"], riv["id"], stat, sent):
+                    continue
                 h = hl if es_local else hv
                 ho = hv if es_local else hl
                 r = analizar(h, ho, stat, ln, es_local, sent)
@@ -257,6 +262,7 @@ for c in res:
     cnt[k] = cnt.get(k, 0) + 1
 print(len(res), "selecciones;", gasto[0], "peticiones API-Football")
 print("Por tipo:", cnt)
+print("Descartadas por nivel de liga:", rnivel.bloqueadas[0])
 print("Partidos con cuotas de valueodds:", con_vo)
 print("Partidos con cuotas de Winamax:", con_wi)
 print("Sin pareja en valueodds:", len(sin_par), sin_par[:6])
