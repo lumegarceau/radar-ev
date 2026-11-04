@@ -1,88 +1,87 @@
 import json
 import re
-import sys
-import time
-import urllib.request
 from playwright.sync_api import sync_playwright
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
-SITIOS = {
-    "Betfair": [
-        "https://www.betfair.es/sport/football",
-        "https://www.betfair.es/sport",
-    ],
-    "Betway": [
-        "https://betway.es/es/sports/cpn/soccer/1",
-        "https://betway.es/es/sports",
-        "https://betway.es/",
-    ],
-}
-CLAVES = re.compile(
-    r"c[oó]rner|esquina|corner|tarjeta|card|remate|tiros|shots|faltas",
-    re.I)
+BASE = "https://betway.es"
+CLAVES = re.compile(r"c[oó]rner|esquina|tarjeta|remate|tiros|faltas", re.I)
+jsons = []
+frames = []
 
 
-def http(url):
+def resp(r):
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": UA})
-        r = urllib.request.urlopen(req, timeout=20)
-        t = r.read(4000).decode("utf-8", "ignore")
-        return r.status, t[:150].replace("\n", " ")
-    except Exception as e:
-        return "ERR", repr(e)[:150]
+        if "json" not in r.headers.get("content-type", ""):
+            return
+        if "betway.es" not in r.url:
+            return
+        jsons.append((r.url, r.text()))
+    except Exception:
+        pass
 
 
-def sonda(pw, nombre, urls):
-    print("=" * 60)
-    print(nombre)
-    for u in urls:
-        print("HTTP directo", u, http(u))
+def ws(w):
+    print("WEBSOCKET", w.url[:150])
+
+    def rec(d):
+        frames.append(str(d)[:600])
+    w.on("framereceived", rec)
+
+
+with sync_playwright() as pw:
     br = pw.chromium.launch()
     ctx = br.new_context(user_agent=UA, locale="es-ES",
                          timezone_id="Europe/Madrid",
                          viewport={"width": 1366, "height": 900})
     pg = ctx.new_page()
-    vistos = []
-
-    def resp(r):
-        try:
-            ct = r.headers.get("content-type", "")
-            if "json" not in ct:
-                return
-            cuerpo = r.text()
-            vistos.append((r.url, r.status, len(cuerpo),
-                           bool(CLAVES.search(cuerpo)), cuerpo[:120]))
-        except Exception:
-            pass
-
     pg.on("response", resp)
-    for u in urls:
-        try:
-            r = pg.goto(u, timeout=45000, wait_until="domcontentloaded")
-            pg.wait_for_timeout(9000)
-            print("NAVEGADOR", u, "->", r.status if r else None,
-                  pg.url[:100])
-            print("titulo:", pg.title()[:100])
-            txt = pg.inner_text("body")[:300].replace("\n", " | ")
-            print("texto:", txt)
-            if r and r.status == 200 and len(vistos) > 3:
+    pg.on("websocket", ws)
+    pg.goto(BASE + "/es/sports/cpn/soccer/1", timeout=60000,
+            wait_until="domcontentloaded")
+    pg.wait_for_timeout(12000)
+    print("URL:", pg.url, "|", pg.title()[:80])
+    print("\n--- ENLACES de la pagina (primeros 40) ---")
+    hrefs = pg.eval_on_selector_all(
+        "a[href]", "e=>e.map(x=>x.getAttribute('href'))")
+    vistos = []
+    for h in hrefs:
+        if h and "/sports" in h and h not in vistos:
+            vistos.append(h)
+    for h in vistos[:40]:
+        print(h)
+    print("\n--- JSON de getGroup (completo, hasta 2500 caracteres) ---")
+    n = 0
+    for u, t in jsons:
+        if "getGroup" in u and n < 2:
+            n += 1
+            print(u)
+            print(t[:2500])
+    print("\n--- Texto visible de la pagina ---")
+    print(pg.inner_text("body")[:1500].replace("\n", " | "))
+    ev = [h for h in vistos if re.search(r"/event|/evt|/match|/e/", h)]
+    print("\nENLACES que parecen partido:", ev[:10])
+    if ev:
+        jsons.clear()
+        frames.clear()
+        u = ev[0]
+        if u.startswith("/"):
+            u = BASE + u
+        pg.goto(u, timeout=60000, wait_until="domcontentloaded")
+        pg.wait_for_timeout(12000)
+        print("\n=== PARTIDO:", pg.url, "|", pg.title()[:80])
+        print(pg.inner_text("body")[:2500].replace("\n", " | "))
+        print("\n--- JSON con mercados ---")
+        for u2, t in jsons:
+            tag = "MERCADOS" if CLAVES.search(t) else "-"
+            print(tag, len(t), u2[:150])
+            if tag == "MERCADOS":
+                m = CLAVES.search(t)
+                a = max(0, m.start() - 400)
+                print("   ...", t[a:a + 1200])
                 break
-        except Exception as e:
-            print("fallo", u, repr(e)[:200])
-    print("JSON recibidos:", len(vistos))
-    vistos.sort(key=lambda v: (not v[3], -v[2]))
-    for v in vistos[:25]:
-        print(" ", "MERCADOS" if v[3] else "-", v[1], v[2], v[0][:140])
-        if v[3]:
-            print("     ", v[4])
+        print("\n--- Mensajes websocket (primeros 12) ---")
+        for f in frames[:12]:
+            print(f)
     br.close()
-
-
-with sync_playwright() as pw:
-    for n, u in SITIOS.items():
-        try:
-            sonda(pw, n, u)
-        except Exception as e:
-            print(n, "fallo general", repr(e)[:200])
 print("fin")
