@@ -4,6 +4,13 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 EVT = "https://betway.es/es/es/sports/evt/17397080"
 PESTANAS = ["corners", "players", "other", "goals", "half"]
+JS_CLICK = (
+    "p=>{const e=document.querySelector('li[data-testid=\"'+p+'\"]');"
+    "if(!e)return 'no existe';e.click();return 'click por JS'}")
+JS_SEL = (
+    "()=>Array.from(document.querySelectorAll('li[role=tab]'))"
+    ".map(e=>e.dataset.testid+':'+e.getAttribute('aria-selected'))"
+    ".join(' ')")
 
 
 def zona(t):
@@ -34,10 +41,6 @@ with sync_playwright() as pw:
         print("\n" + "=" * 50)
         print("PESTANA:", p)
         try:
-            ok = pg.evaluate(
-                "p=>{const e=document.querySelector('li[data-testid=\"'+p"
-                "+'\"]');if(!e)return 'no existe';e.click();return "
-                "'click por JS'}", p)
-            print(ok)
+            print(pg.evaluate(JS_CLICK, p))
             pg.wait_for_timeout(6000)
-            sel = pg.evalu
+            print("pestanas:", pg.evaluate
