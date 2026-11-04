@@ -71,6 +71,9 @@ for c in radar["days"][-1]["candidatos"]:
         "aus": 0,
         "vigente": True,
     }
+    qs = sorted([o["c"] for o in c["cuotas"]], reverse=True)
+    if len(qs) > 1 and qs[0] > 1.25 * qs[1]:
+        extra["err"] = True
     for campo in CAMPOS:
         extra[campo] = c.get(campo)
     r = sel.get(k)
