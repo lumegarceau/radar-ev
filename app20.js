@@ -178,14 +178,35 @@ function pickRep(rows){
   Object.keys(G).forEach(function(k){S2[kf(G[k].c)]=1});
   return S2;
 }
+function top5g(rows,key){
+  var s=rows.slice().sort(function(a,b){return key(b)-key(a)}),seen={},out=[];
+  for(var i=0;i<s.length;i++){
+    var g=grp(s[i]);
+    if(seen[g])continue;
+    seen[g]=1;
+    out.push(s[i]);
+    if(out.length===5)break;
+  }
+  return out;
+}
+function pubSet(all){
+  var pool=all.filter(function(r){return r.vigente!==false&&cuo(r)>0});
+  var pub=pickRep(pool),D={};
+  pool.forEach(function(r){(D[fmd(r)]=D[fmd(r)]||[]).push(r)});
+  Object.keys(D).forEach(function(d){
+    top5g(D[d],function(r){return r.prob}).forEach(function(r){pub[kf(r)]=1});
+    top5g(D[d],function(r){return r.prob*cuo(r)}).forEach(function(r){pub[kf(r)]=1});
+  });
+  return pub;
+}
 function radar19(){
   var h=diasTabs();
   var all=S.data.filter(function(c){return c.dia===S.dia});
   h+="<h2>"+cap(fl(S.dia,{weekday:"long",day:"numeric",month:"long",year:"numeric"}))+"</h2>";
   if(!all.length)return h+'<div class="empty">No hay selecciones para este día.</div>';
   var rep=pickRep(all);
-  var tp=all.slice().sort(function(a,b){return b.prob-a.prob}).slice(0,5);
-  var te=all.slice().sort(function(a,b){return b.ev-a.ev}).slice(0,5);
+  var tp=top5g(all,function(c){return c.prob});
+  var te=top5g(all,function(c){return c.ev});
   h+='<div class="tops">';
   h+=topBox("Top 5 probabilidad",tp,function(c){return '<span class="v">'+pc(c.prob)+'</span>'});
   h+=topBox("Top 5 EV",te,function(c){return '<span class="v '+(c.ev>=0?"pos":"neg")+'">'+evt(c)+'</span>'});
@@ -215,6 +236,67 @@ function radar19(){
   S.keys=[];
   if(!ps.length)return h+'<div class="empty">Ninguna selección cumple esos filtros.</div>';
   h+='<div class="chips"><button onclick="abre(1)">Abrir todo</button><button onclick="abre(0)">Cerrar todo</button></div>';
+  ps.forEach(function(p){
+    var ls=Object.keys(P[p]).sort(function(a,b){var i=LIGAS.indexOf(a),j=LIGAS.indexOf(b);return (i<0?99:i)-(j<0?99:j)});
+    var n=0;
+    ls.forEach(function(lg){Object.keys(P[p][lg]).forEach(function(f){n+=P[p][lg][f].length})});
+    var kp="p|"+p;
+    S.keys.push(kp);
+    h+='<details class="pa" data-k="'+esc(kp)+'"'+(S.open[kp]?" open":"")+'><summary><span>'+(FLAG[p]||"🌍")+' '+esc(p)+'</span><span class="ct">'+n+'</span></summary>';
+    ls.forEach(function(lg){
+      var kl="l|"+p+"|"+lg;
+      S.keys.push(kl);
+      var fx=Object.keys(P[p][lg]).sort(function(a,b){
+        return (P[p][lg][a][0].fin||0)-(P[p][lg][b][0].fin||0)||(a<b?-1:1);
+      });
+      var m=0;
+      fx.forEach(function(f){m+=P[p][lg][f].length});
+      h+='<details class="lg" data-k="'+esc(kl)+'"'+(S.open[kl]?" open":"")+'><summary><span>'+esc(lg)+'</span><span class="ct">'+m+'</span></summary><div class="lgb">'+fx.map(function(f){return partidoHtml(P[p][lg][f])}).join("")+'</div></details>';
+    });
+    h+='</details>';
+  });
+  return qm(h);
+}
+var RF={minP:"",minEv:""};
+function rF(k,v){RF[k]=v;draw()}
+function esErr(r){
+  if(r.err)return true;
+  var q=(r.cuotas||[]).map(function(o){return o.c}).sort(function(a,b){return b-a});
+  return q.length>1&&q[0]/q[1]-1>0.25;
+}
+(function(){
+  var r0=resultados;
+  resultados=function(){
+    if(R.data===null)return r0();
+    var all=R.data;
+    var pub=pubSet(all);
+    var okF=function(r){
+      var ev=(r.prob*cuo(r)-1)*100;
+      return (RF.minP===""||r.prob*100>=+RF.minP)&&(RF.minEv===""||ev>=+RF.minEv);
+    };
+    R.data=all.filter(function(r){return pub[kf(r)]&&okF(r)});
+    var h,lista;
+    try{
+      h=r0();
+      lista=all.filter(function(r){return enPer(fmd(r))&&okF(r)});
+    }finally{R.data=all}
+    var f='<div class="fres"><label>Probabilidad mínima (%)<input type="number" inputmode="decimal" value="'+RF.minP+'" onchange="rF(\'minP\',this.value)"></label>';
+    f+='<label>EV mínimo (%)<input type="number" inputmode="decimal" value="'+RF.minEv+'" onchange="rF(\'minEv\',this.value)"></label></div>';
+    if(RF.minP!==""||RF.minEv!=="")f+='<div class="upd">Filtro activo: se cuentan solo las selecciones con esa probabilidad y ese EV (según la cuota elegida abajo).</div>';
+    f+='<div class="upd">Se cuentan las líneas publicadas en los partidos (la más cercana a 1,83) y las que salieron en los Top 5 del día.</div>';
+    var e=acc(),o=acc();
+    lista.forEach(function(r){suma(esErr(r)?e:o,r)});
+    var t='<h2>Errores de cuota</h2><div class="upd">Selecciones donde la mejor cuota superó en más de un 25 % a la segunda.</div>';
+    function fila(n,a){
+      var res=a.g+a.p;
+      return [n,a.g,a.p,a.n,pct(a.g,res),bn(a.b),res?Math.round(a.b*100/res)+"%":"-"];
+    }
+    t+=tabla(["Grupo","G","P","N","Acierto","Benef.","ROI"],[fila("Con error de cuota",e),fila("Resto",o)]);
+    t+='<div class="upd">'+e.pen+' pendientes con error de cuota. Con pocas resueltas, el dato aún no es fiable.</div>';
+    return f+h+t;
+  };
+})();
+if(S.data.length)draw();s"><button onclick="abre(1)">Abrir todo</button><button onclick="abre(0)">Cerrar todo</button></div>';
   ps.forEach(function(p){
     var ls=Object.keys(P[p]).sort(function(a,b){var i=LIGAS.indexOf(a),j=LIGAS.indexOf(b);return (i<0?99:i)-(j<0?99:j)});
     var n=0;
