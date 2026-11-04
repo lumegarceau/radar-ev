@@ -1,50 +1,57 @@
+import json
 import re
 from playwright.sync_api import sync_playwright
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 BASE = "https://betway.es"
+LIGA = BASE + "/es/es/sports/grp/soccer/spain/la-liga"
 CLAVES = re.compile(r"c[oó]rner|esquina|tarjeta|remate|tiros|faltas", re.I)
-jsons = []
-frames = []
+reqs = []
+resps = []
 
 
-def resp(r):
+def on_req(r):
+    if "betway" in r.url and r.resource_type in ("xhr", "fetch"):
+        reqs.append((r.method, r.url, (r.post_data or "")[:300]))
+
+
+def on_resp(r):
     try:
-        if "json" not in r.headers.get("content-type", ""):
+        if "betway" not in r.url or r.request.resource_type not in (
+                "xhr", "fetch"):
             return
-        if "betway" not in r.url:
-            return
-        jsons.append((r.url, r.text()))
+        resps.append((r.url, r.status, r.text()))
     except Exception:
         pass
 
 
-def ws(w):
-    print("WEBSOCKET", w.url[:150])
-
-    def rec(d):
-        frames.append(str(d)[:500])
-    w.on("framereceived", rec)
+def espera(pg, ms):
+    pg.wait_for_timeout(ms)
 
 
-def enlaces(pg):
-    hs = pg.eval_on_selector_all(
-        "a[href]", "e=>e.map(x=>x.getAttribute('href'))")
-    out = []
-    for h in hs:
-        if h and h not in out:
-            out.append(h)
-    return out
-
-
-def ir(pg, u, esp=10000):
-    if u.startswith("/"):
-        u = BASE + u
-    pg.goto(u, timeout=60000, wait_until="domcontentloaded")
-    pg.wait_for_timeout(esp)
-    print("\n>>> URL:", pg.url, "|", pg.title()[:60])
-    print("texto:", pg.inner_text("body")[:400].replace("\n", " | "))
+def resumen(titulo):
+    print("\n---", titulo, "---")
+    print("peticiones internas:", len(reqs))
+    vistos = set()
+    for m, u, d in reqs:
+        k = (m, u.split("?")[0])
+        if k in vistos:
+            continue
+        vistos.add(k)
+        print(" ", m, u[:150])
+        if d:
+            print("     POST:", d)
+    print("respuestas con mercados:")
+    for u, s, t in resps:
+        m = CLAVES.search(t)
+        if m:
+            a = max(0, m.start() - 300)
+            print("  >>", s, len(t), u[:120])
+            print("     ", t[a:a + 700].replace("\n", " "))
+            break
+    else:
+        print("  (ninguna)")
 
 
 with sync_playwright() as pw:
@@ -53,49 +60,47 @@ with sync_playwright() as pw:
                          timezone_id="Europe/Madrid",
                          viewport={"width": 1366, "height": 900})
     pg = ctx.new_page()
-    pg.on("response", resp)
-    pg.on("websocket", ws)
-    ir(pg, BASE + "/es/sports", 12000)
-    hs = enlaces(pg)
-    print("\nTODOS los enlaces (primeros 60):")
-    for h in hs[:60]:
-        print(" ", h)
-    fut = [h for h in hs if re.search(r"soccer|futbol|football", h, re.I)]
-    print("\nENLACES de futbol:", fut[:15])
-    print("\n--- getGroup (2 primeros, 1500 car.) ---")
-    n = 0
-    for u, t in jsons:
-        if "getGroup" in u and n < 2:
-            n += 1
-            print(u)
-            print(t[:1500])
-    if fut:
-        ir(pg, fut[0], 12000)
-        hs2 = enlaces(pg)
-        print("\nEnlaces en la pagina de futbol (primeros 60):")
-        for h in hs2[:60]:
-            print(" ", h)
-        cand = [h for h in hs2
-                if re.search(r"soccer|futbol|football", h, re.I)
-                and h.count("/") >= 7]
-        print("\nCandidatos a partido:", cand[:10])
-        if cand:
-            jsons.clear()
-            frames.clear()
-            ir(pg, cand[0], 14000)
-            print("\n--- JSON recibidos ---")
-            for u2, t in jsons:
-                tag = "MERCADOS" if CLAVES.search(t) else "-"
-                print(tag, len(t), u2[:150])
-            for u2, t in jsons:
-                m = CLAVES.search(t)
-                if m:
-                    a = max(0, m.start() - 500)
-                    print("\nEJEMPLO de", u2[:100])
-                    print(t[a:a + 1500])
-                    break
-            print("\n--- websocket (primeros 10) ---")
-            for f in frames[:10]:
-                print(f)
+    pg.on("request", on_req)
+    pg.on("response", on_resp)
+    pg.goto(LIGA, timeout=60000, wait_until="domcontentloaded")
+    espera(pg, 15000)
+    print("LIGA:", pg.url, "|", pg.title()[:70])
+    print("texto:", pg.inner_text("body")[300:1500].replace("\n", " | "))
+    hs = pg.eval_on_selector_all(
+        "a[href]", "e=>e.map(x=>x.getAttribute('href'))")
+    ev = []
+    for h in hs:
+        if h and h not in ev and re.search(
+                r"/evt/|/event|/match|/e/|/fixture", h):
+            ev.append(h)
+    print("enlaces tipo partido:", ev[:10])
+    otros = [h for h in hs if h and "/sports/" in h and not re.search(
+        r"/cat/|/grp/|/hub/|/ext/|/live|/find|/sports$", h)]
+    print("otros enlaces de sports:", otros[:10])
+    resumen("pagina de la liga")
+    ids = []
+    for u, s, t in resps:
+        if "getGroup" in u:
+            for m in re.finditer(r'"EventId":(\d+)', t):
+                if m.group(1) not in ids:
+                    ids.append(m.group(1))
+    print("\nEventIds de getGroup:", ids[:10])
+    destino = None
+    if ev:
+        destino = ev[0]
+    elif otros:
+        destino = otros[0]
+    elif ids:
+        destino = "/es/es/sports/evt/" + ids[0]
+    if destino:
+        reqs.clear()
+        resps.clear()
+        if destino.startswith("/"):
+            destino = BASE + destino
+        pg.goto(destino, timeout=60000, wait_until="domcontentloaded")
+        espera(pg, 15000)
+        print("\nPARTIDO:", pg.url, "|", pg.title()[:70])
+        print("texto:", pg.inner_text("body")[:2000].replace("\n", " | "))
+        resumen("pagina del partido")
     br.close()
 print("fin")
