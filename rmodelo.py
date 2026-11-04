@@ -43,6 +43,11 @@ def stats(fid, viejo):
     return d
 
 
+def amistoso(x):
+    n = str((x.get("league") or {}).get("name") or "").lower()
+    return "friendl" in n or "amistos" in n
+
+
 def historial(tid):
     out = []
     lista = api("/fixtures", team=tid, last=40) or []
@@ -52,6 +57,8 @@ def historial(tid):
             break
         est = x["fixture"]["status"]["short"]
         if est not in ("FT", "AET", "PEN"):
+            continue
+        if amistoso(x):
             continue
         h = x["teams"]["home"]["id"]
         a = x["teams"]["away"]["id"]
