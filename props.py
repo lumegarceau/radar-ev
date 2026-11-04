@@ -7,6 +7,7 @@ from rcommon import api, gasto
 import rvalue as rv
 import rwina as rw
 import rjug
+import rnivel
 
 MAD = ZoneInfo("Europe/Madrid")
 TEMP = 2026
@@ -195,6 +196,10 @@ for lid, (pais, liga) in LIGAS.items():
                     omit_baja += 1
                     continue
                 duda = ib[1] or "en duda"
+            riv = vis if es_local else loc
+            if lid in (2, 3) and rnivel.bloquea(
+                    eq["id"], riv["id"], stat, "over"):
+                continue
             r = rjug.prob_jug(e["g"], stat, n, es_local)
             if r is None or r["hits"] < 0.7 * r["N"]:
                 continue
@@ -273,4 +278,5 @@ for (eqn, nom), jug in list(sin_u.items())[:12]:
             None, alvo, rjug.norm(e["n"])).ratio())[:2]
     print("  ", eqn, "|", nom, "->", [c["n"] for c in cands])
 print("sin emparejar valueodds:", len(sin_v), sorted(sin_v)[:15])
+print("descartados por nivel de liga:", rnivel.bloqueadas[0])
 print("peticiones API-Football:", gasto[0])
