@@ -13,34 +13,44 @@ with sync_playwright() as pw:
                          viewport={"width": 1366, "height": 1400})
     pg = ctx.new_page()
     pg.goto(LIGA, timeout=60000, wait_until="domcontentloaded")
-    pg.wait_for_timeout(12000)
-    print("URL liga:", pg.url)
-    for etq in ("VER", "Más apuestas"):
-        n = pg.get_by_text(etq, exact=True).count()
-        print("botones", etq, ":", n)
+    pg.wait_for_timeout(10000)
+    for sel in ("#onetrust-accept-btn-handler",
+                "button:has-text('Aceptar todas')",
+                "button:has-text('Aceptar')"):
+        try:
+            pg.locator(sel).first.click(timeout=4000)
+            print("cookies aceptadas con", sel)
+            break
+        except Exception:
+            pass
+    pg.wait_for_timeout(3000)
     try:
-        pg.get_by_text("VER", exact=True).first.click(timeout=15000)
+        b = pg.get_by_text("VER", exact=True).first
+        b.scroll_into_view_if_needed(timeout=8000)
+        b.click(timeout=10000, force=True)
+        print("click VER ok")
     except Exception as e:
-        print("click VER fallo", repr(e)[:150])
+        print("click VER fallo", repr(e)[:300])
         try:
             pg.get_by_text("Más apuestas", exact=True).first.click(
-                timeout=15000)
+                timeout=8000, force=True)
+            print("click Mas apuestas ok")
         except Exception as e2:
-            print("click Mas apuestas fallo", repr(e2)[:150])
+            print("click Mas apuestas fallo", repr(e2)[:300])
     pg.wait_for_timeout(15000)
     print("\nURL tras pulsar:", pg.url)
     print("titulo:", pg.title()[:100])
     t = pg.inner_text("body")
     print("longitud texto:", len(t))
-    i = t.find("Partidos")
-    print("\n--- TEXTO (desde el contenido, 4500 car.) ---")
-    print(t[1200:5700].replace("\n", " | "))
     print("\n--- Lineas con palabras clave ---")
     n = 0
     for ln in t.split("\n"):
-        if CLAVES.search(ln) and n < 40:
+        if CLAVES.search(ln) and n < 60:
             n += 1
             print(" ", ln[:120])
-    pg.screenshot(path="betway.png", full_page=False)
+    j = t.find("Más apuestas")
+    k = t.find("Partidos")
+    print("\n--- TEXTO del partido (3500 car.) ---")
+    print(t[1000:4500].replace("\n", " | "))
     br.close()
 print("fin")
