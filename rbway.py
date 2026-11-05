@@ -23,7 +23,7 @@ TIT_JUG = {
 }
 TIROS = "Tiros"
 OTROS_TIT = set([
-    "Goleador", "Fuera de juego", "Asiste 1+ Goles", "Paradas del portero",
+    "Goleador", "Fuera de juego", "Asiste 1+ Goles",
     "Tarjetas", "Tiros A Puerta Especiales", "Tiros A Puerta Cada Uno",
     "Tiros A Puerta Uno Contra Uno", "Goleadores Combinados",
 ])
@@ -119,6 +119,11 @@ def parsear_jugadores(lns, stat_tiros):
     for x in lns:
         if x == TIROS:
             estado = stat_tiros
+            heads = []
+            nombre = None
+            continue
+        if x == "Paradas del portero":
+            estado = "saves_eq"
             heads = []
             nombre = None
             continue
