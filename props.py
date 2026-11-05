@@ -42,6 +42,11 @@ NOM = {
 }
 memo = {}
 sqm = {}
+dbg = {}
+
+
+def cuenta(k):
+    dbg[k] = dbg.get(k, 0) + 1
 
 
 def hist(tid):
@@ -184,14 +189,18 @@ for lid, (pais, liga) in LIGAS.items():
         if bwp:
             for stat, nom, n, c in bwp["jugador"]:
                 if stat == "saves_eq":
+                    cuenta("bw_filas")
                     lado = rbway.lado_de(nom, bwp["c1"], bwp["c2"])
                     if lado is None:
+                        cuenta("bw_sin_lado")
                         continue
                     eqx = loc if lado == "home" else vis
                     pid = -eqx["id"]
                     jug = jl if lado == "home" else jv
                     if pid not in jug:
+                        cuenta("bw_sin_portero_equipo")
                         continue
+                    cuenta("bw_ok")
                     disp.setdefault(pid, jug[pid]["n"])
                     d = cu.setdefault(("saves", pid, n, lado), {})
                     if c > d.get("Betway", 0):
@@ -235,7 +244,11 @@ for lid, (pais, liga) in LIGAS.items():
         for key in sorted(cu, key=str):
             stat, pid, n, lado = key
             q = cu[key]
+            if pid < 0:
+                cuenta("eq_claves")
             if max(q.values()) < 1.40:
+                if pid < 0:
+                    cuenta("eq_cuota_baja")
                 continue
             es_local = lado == "home"
             jug = jl if es_local else jv
@@ -257,7 +270,11 @@ for lid, (pais, liga) in LIGAS.items():
                 continue
             r = rjug.prob_jug(e["g"], stat, n, es_local)
             if r is None or r["hits"] < 0.7 * r["N"]:
+                if pid < 0:
+                    cuenta("eq_sin_prob" if r is None else "eq_hist_bajo")
                 continue
+            if pid < 0:
+                cuenta("eq_publicada")
             ex = rjug.extras(e["g"], stat)
             sq = squad(eq["id"])
             num = (sq.get(str(pid)) or {}).get("num")
@@ -306,6 +323,44 @@ except Exception:
 ahora = datetime.now(MAD).isoformat(timespec="minutes")
 if not data or not data.get("days"):
     dia = {"fecha": str(hoy), "candidatos": []}
+    data = {"updated_at": ahora, "days": [dia]}
+dia = data["days"][-1]
+dia["candidatos"] = [c for c in dia["candidatos"]
+                     if c.get("tipo") != "jugador"] + nuevos
+data["updated_at"] = ahora
+data["props_ok"] = wina_ok
+json.dump(data, open(fn, "w"), ensure_ascii=False)
+por = {}
+for c in nuevos:
+    por[c["mercado"]] = por.get(c["mercado"], 0) + 1
+print("pasada completa (con Winamax):", wina_ok)
+print("partidos con cuotas de jugador:", n_part)
+print("props de jugador:", len(nuevos), por)
+print("lesionados o sancionados detectados:", n_inj)
+print("props omitidos por baja confirmada:", omit_baja)
+print("props con duda:", sum(1 for c in nuevos if c.get("duda")))
+print("con dorsal:", sum(1 for c in nuevos if c.get("num")))
+print("cuotas de valueodds emparejadas:", n_vo)
+print("jugadores emparejados:", len(con_u))
+print("sin emparejar Winamax:", len(sin_u))
+for (eqn, nom), jug in list(sin_u.items())[:12]:
+    alvo = rjug.norm(nom)
+    cands = sorted(
+        jug.values(),
+        key=lambda e: -difflib.SequenceMatcher(
+            None, alvo, rjug.norm(e["n"])).ratio())[:2]
+    print("  ", eqn, "|", nom, "->", [c["n"] for c in cands])
+print("sin emparejar valueodds:", len(sin_v), sorted(sin_v)[:15])
+print("descartados por nivel de liga:", rnivel.bloqueadas[0])
+print("peticiones API-Football:", gasto[0])
+bwn = [c for c in nuevos if any(q["b"] == "Betway" for q in c["cuotas"])]
+mej = [c for c in bwn if max(c["cuotas"], key=lambda q: q["c"])["b"] == "Betway"]
+print("props con cuota de Betway:", len(bwn), "| Betway mejor cuota:", len(mej))
+print("depuracion paradas de equipo Betway:", dbg)
+for c in nuevos:
+    if c["mercado"] == "saves":
+        print("  PARADAS:", c["suceso"], "|", c["equipo"], "|",
+              [(q["b"], q["c"]) for q in c["cuotas"]], "| nota:", bool(c.get("nota")))datos": []}
     data = {"updated_at": ahora, "days": [dia]}
 dia = data["days"][-1]
 dia["candidatos"] = [c for c in dia["candidatos"]
