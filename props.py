@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from rcommon import api, gasto
 import rvalue as rv
 import rwina as rw
+import rbway
 import rjug
 import rnivel
 
@@ -112,6 +113,8 @@ if not wina_ok:
     wm = []
     print("SIN WINAMAX en esta pasada: solo valueodds")
 print("winamax:", len(wm), "partidos")
+bw = rbway.cargar()
+print("betway:", len(bw), "partidos")
 
 nuevos = []
 sin_u = {}
@@ -138,7 +141,8 @@ for lid, (pais, liga) in LIGAS.items():
             j = rv.vget(ruta + "/odds?format=compact")
             if j:
                 pv = rv.leer(j)[2]
-        if not w and not pv:
+        bwp = buscar_wina(loc["name"], vis["name"], dt, bw)
+        if not w and not pv and not bwp:
             continue
         n_part += 1
         inj = bajas(x["fixture"]["id"])
@@ -177,6 +181,22 @@ for lid, (pais, liga) in LIGAS.items():
             for casa, c in q.items():
                 if c > d.get(casa, 0):
                     d[casa] = c
+        if bwp:
+            for stat, nom, n, c in bwp["jugador"]:
+                a = rjug.buscar(nom, jl)
+                b = rjug.buscar(nom, jv)
+                if (a is None) == (b is None):
+                    sin_v.add(nom)
+                    continue
+                lado = "home"
+                pid = a
+                if a is None:
+                    lado = "away"
+                    pid = b
+                disp.setdefault(pid, nom)
+                d = cu.setdefault((stat, pid, n, lado), {})
+                if c > d.get("Betway", 0):
+                    d["Betway"] = c
         for key in sorted(cu, key=str):
             stat, pid, n, lado = key
             q = cu[key]
