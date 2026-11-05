@@ -336,3 +336,10 @@ for (eqn, nom), jug in list(sin_u.items())[:12]:
 print("sin emparejar valueodds:", len(sin_v), sorted(sin_v)[:15])
 print("descartados por nivel de liga:", rnivel.bloqueadas[0])
 print("peticiones API-Football:", gasto[0])
+bwn = [c for c in nuevos if any(q["b"] == "Betway" for q in c["cuotas"])]
+mej = [c for c in bwn if max(c["cuotas"], key=lambda q: q["c"])["b"] == "Betway"]
+print("props con cuota de Betway:", len(bwn), "| Betway mejor cuota:", len(mej))
+for c in nuevos:
+    if c["mercado"] == "saves":
+        print("  PARADAS:", c["suceso"], "|", c["equipo"], "|",
+              [(q["b"], q["c"]) for q in c["cuotas"]], "| nota:", bool(c.get("nota")))
