@@ -37,7 +37,8 @@ JS_TIT = (
     "t=>{const l=Array.from(document.querySelectorAll('*')).filter("
     "e=>e.children.length===0&&e.innerText&&e.innerText.trim()===t);"
     "if(!l.length)return false;l[l.length-1].click();return true}")
-SECCIONES = ["Fuera de juego", "Entradas", "Faltas", "Tarjetas"]
+SECCIONES = ["Fuera de juego", "Entradas", "Faltas", "Tarjetas",
+             "Paradas del portero"]
 LIMITE = 4
 
 
