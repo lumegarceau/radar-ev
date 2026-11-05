@@ -120,6 +120,8 @@ def amistoso(x):
 def hist_jug(tid):
     jug = {}
     usados = 0
+    eqsaves = []
+    tname = ""
     lista = api("/fixtures", team=tid, last=40) or []
     lista = sorted(lista, key=lambda x: x["fixture"]["date"])
     for x in reversed(lista):
@@ -137,10 +139,19 @@ def hist_jug(tid):
             continue
         usados += 1
         es_h = x["teams"]["home"]["id"] == tid
+        tname = x["teams"]["home" if es_h else "away"].get("name") or tname
+        gk = [p for p in mis if p.get("pos") == "G"]
+        if gk:
+            eqsaves.append({
+                "min": 90, "saves": sum(p["saves"] for p in gk),
+                "local": es_h, "sub": False})
         for p in mis:
             e = jug.setdefault(
                 p["id"], {"n": p["n"], "pos": p["pos"], "g": []})
             e["g"].append(dict(p, local=es_h))
+    if eqsaves:
+        jug[-tid] = {"n": "Porteros de " + tname, "pos": "G",
+                     "g": eqsaves}
     for e in jug.values():
         e["g"].reverse()
     return jug, usados
@@ -180,6 +191,7 @@ def inic(t, u):
 
 
 def buscar(nombre, jug):
+    jug = {k: v for k, v in jug.items() if k >= 0}
     full = norm(nombre)
     if not full:
         return None
@@ -280,3 +292,4 @@ def extras(juegos, stat):
         "por90": por90,
         "tit": tit,
     }
+# fin
