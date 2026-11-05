@@ -183,6 +183,20 @@ for lid, (pais, liga) in LIGAS.items():
                     d[casa] = c
         if bwp:
             for stat, nom, n, c in bwp["jugador"]:
+                if stat == "saves_eq":
+                    lado = rbway.lado_de(nom, bwp["c1"], bwp["c2"])
+                    if lado is None:
+                        continue
+                    eqx = loc if lado == "home" else vis
+                    pid = -eqx["id"]
+                    jug = jl if lado == "home" else jv
+                    if pid not in jug:
+                        continue
+                    disp.setdefault(pid, jug[pid]["n"])
+                    d = cu.setdefault(("saves", pid, n, lado), {})
+                    if c > d.get("Betway", 0):
+                        d["Betway"] = c
+                    continue
                 a = rjug.buscar(nom, jl)
                 b = rjug.buscar(nom, jv)
                 if (a is None) == (b is None):
@@ -197,6 +211,27 @@ for lid, (pais, liga) in LIGAS.items():
                 d = cu.setdefault((stat, pid, n, lado), {})
                 if c > d.get("Betway", 0):
                     d["Betway"] = c
+        notas = {}
+        for key in list(cu):
+            if key[0] != "saves" or key[1] >= 0:
+                continue
+            _, pid0, n0, lado0 = key
+            jg0 = jl if lado0 == "home" else jv
+            otros = [k for k in cu if k[0] == "saves" and k[1] > 0
+                     and k[2] == n0 and k[3] == lado0]
+            if not otros:
+                notas[key] = ("Esta cuota cuenta a cualquiera de los "
+                              "porteros del equipo, también si juega el "
+                              "suplente.")
+                continue
+            tgt = max(otros, key=lambda k: len(jg0[k[1]]["g"]))
+            for casa, c in cu[key].items():
+                if c > cu[tgt].get(casa, 0):
+                    cu[tgt][casa] = c
+            notas[tgt] = ("Betway cuenta a cualquiera de los porteros del "
+                          "equipo, también si juega el suplente. En las "
+                          "demás casas cuenta solo a este portero.")
+            del cu[key]
         for key in sorted(cu, key=str):
             stat, pid, n, lado = key
             q = cu[key]
@@ -259,6 +294,7 @@ for lid, (pais, liga) in LIGAS.items():
                 "minmed": ex["minmed"],
                 "por90": ex["por90"],
                 "tit": ex["tit"],
+                "nota": notas.get(key),
                 "cuotas": [{"b": b, "c": c} for b, c in q.items()],
             })
 
