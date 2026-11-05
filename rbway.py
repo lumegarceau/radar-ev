@@ -17,12 +17,16 @@ STAT_EQ = {
 }
 TIT_JUG = {
     "Entradas": "tk",
+    "Faltas": "fouls",
     "Faltas Cometidas": "fouls",
     "Faltas Recibidas": "drawn",
-    "Paradas": "saves",
 }
 TIROS = "Tiros"
-OTROS_TIT = set(["Goleador", "Fuera de juego", "Asiste 1+ Goles"])
+OTROS_TIT = set([
+    "Goleador", "Fuera de juego", "Asiste 1+ Goles", "Paradas del portero",
+    "Tarjetas", "Tiros A Puerta Especiales", "Tiros A Puerta Cada Uno",
+    "Tiros A Puerta Uno Contra Uno", "Goleadores Combinados",
+])
 DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado",
         "domingo"]
 RE_TIT = re.compile(
