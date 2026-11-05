@@ -33,6 +33,11 @@ JS_MAS = (
 JS_IDS = (
     "()=>Array.from(document.querySelectorAll('[data-eventid]'))"
     ".map(e=>e.getAttribute('data-eventid'))")
+JS_TIT = (
+    "t=>{const l=Array.from(document.querySelectorAll('*')).filter("
+    "e=>e.children.length===0&&e.innerText&&e.innerText.trim()===t);"
+    "if(!l.length)return false;l[l.length-1].click();return true}")
+SECCIONES = ["Fuera de juego", "Entradas", "Faltas", "Tarjetas"]
 LIMITE = 4
 
 
@@ -95,6 +100,15 @@ async def partido(ctx, eid, sem):
                 eq += e
                 tot += t
             if await pg.evaluate(JS_TAB, "players"):
+                await pg.wait_for_timeout(2000)
+                for sec in SECCIONES:
+                    antes = len(await pg.inner_text("body"))
+                    if await pg.evaluate(JS_TIT, sec):
+                        await pg.wait_for_timeout(1200)
+                        desp = len(await pg.inner_text("body"))
+                        if desp < antes:
+                            await pg.evaluate(JS_TIT, sec)
+                            await pg.wait_for_timeout(1200)
                 for sub, stat in (("on-target", "sot"), ("shots", "shots")):
                     await pg.evaluate(JS_TAB, sub)
                     await pg.wait_for_timeout(2000)
@@ -139,6 +153,11 @@ async def main():
     nj = sum(len(r["jugador"]) for r in res)
     print("leidos:", len(res), "| equipo:", ne, "| totales:", nt,
           "| jugador:", nj, "|", round(time.time() - t0), "s")
+    cj = {}
+    for r in res:
+        for t in r["jugador"]:
+            cj[t[0]] = cj.get(t[0], 0) + 1
+    print("jugador por mercado:", cj)
     if res:
         json.dump({"ts": time.time(), "partidos": res},
                   open(rbway.ARCHIVO, "w"), ensure_ascii=False)
