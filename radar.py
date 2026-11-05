@@ -6,6 +6,7 @@ from rmodelo import historial, analizar, analizar_total, tot_vals
 import rvalue as rv
 import rwina as rw
 import rnivel
+import rbway
 
 MAD = ZoneInfo("Europe/Madrid")
 TEMP = 2026
@@ -151,8 +152,11 @@ ne = sum(len(w["equipo"]) for w in wm)
 nt = sum(len(w["total"]) for w in wm)
 print("winamax:", len(wm), "partidos;", ne, "de equipo;", nt, "de totales")
 
+bw = rbway.cargar()
+print("betway:", len(bw), "partidos")
 res = []
 sin_par = []
+con_bw = 0
 con_vo = 0
 con_wi = 0
 rango = {"from": fechas[0], "to": fechas[-1]}
@@ -182,6 +186,10 @@ for lid, (pais, liga) in LIGAS.items():
         if w:
             con_wi += 1
             anadir_wina(cu, w)
+        bwp = buscar_wina(loc["name"], vis["name"], dt, bw)
+        if bwp:
+            con_bw += 1
+            rbway.anadir(cu, bwp)
         if not cu:
             continue
         hl = hist(loc["id"])
@@ -273,6 +281,7 @@ print("Por tipo:", cnt)
 print("Descartadas por nivel de liga:", rnivel.bloqueadas[0])
 print("Partidos con cuotas de valueodds:", con_vo)
 print("Partidos con cuotas de Winamax:", con_wi)
+print("Partidos con cuotas de Betway:", con_bw)
 print("Sin pareja en valueodds:", len(sin_par), sin_par[:6])
 print("Tarjetas omitidas (formato distinto):", rv.omitidas["tarjetas"])
 sa = sorted(rv.saltadas.items(), key=lambda kv: -kv[1])
