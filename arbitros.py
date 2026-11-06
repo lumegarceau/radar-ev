@@ -43,15 +43,29 @@ def valores(fid, fecha, nuevas):
     return rmodelo.stats(fid, fecha[:10] < rmodelo.CORTE)
 
 
-def partidos_arbitro(lista, ref, antes_de, nuevas):
+def corto(ref):
+    t = norm(nombre(ref)).split()
+    if not t:
+        return ""
+    return t[0][:1] + " " + t[-1]
+
+
+def partidos_arbitro(lista, ref, antes_de, nuevas, info=None):
     clave = norm(nombre(ref))
     mios = []
-    for x in lista:
-        if x["fixture"]["status"]["short"] not in OK:
-            continue
-        if norm(nombre(x["fixture"].get("referee"))) != clave:
-            continue
-        mios.append(x)
+    jugados = [x for x in lista if x["fixture"]["status"]["short"] in OK
+               and x["fixture"].get("referee")]
+    for x in jugados:
+        if norm(nombre(x["fixture"].get("referee"))) == clave:
+            mios.append(x)
+    if not mios:
+        ck = corto(ref)
+        for x in jugados:
+            if corto(x["fixture"].get("referee")) == ck:
+                mios.append(x)
+    if info is not None:
+        info["jugados_con_arbitro"] = len(jugados)
+        info["suyos"] = len(mios)
     mios.sort(key=lambda x: x["fixture"]["date"], reverse=True)
     out = []
     for x in mios:
@@ -137,6 +151,7 @@ def main():
         for x in lst:
             ref_de[x["fixture"]["id"]] = x["fixture"].get("referee")
     cache = {}
+    sin_datos = []
     con = 0
     sin_ref = 0
     for c in obj:
@@ -146,7 +161,13 @@ def main():
             continue
         key = (c["lid"], norm(nombre(ref)))
         if key not in cache:
-            cache[key] = partidos_arbitro(listas[c["lid"]], ref, None, nuevas)
+            inf = {}
+            cache[key] = partidos_arbitro(listas[c["lid"]], ref, None,
+                                          nuevas, inf)
+            if not cache[key]:
+                sin_datos.append((c.get("liga"), nombre(ref),
+                                  inf.get("jugados_con_arbitro"),
+                                  inf.get("suyos")))
         ps = cache[key]
         if not ps:
             continue
@@ -157,6 +178,16 @@ def main():
     json.dump(data, open(fn, "w"), ensure_ascii=False)
     print("arbitros: candidatos de faltas/tarjetas:", len(obj),
           "| con datos de arbitro:", con, "| sin arbitro asignado:", sin_ref)
+    por = {}
+    for c in obj:
+        k = c.get("liga")
+        v = por.setdefault(k, [0, 0])
+        v[0] += 1
+        if c.get("arb"):
+            v[1] += 1
+    print("arbitros: por liga (candidatos, con datos):", por)
+    print("arbitros: arbitros sin datos (liga, nombre, partidos jugados "
+          "con arbitro en la liga, partidos suyos):", sin_datos[:15])
     print("arbitros: arbitros distintos:", len(cache),
           "| estadisticas nuevas pedidas:", nuevas[0],
           "| peticiones API:", gasto[0])
