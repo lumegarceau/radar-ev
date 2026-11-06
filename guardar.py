@@ -7,7 +7,8 @@ FH = "historial.json"
 FR = "radar-data.json"
 CAMPOS = ["tid", "hid", "aid", "lid", "pid", "num", "pos", "serie",
           "media", "minmed", "por90", "tit", "sentido", "duda",
-          "serieL", "serieV", "nota", "arb"]
+          "serieL", "serieV", "nota", "arb", "serieD", "serieDL",
+          "serieDV"]
 
 
 def cargar(f, vacio):
