@@ -307,6 +307,7 @@ for lid, (pais, liga) in LIGAS.items():
                 "rival": None,
                 "prob": r["prob"],
                 "serie": ex["serie"],
+                "serieD": ex["det"],
                 "media": ex["media"],
                 "minmed": ex["minmed"],
                 "por90": ex["por90"],
@@ -361,4 +362,4 @@ for c in nuevos:
     if c["mercado"] == "saves":
         print("  PARADAS:", c["suceso"], "|", c["equipo"], "|",
               [(q["b"], q["c"]) for q in c["cuotas"]], "| nota:", bool(c.get("nota")))
-# fin        
+# fin
