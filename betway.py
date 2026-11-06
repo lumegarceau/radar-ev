@@ -159,6 +159,7 @@ async def main():
         for t in r["jugador"]:
             cj[t[0]] = cj.get(t[0], 0) + 1
     print("jugador por mercado:", cj)
+    print("filas con menos cuotas que columnas:", rbway.DESAL[0])
     if res:
         json.dump({"ts": time.time(), "partidos": res},
                   open(rbway.ARCHIVO, "w"), ensure_ascii=False)
@@ -167,3 +168,4 @@ async def main():
 
 
 asyncio.run(main())
+# fin
