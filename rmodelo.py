@@ -82,7 +82,8 @@ def historial(tid):
                 con.pop(k, None)
         pro["goals"] = gh if es_h else ga
         con["goals"] = ga if es_h else gh
-        out.append({"local": es_h, "pro": pro, "contra": con})
+        rname = x["teams"]["away" if es_h else "home"].get("name") or ""
+        out.append({"local": es_h, "pro": pro, "contra": con, "rv": rname})
     out.reverse()
     if agotado():
         return []
@@ -184,3 +185,4 @@ def analizar_total(hl, hv, stat, linea, sentido):
         "rival": None,
         "prob": round((pa + pb) / 2, 3),
     }
+# fin
