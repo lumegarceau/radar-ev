@@ -7,7 +7,7 @@ FH = "historial.json"
 FR = "radar-data.json"
 CAMPOS = ["tid", "hid", "aid", "lid", "pid", "num", "pos", "serie",
           "media", "minmed", "por90", "tit", "sentido", "duda",
-          "serieL", "serieV", "nota"]
+          "serieL", "serieV", "nota", "arb"]
 
 
 def cargar(f, vacio):
@@ -131,3 +131,4 @@ print("pasada de props completa:", props_ok)
 print("selecciones nuevas:", nuevas, "| actualizadas:", act)
 print("ocultas por dejar de cumplir:", ocultas)
 print("total en historial:", len(sel))
+# fin
