@@ -214,6 +214,11 @@ for lid, (pais, liga) in LIGAS.items():
                     continue
                 vals = [y["pro"][stat] for y in h if stat in y["pro"]]
                 serie = list(reversed(vals))[:10]
+                dets = [{"r": y.get("rv") or "", "l": 1 if y["local"] else 0}
+                        for y in h if stat in y["pro"]]
+                serie_d = list(reversed(dets))[:10]
+                serie_dl = None
+                serie_dv = None
                 media = round(sum(vals) / len(vals), 2)
                 nombre = eqp["name"]
                 tid = eqp["id"]
@@ -233,6 +238,13 @@ for lid, (pais, liga) in LIGAS.items():
                 vv = [v for _, v in tot_vals(hv, stat)]
                 serie_l = list(reversed(vl))[:10]
                 serie_v = list(reversed(vv))[:10]
+                dl = [{"r": y.get("rv") or "", "l": 1 if y["local"] else 0}
+                      for y in hl if stat in y["pro"] and stat in y["contra"]]
+                dv = [{"r": y.get("rv") or "", "l": 1 if y["local"] else 0}
+                      for y in hv if stat in y["pro"] and stat in y["contra"]]
+                serie_d = None
+                serie_dl = list(reversed(dl))[:10]
+                serie_dv = list(reversed(dv))[:10]
             frase = " +" if sent == "over" else " menos de "
             suceso = nombre + frase + fl(ln) + " " + NOM[stat]
             res.append({
@@ -261,6 +273,9 @@ for lid, (pais, liga) in LIGAS.items():
                 "serie": serie,
                 "serieL": serie_l,
                 "serieV": serie_v,
+                "serieD": serie_d,
+                "serieDL": serie_dl,
+                "serieDV": serie_dv,
                 "media": media,
                 "cuotas": [{"b": b, "c": c} for b, c in q.items()],
             })
@@ -286,3 +301,4 @@ print("Sin pareja en valueodds:", len(sin_par), sin_par[:6])
 print("Tarjetas omitidas (formato distinto):", rv.omitidas["tarjetas"])
 sa = sorted(rv.saltadas.items(), key=lambda kv: -kv[1])
 print("Casas sin afiliado:", sa[:20])
+# fin
