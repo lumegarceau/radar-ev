@@ -36,6 +36,7 @@ TABS[2]=["bookies","Bonos"];
     o.serieL=r.serieL;
     o.serieV=r.serieV;
     o.nota=r.nota;
+    o.arb=r.arb;
     return o;
   };
   function lv(c,v){
@@ -78,8 +79,11 @@ TABS[2]=["bookies","Bonos"];
   var kc0=k2cuotas;
   k2cuotas=function(c){
     var h=kc0(c);
-    if(!c.nota)return h;
-    return '<div class="upd" style="margin-top:8px">'+esc(c.nota)+'</div>'+h;
+    if(c.nota)h='<div class="upd" style="margin-top:8px">'+esc(c.nota)+'</div>'+h;
+    if(c.arb&&c.arb.l&&c.arb.l.length){
+      h+='<div class="k2f" style="margin-top:10px"><b style="color:var(--tx)">Árbitro: '+esc(c.arb.nom)+'</b><br>'+c.arb.l.map(esc).join('<br>')+'</div>';
+    }
+    return h;
   };
   var b0=barras2;
   barras2=function(c,d){
@@ -120,3 +124,4 @@ TABS[2]=["bookies","Bonos"];
   };
 })();
 function top5(L,key){return top5g(L,key)}
+// fin
