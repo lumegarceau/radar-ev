@@ -1,0 +1,42 @@
+Club	Elo	+/-	Golo
+ENG 1 Arsenal	2047	+2.04	0.99
+GER 2 Bayern München	2044	+0.12	2.44
+ESP 3 Barcelona	2030	-0.08	2.45
+ENG 4 Man City	2014	+3.02	1.54
+ESP 5 Real Madrid	1997	+1.97	1.70
+FRA 6 Paris SG	1987	-1.46	1.67
+ITA 7 Internazionale	1946	+1.02	1.49
+ENG 8 Liverpool	1932	-6.57	1.55
+ESP 9 Atlético	1915	-0.03	1.39
+ENG 10 Brighton	1903	+0.04	1.43
+ENG 11 Aston Villa	1899	+0.34	1.41
+GER 12 Dortmund	1898	+3.17	1.46
+ENG 13 Chelsea	1893	-0.11	1.68
+ENG 14 Bournemouth	1887	+0.01	1.46
+BRA 15 Flamengo	1883	+2.34	1.17
+POR 16 Benfica	1866	+0.69	1.44
+GER 17 Leverkusen	1865	-0.05	1.55
+BRA 18 Palmeiras	1865	-0.08	1.04
+ITA 19 Roma	1863	+1.12	1.43
+POR 20 Sporting	1861	+0.32	1.44
+ENG 21 Brentford	1854	-0.15	1.50
+ENG 22 Newcastle	1853	-0.13	1.65
+ENG 23 Man United	1852	+0.37	1.60
+ITA 24 Como	1844	+16.99	1.43
+BEL 25 Brugge	1842	+5.30	1.91
+POR 26 Porto	1840	+7.58	1.03
+ITA 27 Milan	1832	+0.91	1.32
+RUS 28 Zenit	1829	+0.21	1.09
+ITA 29 Juventus	1828	+0.80	1.13
+GER 30 RB Leipzig	1828	-3.23	1.68
+ENG 31 Everton	1828	+0.10	0.97
+ESP 32 Betis	1824	-2.85	1.44
+TUR 33 Galatasaray	1822	+0.68	1.65
+ITA 34 Napoli	1820	-5.74	1.26
+ENG 35 Tottenham	1819	-0.13	1.51
+BEL 36 St Gillis	1818	+0.82	1.16
+GER 37 Stuttgart	1816	+0.20	1.72
+ENG 38 Crystal Palace	1810	-0.09	1.20
+ITA 39 Lazio	1809	+0.93	1.15
+ENG 40 Leeds	1808	+0.00	1.28
+ENG 41 Fulham	1801	-0.17	1.18
