@@ -112,6 +112,26 @@ def plantilla(tid):
     return p
 
 
+HIST_MAX = 40
+PARAR = 11
+MIN_JUEGO = 45
+
+
+def calif(p):
+    m = p.get("min") or 0
+    s = p.get("sub")
+    if s is False:
+        return m >= MIN_JUEGO
+    if s is None:
+        return m >= 60
+    return False
+
+
+def validos(juegos, stat):
+    jj = [g for g in juegos if calif(g) and g.get(stat) is not None]
+    return jj[-20:]
+
+
 def amistoso(x):
     n = str((x.get("league") or {}).get("name") or "").lower()
     return "friendl" in n or "amistos" in n
@@ -122,10 +142,11 @@ def hist_jug(tid):
     usados = 0
     eqsaves = []
     tname = ""
-    lista = api("/fixtures", team=tid, last=40) or []
+    cnt = {}
+    lista = api("/fixtures", team=tid, last=HIST_MAX) or []
     lista = sorted(lista, key=lambda x: x["fixture"]["date"])
     for x in reversed(lista):
-        if usados >= 20:
+        if usados >= HIST_MAX:
             break
         if x["fixture"]["status"]["short"] not in ("FT", "AET", "PEN"):
             continue
@@ -140,15 +161,21 @@ def hist_jug(tid):
         usados += 1
         es_h = x["teams"]["home"]["id"] == tid
         tname = x["teams"]["home" if es_h else "away"].get("name") or tname
+        rival = x["teams"]["away" if es_h else "home"].get("name") or ""
+        fecha = x["fixture"]["date"][:10]
         gk = [p for p in mis if p.get("pos") == "G"]
         if gk:
             eqsaves.append({
                 "min": 90, "saves": sum(p["saves"] for p in gk),
-                "local": es_h, "sub": False})
+                "local": es_h, "sub": False, "rv": rival, "fe": fecha})
         for p in mis:
             e = jug.setdefault(
                 p["id"], {"n": p["n"], "pos": p["pos"], "g": []})
-            e["g"].append(dict(p, local=es_h))
+            e["g"].append(dict(p, local=es_h, rv=rival, fe=fecha))
+            if calif(p):
+                cnt[p["id"]] = cnt.get(p["id"], 0) + 1
+        if sum(1 for v in cnt.values() if v >= 20) >= PARAR:
+            break
     if eqsaves:
         jug[-tid] = {"n": "Porteros de " + tname, "pos": "G",
                      "g": eqsaves}
@@ -248,7 +275,7 @@ def buscar(nombre, jug):
 
 
 def prob_jug(juegos, stat, n, es_local):
-    jj = [g for g in juegos if g["min"] > 0 and g.get(stat) is not None]
+    jj = validos(juegos, stat)
     N = len(jj)
     if N < 14:
         return None
@@ -271,9 +298,9 @@ def prob_jug(juegos, stat, n, es_local):
 
 
 def extras(juegos, stat):
-    jj = [g for g in juegos if g["min"] > 0 and g.get(stat) is not None]
+    jj = validos(juegos, stat)
     vacio = {"serie": [], "media": None, "minmed": None,
-             "por90": None, "tit": None}
+             "por90": None, "tit": None, "det": []}
     if not jj:
         return vacio
     vals = [g[stat] for g in jj]
@@ -281,15 +308,14 @@ def extras(juegos, stat):
     por90 = None
     if mins > 0:
         por90 = round(sum(vals) * 90 / mins, 2)
-    fl = [g for g in jj if g.get("sub") is not None]
-    tit = None
-    if len(fl) >= 5:
-        tit = round(100 * sum(1 for g in fl if g["sub"] is False) / len(fl))
+    det = [{"r": g.get("rv") or "", "l": 1 if g.get("local") else 0,
+            "m": g["min"]} for g in jj]
     return {
         "serie": list(reversed(vals))[:10],
         "media": round(sum(vals) / len(vals), 2),
         "minmed": round(mins / len(jj)),
         "por90": por90,
-        "tit": tit,
+        "tit": None,
+        "det": list(reversed(det))[:10],
     }
 # fin
