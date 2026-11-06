@@ -110,32 +110,41 @@ def parsear_mercados(lns, c1, c2):
     return equipo, total
 
 
+DESAL = [0]
+
+
 def parsear_jugadores(lns, stat_tiros):
     out = []
     estado = None
     heads = []
     nombre = None
-    idx = 0
+    vals = []
+
+    def cerrar():
+        if nombre and estado and heads and vals:
+            off = 0
+            if len(vals) < len(heads):
+                off = len(heads) - len(vals)
+                DESAL[0] += 1
+            for k, v in enumerate(vals):
+                if v is not None and off + k < len(heads):
+                    out.append((estado, nombre, heads[off + k], v))
+
     for x in lns:
-        if x == TIROS:
-            estado = stat_tiros
-            heads = []
+        if x == TIROS or x == "Paradas del portero" or x in TIT_JUG \
+                or x in OTROS_TIT:
+            cerrar()
+            vals = []
             nombre = None
-            continue
-        if x == "Paradas del portero":
-            estado = "saves_eq"
             heads = []
-            nombre = None
-            continue
-        if x in TIT_JUG:
-            estado = TIT_JUG[x]
-            heads = []
-            nombre = None
-            continue
-        if x in OTROS_TIT:
-            estado = None
-            heads = []
-            nombre = None
+            if x == TIROS:
+                estado = stat_tiros
+            elif x == "Paradas del portero":
+                estado = "saves_eq"
+            elif x in TIT_JUG:
+                estado = TIT_JUG[x]
+            else:
+                estado = None
             continue
         if estado is None:
             continue
@@ -145,18 +154,20 @@ def parsear_jugadores(lns, stat_tiros):
         if not heads:
             continue
         if x.startswith("Ver todas"):
+            cerrar()
+            vals = []
             nombre = None
             continue
         if RE_ODD.match(x):
-            if nombre and idx < len(heads):
-                out.append((estado, nombre, heads[idx], cuota(x)))
-            idx += 1
+            vals.append(cuota(x))
             continue
         if x == "—":
-            idx += 1
+            vals.append(None)
             continue
+        cerrar()
+        vals = []
         nombre = x
-        idx = 0
+    cerrar()
     return out
 
 
@@ -201,3 +212,4 @@ def anadir(cu, w):
         d = cu.setdefault(("tot", stat, "total", ln, s), {})
         if c > d.get("Betway", 0):
             d["Betway"] = c
+# fin
