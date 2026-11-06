@@ -38,6 +38,12 @@ jobs:
         env:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
           LIMITE: "3000"
+      - name: Arbitros
+        run: python arbitros.py
+        continue-on-error: true
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          LIMITE: "1500"
       - name: Guardar historial
         run: python guardar.py
         continue-on-error: true
@@ -55,3 +61,4 @@ jobs:
             sleep 5
           done
           exit 1
+# fin
