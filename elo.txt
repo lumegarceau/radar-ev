@@ -1,42 +1,226 @@
-Club	Elo	+/-	Golo
-ENG 1 Arsenal	2047	+2.04	0.99
-GER 2 Bayern München	2044	+0.12	2.44
-ESP 3 Barcelona	2030	-0.08	2.45
-ENG 4 Man City	2014	+3.02	1.54
-ESP 5 Real Madrid	1997	+1.97	1.70
-FRA 6 Paris SG	1987	-1.46	1.67
-ITA 7 Internazionale	1946	+1.02	1.49
-ENG 8 Liverpool	1932	-6.57	1.55
-ESP 9 Atlético	1915	-0.03	1.39
-ENG 10 Brighton	1903	+0.04	1.43
-ENG 11 Aston Villa	1899	+0.34	1.41
-GER 12 Dortmund	1898	+3.17	1.46
-ENG 13 Chelsea	1893	-0.11	1.68
-ENG 14 Bournemouth	1887	+0.01	1.46
-BRA 15 Flamengo	1883	+2.34	1.17
-POR 16 Benfica	1866	+0.69	1.44
-GER 17 Leverkusen	1865	-0.05	1.55
-BRA 18 Palmeiras	1865	-0.08	1.04
-ITA 19 Roma	1863	+1.12	1.43
-POR 20 Sporting	1861	+0.32	1.44
-ENG 21 Brentford	1854	-0.15	1.50
-ENG 22 Newcastle	1853	-0.13	1.65
-ENG 23 Man United	1852	+0.37	1.60
-ITA 24 Como	1844	+16.99	1.43
-BEL 25 Brugge	1842	+5.30	1.91
-POR 26 Porto	1840	+7.58	1.03
-ITA 27 Milan	1832	+0.91	1.32
-RUS 28 Zenit	1829	+0.21	1.09
-ITA 29 Juventus	1828	+0.80	1.13
-GER 30 RB Leipzig	1828	-3.23	1.68
-ENG 31 Everton	1828	+0.10	0.97
-ESP 32 Betis	1824	-2.85	1.44
-TUR 33 Galatasaray	1822	+0.68	1.65
-ITA 34 Napoli	1820	-5.74	1.26
-ENG 35 Tottenham	1819	-0.13	1.51
-BEL 36 St Gillis	1818	+0.82	1.16
-GER 37 Stuttgart	1816	+0.20	1.72
-ENG 38 Crystal Palace	1810	-0.09	1.20
-ITA 39 Lazio	1809	+0.93	1.15
-ENG 40 Leeds	1808	+0.00	1.28
-ENG 41 Fulham	1801	-0.17	1.18
+ENG 1 Arsenal 2047
+GER 2 Bayern München 2044
+ESP 3 Barcelona 2030
+ENG 4 Man City 2014
+ESP 5 Real Madrid 1997
+FRA 6 Paris SG 1987
+ITA 7 Internazionale 1946
+ENG 8 Liverpool 1932
+ESP 9 Atlético 1915
+ENG 10 Brighton 1903
+ENG 11 Aston Villa 1899
+GER 12 Dortmund 1898
+ENG 13 Chelsea 1893
+ENG 14 Bournemouth 1887
+BRA 15 Flamengo 1883
+POR 16 Benfica 1866
+GER 17 Leverkusen 1865
+BRA 18 Palmeiras 1865
+ITA 19 Roma 1863
+POR 20 Sporting 1861
+ENG 21 Brentford 1854
+ENG 22 Newcastle 1853
+ENG 23 Man United 1852
+ITA 24 Como 1844
+BEL 25 Brugge 1842
+POR 26 Porto 1840
+ITA 27 Milan 1832
+RUS 28 Zenit 1829
+ITA 29 Juventus 1828
+GER 30 RB Leipzig 1828
+ENG 31 Everton 1828
+ESP 32 Betis 1824
+TUR 33 Galatasaray 1822
+ITA 34 Napoli 1820
+ENG 35 Tottenham 1819
+BEL 36 St Gillis 1818
+GER 37 Stuttgart 1816
+ENG 38 Crystal Palace 1810
+ITA 39 Lazio 1809
+ENG 40 Leeds 1808
+ENG 41 Fulham 1801
+ECU 42 Ind del Valle 1791
+FRA 43 Lyon 1790
+ENG 44 Forest 1790
+ARG 45 Boca Juniors 1789
+ESP 46 Real Sociedad 1789
+FRA 47 Monaco 1789
+ESP 48 Villarreal 1786
+GER 49 Freiburg 1786
+FRA 50 Lens 1784
+BRA 51 Cruzeiro 1783
+ITA 52 Atalanta 1782
+NED 53 PSV 1777
+NOR 54 Bodø/Glimt 1775
+TUR 55 Fenerbahçe 1774
+FRA 56 Lille 1773
+ITA 57 Bologna 1772
+ESP 58 Athletic Club 1769
+FRA 59 Marseille 1764
+BRA 60 Fluminense 1762
+ARG 61 Argentinos Junior 1760
+ARG 62 Rosario Central 1759
+ENG 63 West Ham 1756
+FRA 64 Rennes 1750
+GRE 65 Olympiakos 1747
+KSA 66 Al Hilal 1746
+ESP 67 Celta 1746
+ARG 68 River Plate 1745
+CZE 69 Slavia Praha 1743
+ESP 70 Valencia 1742
+ESP 71 Rayo Vallecano 1741
+GER 72 Frankfurt 1738
+COL 73 Atlético Nacional 1736
+RUS 74 Spartak Moskva 1735
+GER 75 Hoffenheim 1734
+BRA 76 Bahia 1732
+ENG 77 Sunderland 1732
+ARG 78 Vélez Sarsfield 1732
+RUS 79 FC Krasnodar 1730
+MEX 80 Cruz Azul 1730
+BRA 81 Santos 1727
+FRA 82 Strasbourg 1726
+GER 83 Mainz 1725
+NED 84 Feyenoord 1723
+TUR 85 Amed SK 1723
+ESP 86 Sevilla 1722
+ARG 87 Ind Rivadavia 1721
+ESP 88 Girona 1721
+ESP 89 Mallorca 1720
+BRA 90 Mirassol 1719
+ENG 91 Wolves 1718
+ENG 92 Southampton 1717
+ITA 93 Fiorentina 1717
+BRA 94 Novorizontino 1716
+BRA 95 São Paulo 1715
+MEX 96 Toluca 1715
+ARG 97 Estudiantes 1714
+JPN 98 Kashima Antlers 1714
+BRA 99 Ath Paranaense 1714
+GER 100 Werder 1714
+BRA 101 Corinthians 1713
+DEN 102 Midtjylland 1713
+BRA 103 Atlético Mineiro 1713
+ESP 104 Elche 1712
+NOR 105 Viking 1712
+GER 106 Augsburg 1711
+BRA 107 Vasco da Gama 1711
+BRA 108 Botafogo 1710
+ESP 109 Alaves 1709
+ESP 110 Castellon 1709
+FRA 111 Paris FC 1709
+ESP 112 Levante 1708
+MEX 113 América 1708
+ARG 114 Lanús 1708
+ITA 115 Frosinone 1708
+TUR 116 Besiktas 1708
+POR 117 Braga 1707
+ESP 118 Osasuna 1706
+ESP 119 Almeria 1706
+ENG 120 Coventry 1705
+ARG 121 Instituto 1704
+ENG 122 Ipswich 1702
+KSA 123 Al Nassr 1702
+NED 124 Ajax 1701
+TUR 125 Trabzonspor 1700
+RUS 126 CSKA Moskva 1700
+BRA 127 Bragantino 1700
+ARG 128 Racing Club 1700
+RUS 129 Dynamo Moskva 1699
+ARG 130 Gimnasia LP 1699
+ECU 131 LDU Quito 1698
+BRA 132 Internacional 1698
+USA 133 Nashville 1697
+JPN 134 Vissel Kobe 1697
+JPN 135 FC Machida Zelvia 1697
+ARG 136 Belgrano 1694
+BRA 137 Grêmio 1694
+BOL 138 Bolívar 1694
+BRA 139 Fortaleza 1692
+DEN 140 FC Kobenhavn 1692
+GRE 141 AEK 1691
+ESP 142 Espanyol 1691
+ESP 143 Depor 1690
+ITA 144 Torino 1690
+ARG 145 Independiente 1689
+UKR 146 Shakhtar 1689
+URU 147 Peñarol 1687
+ITA 148 Genoa 1687
+JPN 149 Sanfrecce Hiroshi 1687
+FRA 150 Toulouse 1687
+GER 151 Wolfsburg 1686
+FRA 152 Lorient 1686
+MEX 153 Guadalajara 1686
+CHI 154 Colo-Colo 1685
+GER 155 Union Berlin 1685
+FRA 156 Nice 1684
+ESP 157 Getafe 1683
+FRA 158 Brest 1683
+ECU 159 Macará 1683
+NED 160 Twente 1683
+GER 161 Elversberg 1682
+USA 162 Inter Miami 1682
+POL 163 Lech 1681
+PAR 164 Club Olimpia 1681
+ESP 165 Santander 1680
+NED 166 AZ 1680
+ECU 167 Uni Catolica 1680
+BRA 168 Juventude 1679
+BEL 169 Genk 1679
+ESP 170 Eibar 1678
+COL 171 América de Cali 1677
+GER 172 Hamburg 1677
+SUI 173 Lugano 1675
+GER 174 Hertha 1673
+CHI 175 Uni de Chile 1672
+ITA 176 Sassuolo 1672
+GER 177 Gladbach 1671
+GRE 178 Panathinaikos 1670
+GER 179 Paderborn 1669
+HUN 180 Ferencvaros 1667
+ARG 181 Huracán 1666
+ITA 182 Udinese 1666
+ENG 183 Middlesbrough 1665
+ITA 184 Palermo 1665
+USA 185 Vancouver 1664
+BEL 186 Anderlecht 1663
+SRB 187 Crvena Zvezda 1663
+ESP 188 Burgos 1663
+ARG 189 Defensa y Justici 1662
+PAR 190 Cerro Porteño 1661
+BRA 191 Criciúma 1661
+BRA 192 Vitória 1660
+AUT 193 RB Salzburg 1660
+URU 194 Nacional 1659
+MEX 195 UANL 1658
+ESP 196 Malaga 1658
+JPN 197 FC Tokyo 1656
+GER 198 Köln 1656
+ESP 199 Las Palmas 1655
+CRO 200 Dinamo Zagreb 1655
+CHI 201 Uni Católica 1655
+ITA 202 Cagliari 1655
+ARG 203 San Lorenzo 1654
+COL 204 Santa Fe 1653
+ARG 205 Tigre 1652
+GRE 206 PAOK 1652
+ENG 207 Birmingham 1652
+COL 208 Millonarios 1652
+ITA 209 Parma 1651
+MEX 210 Pachuca 1650
+SCO 211 Celtic 1650
+CHI 212 Coquimbo 1649
+JPN 213 Kashiwa Reysol 1649
+FRA 214 La Roche VF 1648
+USA 215 Philadelphia 1646
+ARG 216 Barracas Central 1646
+KSA 217 Al Ahli SFC 1646
+ARG 218 Godoy Cruz 1644
+ESP 219 Oviedo 1644
+CZE 220 Sparta Praha 1644
+ARG 221 Platense 1644
+USA 222 LAFC 1644
+BRA 223 Atl Goianiense 1644
+AUT 224 LASK 1643
+MEX 225 Monterrey 1643
+KSA 226 Al Qadsiah 1643
