@@ -15,7 +15,9 @@ TABS[2]=["bookies","Bonos"];
     "nav button[aria-selected=\"true\"]{background:var(--ac);border-color:var(--ac);color:#fff}",
     "nav button[aria-selected=\"true\"] svg{color:#fff}",
     ".k2b.mn{height:44px;margin-top:16px}.k2b.mn .bc em{font-size:9px}.k2b.mn .thr span{font-size:9px;top:-8px}",
-    ".k2t b{font-size:15px}"
+    ".k2t b{font-size:15px}",
+    ".bc{cursor:pointer}.bc.sel i{outline:2px solid var(--ac);outline-offset:1px}",
+    ".leg{min-height:18px;display:flex;align-items:center;gap:6px}.leg svg{width:15px;height:15px;flex:none}"
   ].join("");
   document.head.appendChild(s);
   nav=function(){
@@ -37,6 +39,9 @@ TABS[2]=["bookies","Bonos"];
     o.serieV=r.serieV;
     o.nota=r.nota;
     o.arb=r.arb;
+    o.serieD=r.serieD;
+    o.serieDL=r.serieDL;
+    o.serieDV=r.serieDV;
     return o;
   };
   function lv(c,v){
@@ -63,18 +68,44 @@ TABS[2]=["bookies","Bonos"];
     return (s||[]).slice(0,10).reverse();
   }
   function hitT(c,v){return c.sentido==="under"?v<c.linea:v>c.linea}
+  var LEG='<div class="k2f leg">Toca una barra para ver rival, sede y minutos.</div>';
+  var ICO={
+    1:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></svg>',
+    0:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>'
+  };
+  function da(x){
+    if(!x)return "";
+    return ' data-r="'+esc(x.r||"")+'" data-l="'+(x.l?1:0)+'"'+(x.m?' data-m="'+x.m+'"':"");
+  }
+  function detT(c,w){
+    var s=(w==="L"?c.serieDL:c.serieDV);
+    return (s||[]).slice(0,10).reverse();
+  }
+  document.addEventListener("click",function(e){
+    var b=e.target&&e.target.closest?e.target.closest(".bc[data-r]"):null;
+    if(!b)return;
+    var box=b.parentNode,leg=box.nextElementSibling;
+    if(!leg||String(leg.className).indexOf("leg")<0)return;
+    var q=box.querySelectorAll(".bc.sel");
+    for(var i=0;i<q.length;i++)q[i].classList.remove("sel");
+    b.classList.add("sel");
+    var l=b.getAttribute("data-l")==="1"?1:0,m=b.getAttribute("data-m");
+    leg.innerHTML=ICO[l]+'<span>vs '+esc(b.getAttribute("data-r"))+' · '+(l?"Local":"Visitante")+(m?' · '+m+' min':'')+'</span>';
+  },true);
   function mini(c,w){
     var u=serieT(c,w);
     if(!u.length)return "";
     var mx=Math.max.apply(null,u.concat([c.linea,1]))*1.15;
     var t=Math.round(c.linea/mx*100);
     var nom=w==="L"?c.local:c.visitante;
+    var dt=detT(c,w);
     var h='<div class="k2f" style="margin-top:6px"><b style="color:var(--tx)">'+esc(nom)+'</b> · total de sus últimos '+u.length+' partidos</div><div class="k2b mn">';
-    u.forEach(function(v){
+    u.forEach(function(v,i){
       var p=Math.round(v/mx*100);
-      h+='<div class="bc"><em style="bottom:calc('+p+'% + 2px)">'+v+'</em><i class="'+(hitT(c,v)?"h":"")+'" style="height:'+p+'%"></i></div>';
+      h+='<div class="bc"'+da(dt[i])+'><em style="bottom:calc('+p+'% + 2px)">'+v+'</em><i class="'+(hitT(c,v)?"h":"")+'" style="height:'+p+'%"></i></div>';
     });
-    return h+'<div class="thr" style="bottom:'+t+'%"><span>'+(c.sentido==="under"?"<":"+")+String(c.linea).replace(".",",")+'</span></div></div>';
+    h+='<div class="thr" style="bottom:'+t+'%"><span>'+(c.sentido==="under"?"<":"+")+String(c.linea).replace(".",",")+'</span></div></div>';
+    return dt.length?h+LEG:h;
   }
   var kc0=k2cuotas;
   k2cuotas=function(c){
@@ -88,7 +119,12 @@ TABS[2]=["bookies","Bonos"];
   var b0=barras2;
   barras2=function(c,d){
     if(c.tipo==="total"&&(c.serieL||c.serieV))return mini(c,"L")+mini(c,"V");
-    return b0(c,d);
+    var h=b0(c,d);
+    var det=(c.serieD||[]).slice(0,10).reverse();
+    if(!det.length||!h)return h;
+    var k=0;
+    h=h.replace(/<div class="bc">/g,function(){return '<div class="bc"'+da(det[k++])+'>'});
+    return h+LEG;
   };
   var tx0=tx;
   tx=function(x,t,a,b,sz,col,w,al,mw){
