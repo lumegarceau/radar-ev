@@ -44,8 +44,17 @@ if not radar or not radar.get("days"):
 H = cargar(FH, {"meta": {}, "sel": {}})
 meta = H.setdefault("meta", {})
 sel = H.setdefault("sel", {})
+BORRAR = (
+    "1550194|Edoardo Corvi 2+ paradas",
+    "1550187|Arijanet Muric 3+ paradas",
+    "1575217|Harry Kane 3+ remates",
+)
+quitadas = 0
+for kb in BORRAR:
+    if sel.pop(kb, None) is not None:
+        quitadas += 1
 if meta.get("updated_at") == radar.get("updated_at"):
-    if meta.get("v") == 7:
+    if meta.get("v") == 8:
         print("sin cambios desde la ultima vez")
         raise SystemExit
 props_ok = bool(radar.get("props_ok"))
@@ -126,10 +135,11 @@ for k, r in sel.items():
     if not r["vigente"]:
         ocultas += 1
 meta["updated_at"] = radar.get("updated_at")
-meta["v"] = 7
+meta["v"] = 8
 json.dump(H, open(FH, "w"), ensure_ascii=False)
 print("pasada de props completa:", props_ok)
 print("selecciones nuevas:", nuevas, "| actualizadas:", act)
 print("ocultas por dejar de cumplir:", ocultas)
+print("quitadas por cuota mal leida:", quitadas)
 print("total en historial:", len(sel))
 # fin
