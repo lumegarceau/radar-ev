@@ -20,6 +20,8 @@ LIGAS = [
     "germany/bundesliga",
     "netherlands/eredivisie",
     "portugal/primeira-liga",
+    "usa/mls",
+    "united-states/mls",
 ]
 PEST = ["main-markets", "corners", "goals", "other"]
 JS_TAB = (
