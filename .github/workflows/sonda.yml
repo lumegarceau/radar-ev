@@ -1,4 +1,4 @@
-name: Sonda Betfair y Betway
+name: Sonda MLS
 on:
   workflow_dispatch:
 jobs:
@@ -12,7 +12,7 @@ jobs:
           python-version: "3.12"
       - name: Instalar
         run: |
-          pip install playwright
+          pip install playwright "python-socketio[client]" websocket-client
           playwright install --with-deps chromium
       - name: Sonda
         run: python sonda.py
