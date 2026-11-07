@@ -29,9 +29,9 @@ function nk(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"")}
 var AFFN={};
 Object.keys(AFF).forEach(function(k){AFFN[nk(k)]=AFF[k]});
 function link(b){return AFFN[nk(b)]||"#"}
-var ORDER=["España","Inglaterra","Italia","Francia","Alemania","Países Bajos","Portugal"];
-var LIGAS=["LaLiga","Segunda División","Liga F","Premier League","Serie A","Ligue 1","Bundesliga","Eredivisie","Primeira Liga"];
-var FLAG={"España":"🇪🇸","Inglaterra":"🇬🇧","Italia":"🇮🇹","Francia":"🇫🇷","Alemania":"🇩🇪","Países Bajos":"🇳🇱","Portugal":"🇵🇹"};
+var ORDER=["España","Inglaterra","Italia","Francia","Alemania","Países Bajos","Portugal","Estados Unidos"];
+var LIGAS=["LaLiga","Segunda División","Liga F","Premier League","Serie A","Ligue 1","Bundesliga","Eredivisie","Primeira Liga","MLS"];
+var FLAG={"España":"🇪🇸","Inglaterra":"🇬🇧","Italia":"🇮🇹","Francia":"🇫🇷","Alemania":"🇩🇪","Países Bajos":"🇳🇱","Portugal":"🇵🇹","Estados Unidos":"🇺🇸"};
 var TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bookies"],["resultados","Resultados"]];
 var DEMO=[
 {pais:"España",liga:"LaLiga",local:"Real Madrid",visitante:"Valencia",hora:"21:00",suceso:"Real Madrid +4,5 córners",l20:"16/20",cond:"9/10",condTxt:"local",rival:"12/20",prob:.78,cuotas:[{b:"Bet365",c:1.80},{b:"Winamax",c:1.73},{b:"Codere",c:1.70},{b:"Betfair",c:1.65}]},
