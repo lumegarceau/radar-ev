@@ -25,6 +25,7 @@ LIGAS = {
     78: ("Alemania", "Bundesliga"),
     88: ("Países Bajos", "Eredivisie"),
     94: ("Portugal", "Primeira Liga"),
+    253: ("Estados Unidos", "MLS"),
 }
 SRIDS = set([
     "sr:tournament:8", "sr:tournament:54", "sr:tournament:17",
