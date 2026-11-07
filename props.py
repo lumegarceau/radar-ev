@@ -32,6 +32,7 @@ SRIDS = set([
     "sr:tournament:18", "sr:tournament:23", "sr:tournament:34",
     "sr:tournament:35", "sr:tournament:37", "sr:tournament:238",
     "sr:tournament:7", "sr:tournament:679",
+    "sr:tournament:242",
 ])
 NOM = {
     "shots": "remates",
