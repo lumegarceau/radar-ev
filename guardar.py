@@ -3,6 +3,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 MAD = ZoneInfo("Europe/Madrid")
+REGLA = "v0"
 FH = "historial.json"
 FR = "radar-data.json"
 CAMPOS = ["tid", "hid", "aid", "lid", "pid", "num", "pos", "serie",
@@ -50,11 +51,16 @@ BORRAR = (
     "1575217|Harry Kane 3+ remates",
 )
 quitadas = 0
+sin_regla = 0
+for r0 in sel.values():
+    if "regla" not in r0:
+        r0["regla"] = "v0"
+        sin_regla += 1
 for kb in BORRAR:
     if sel.pop(kb, None) is not None:
         quitadas += 1
 if meta.get("updated_at") == radar.get("updated_at"):
-    if meta.get("v") == 8:
+    if meta.get("v") == 9:
         print("sin cambios desde la ultima vez")
         raise SystemExit
 props_ok = bool(radar.get("props_ok"))
@@ -108,6 +114,7 @@ for c in radar["days"][-1]["candidatos"]:
             "ultima": obs,
             "max": obs,
             "estado": "pendiente",
+            "regla": REGLA,
         }
         r.update(extra)
         sel[k] = r
@@ -135,11 +142,12 @@ for k, r in sel.items():
     if not r["vigente"]:
         ocultas += 1
 meta["updated_at"] = radar.get("updated_at")
-meta["v"] = 8
+meta["v"] = 9
 json.dump(H, open(FH, "w"), ensure_ascii=False)
 print("pasada de props completa:", props_ok)
 print("selecciones nuevas:", nuevas, "| actualizadas:", act)
 print("ocultas por dejar de cumplir:", ocultas)
 print("quitadas por cuota mal leida:", quitadas)
+print("regla vigente:", REGLA, "| fichas antiguas etiquetadas v0:", sin_regla)
 print("total en historial:", len(sel))
 # fin
