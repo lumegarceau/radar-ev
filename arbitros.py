@@ -5,9 +5,9 @@ from datetime import datetime
 from rcommon import api, gasto
 import rmodelo
 
-TEMP = 2026
-RECIENTES = 10
-NUEVAS_MAX = 150
+TEMPS = (2026, 2025, 2024, 2023)
+RECIENTES = 20
+NUEVAS_MAX = 300
 UNID = {"fouls": "faltas", "cards": "tarjetas", "drawn": "faltas"}
 OK = ("FT", "AET", "PEN")
 
@@ -52,17 +52,14 @@ def corto(ref):
 
 def partidos_arbitro(lista, ref, antes_de, nuevas, info=None):
     clave = norm(nombre(ref))
-    mios = []
+    ck = corto(ref)
     jugados = [x for x in lista if x["fixture"]["status"]["short"] in OK
                and x["fixture"].get("referee")]
+    mios = []
     for x in jugados:
-        if norm(nombre(x["fixture"].get("referee"))) == clave:
+        r2 = x["fixture"].get("referee")
+        if norm(nombre(r2)) == clave or (ck and corto(r2) == ck):
             mios.append(x)
-    if not mios:
-        ck = corto(ref)
-        for x in jugados:
-            if corto(x["fixture"].get("referee")) == ck:
-                mios.append(x)
     if info is not None:
         info["jugados_con_arbitro"] = len(jugados)
         info["suyos"] = len(mios)
@@ -143,8 +140,16 @@ def main():
     ligas = sorted(set(c["lid"] for c in obj if c.get("lid") is not None))
     listas = {}
     for lid in ligas:
-        listas[lid] = api("/fixtures", league=lid, season=TEMP) or []
-        print("arbitros: liga", lid, "->", len(listas[lid]), "partidos")
+        todos = []
+        vistos = set()
+        for t in TEMPS:
+            for x in api("/fixtures", league=lid, season=t) or []:
+                if x["fixture"]["id"] not in vistos:
+                    vistos.add(x["fixture"]["id"])
+                    todos.append(x)
+        listas[lid] = todos
+        print("arbitros: liga", lid, "->", len(todos),
+              "partidos en", len(TEMPS), "temporadas")
     nuevas = [0]
     ref_de = {}
     for lid, lst in listas.items():
