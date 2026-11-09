@@ -1,4 +1,4 @@
-import re
+import re, difflib
 from playwright.sync_api import sync_playwright
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -11,9 +11,22 @@ def limpio(pg):
     return t[:k] if k > 0 else t
 
 
-def trozo(t, ini, n=1800):
-    i = t.find(ini)
-    return t[max(0, i - 60):i + n] if i >= 0 else t[:n]
+def nuevo(antes, despues):
+    a, b = antes.split(), despues.split()
+    sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
+    out = []
+    for op, i1, i2, j1, j2 in sm.get_opcodes():
+        if op in ("insert", "replace"):
+            out.append(" ".join(b[j1:j2]))
+    return " | ".join(out)[:1800]
+
+
+JS_DOM = """()=>{
+  const els=Array.from(document.querySelectorAll('*')).filter(e=>e.children.length==0&&(e.textContent||'').trim()==='Mercado');
+  return els.slice(0,3).map(e=>{let p=e;for(let i=0;i<3&&p.parentElement;i++)p=p.parentElement;return p.outerHTML.slice(0,3500)});
+}"""
+JS_SEL = """()=>Array.from(document.querySelectorAll('select,[role=combobox],[role=listbox],[aria-haspopup],[class*=dropdown],[class*=Dropdown],[class*=select]'))
+  .slice(0,25).map(e=>e.tagName+'|'+(e.getAttribute('role')||'')+'|'+(e.className&&e.className.toString().slice(0,70))+'|'+(e.innerText||'').trim().slice(0,50).replace(/\\s+/g,' '))"""
 
 
 def prueba(nom, url):
@@ -33,51 +46,33 @@ def prueba(nom, url):
             pg.wait_for_timeout(12000)
             pg.get_by_text("Francia", exact=True).first.click(timeout=6000)
             pg.wait_for_timeout(12000)
-            print("URL partido:", pg.url)
-            # pestanas con numero: Equipos / Especiales / Jugadores / Minutos
-            for pal in ["Equipos", "Especiales"]:
-                try:
-                    pg.get_by_text(re.compile(r"^" + pal + r"\b"), exact=False).first.click(timeout=3000)
-                    pg.wait_for_timeout(5000)
-                    print("\n--- pestana", pal)
-                    print(trozo(limpio(pg), "Mercados", 1600))
-                except Exception as e:
-                    print("\n(sin pestana", pal + ")", repr(e)[:60])
             pg.get_by_text(re.compile(r"^Jugadores\b"), exact=False).first.click(timeout=4000)
             pg.wait_for_timeout(5000)
-            # abrir el desplegable Mercado
-            abierto = False
-            for sel in ["text=Mercado", "[class*=select]", "select"]:
+            print("HTML cerca de 'Mercado':")
+            for h in pg.evaluate(JS_DOM):
+                print("   ", re.sub(r"\s+", " ", h))
+            print("\nselectores candidatos:")
+            for s in pg.evaluate(JS_SEL):
+                print("   ", s)
+            # probar clic en el elemento 'Mercado' y en jugadores
+            antes = limpio(pg)
+            for intento in ["Mercado", "Jugador"]:
                 try:
-                    pg.locator(sel).first.click(timeout=3000)
-                    abierto = True
-                    break
-                except Exception:
-                    pass
-            pg.wait_for_timeout(2500)
-            print("\n--- desplegable abierto:", abierto)
-            ops = pg.evaluate("""()=>Array.from(document.querySelectorAll('option,[role=option],li'))
-               .map(e=>(e.innerText||e.textContent||'').trim()).filter(s=>s&&s.length<45)""")
-            print("opciones:", ops[:70])
-            for pal in ["Remates a Puerta", "Tiros a Puerta", "Remates", "Tiros", "Faltas"]:
-                try:
-                    pg.get_by_text(pal, exact=False).first.click(timeout=2500)
-                    pg.wait_for_timeout(5000)
-                    t = limpio(pg)
-                    print("\n--- elegido:", pal, "| texto", len(t))
-                    print(trozo(t, "Mercado", 1800))
-                    # elegir primer jugador
-                    try:
-                        pg.get_by_text("Kylian Mbappe", exact=False).first.click(timeout=3000)
-                        pg.wait_for_timeout(5000)
-                        t = limpio(pg)
-                        print("--- tras elegir Mbappe:")
-                        print(trozo(t, "Mbappe", 1500))
-                    except Exception as e:
-                        print("no pude elegir jugador", repr(e)[:60])
-                    break
-                except Exception:
-                    pass
+                    pg.locator("xpath=//*[normalize-space(text())='" + intento + "']").first.click(timeout=3000)
+                    pg.wait_for_timeout(3000)
+                    d = limpio(pg)
+                    print("\nclic en", intento, "-> aparece:", nuevo(antes, d) or "(nada)")
+                    antes = d
+                except Exception as e:
+                    print("\nclic en", intento, "falla:", repr(e)[:70])
+            # clic en un jugador
+            try:
+                pg.get_by_text("Kylian Mbappe", exact=False).first.click(timeout=3000)
+                pg.wait_for_timeout(4000)
+                d = limpio(pg)
+                print("\nclic en Mbappe -> aparece:", nuevo(antes, d) or "(nada)")
+            except Exception as e:
+                print("\nMbappe falla:", repr(e)[:70])
         except Exception as e:
             print("FALLO", repr(e)[:200])
         br.close()
