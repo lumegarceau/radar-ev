@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<meta name="theme-color" content="#0f9d58">
+<meta name="theme-color" content="#081b35">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Radar EV">
 <title>Radar EV · Apuestas de valor en fútbol</title>
@@ -12,11 +12,12 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="stylesheet" href="style.css?v=22">
 <link rel="stylesheet" href="ficha.css?v=22">
+<link rel="stylesheet" href="tema.css?v=2">
 </head>
 <body>
 <div id="err"></div>
 <header><div class="wrap">
-<div class="top"><div class="logo">Radar <b>EV</b></div><button id="appbtn" onclick="abrirApp()">Descargar app</button><div class="upd" id="upd"></div></div>
+<div class="top"><div class="logo"><img src="logo-radar.png" alt="">EV <i>RADAR</i></div><button id="appbtn" onclick="abrirApp()">Descargar app</button><div class="upd"><span class="dot"></span><span id="upd"></span></div></div>
 <nav role="tablist" id="nav"></nav>
 </div></header>
 <div class="wrap"><div class="r18"><span class="b18">+18</span><span>Solo para mayores de 18 años. Juega con responsabilidad: apostar puede crear adicción. Si el juego te causa problemas, pide ayuda en <a href="https://www.jugarbien.es" target="_blank" rel="noopener">jugarbien.es</a>.</span></div></div>
@@ -28,6 +29,7 @@ Las cuotas pueden variar en cualquier momento. Si un jugador no sale de titular,
 window.onerror=function(m,s,l){var e=document.getElementById("err");e.style.display="block";e.textContent="Error: "+m+" ("+String(s).split("/").pop()+":"+l+")"};
 </script>
 <script src="config.js?v=22"></script>
+<script src="cuenta.js?v=1"></script>
 <script src="data.js?v=22"></script>
 <script src="app1.js?v=22"></script>
 <script src="app2.js?v=22"></script>
@@ -54,5 +56,7 @@ window.onerror=function(m,s,l){var e=document.getElementById("err");e.style.disp
 <script src="app23.js?v=22"></script>
 <script src="app24.js?v=23"></script>
 <script src="app25.js?v=24"></script>
+<script src="app26.js?v=2"></script>
+<script src="app27.js?v=1"></script>
 </body>
 </html>
