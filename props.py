@@ -126,6 +126,9 @@ if not wina_ok:
 print("winamax:", len(wm), "partidos")
 bw = rbway.cargar()
 print("betway:", len(bw), "partidos")
+ESP = [("Sportium", rbway.cargar("sportium.json")),
+       ("Marcaapuestas", rbway.cargar("marca.json"))]
+print("sportium:", len(ESP[0][1]), "partidos | marca:", len(ESP[1][1]), "partidos")
 
 nuevos = []
 sin_u = {}
@@ -153,7 +156,12 @@ for lid, (pais, liga) in LIGAS.items():
             if j:
                 pv = rv.leer(j)[2]
         bwp = buscar_wina(loc["name"], vis["name"], dt, bw)
-        if not w and not pv and not bwp:
+        esp = []
+        for casa_es, lista_es in ESP:
+            z = buscar_wina(loc["name"], vis["name"], dt, lista_es)
+            if z:
+                esp.append((casa_es, z))
+        if not w and not pv and not bwp and not esp:
             continue
         n_part += 1
         inj = bajas(x["fixture"]["id"])
@@ -226,6 +234,23 @@ for lid, (pais, liga) in LIGAS.items():
                 d = cu.setdefault((stat, pid, n, lado), {})
                 if c > d.get("Betway", 0):
                     d["Betway"] = c
+        for casa_es, z in esp:
+            for stat, nom, n, c in z["jugador"]:
+                a = rjug.buscar(nom, jl)
+                b = rjug.buscar(nom, jv)
+                if (a is None) == (b is None):
+                    cuenta("es_sin_pareja")
+                    continue
+                lado = "home"
+                pid = a
+                if a is None:
+                    lado = "away"
+                    pid = b
+                cuenta("es_ok")
+                disp.setdefault(pid, nom)
+                d = cu.setdefault((stat, pid, n, lado), {})
+                if c > d.get(casa_es, 0):
+                    d[casa_es] = c
         notas = {}
         for key in list(cu):
             if key[0] != "saves" or key[1] >= 0:
@@ -377,6 +402,10 @@ print("peticiones API-Football:", gasto[0])
 bwn = [c for c in nuevos if any(q["b"] == "Betway" for q in c["cuotas"])]
 mej = [c for c in bwn if max(c["cuotas"], key=lambda q: q["c"])["b"] == "Betway"]
 print("props con cuota de Betway:", len(bwn), "| Betway mejor cuota:", len(mej))
+for casa_es in ("Sportium", "Marcaapuestas"):
+    ces = [c for c in nuevos if any(q["b"] == casa_es for q in c["cuotas"])]
+    mes = [c for c in ces if max(c["cuotas"], key=lambda q: q["c"])["b"] == casa_es]
+    print("props con cuota de", casa_es + ":", len(ces), "| mejor cuota:", len(mes))
 print("depuracion paradas de equipo Betway:", dbg)
 for c in nuevos:
     if c["mercado"] == "saves":

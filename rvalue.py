@@ -134,6 +134,9 @@ TRAD = {
     "georgia": "georgia", "israel": "israel", "austria": "austria",
     "serbia": "serbia", "kosovo": "kosovo", "malta": "malta",
     "lituania": "lithuania", "irlanda del norte": "northern ireland",
+    "r checa": "czechia", "macedonia n": "north macedonia",
+    "irlanda del n": "northern ireland", "macedonia del n": "north macedonia",
+    "islas feroe": "faroe islands", "bosnia y herzegovina": "bosnia herzegovina",
 }
 
 

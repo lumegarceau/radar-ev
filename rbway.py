@@ -192,24 +192,24 @@ def inicio(lns, c1, now=None):
     return None
 
 
-def cargar(max_horas=10):
+def cargar(archivo=ARCHIVO, max_horas=10):
     try:
-        d = json.load(open(ARCHIVO))
+        d = json.load(open(archivo, encoding="utf-8"))
     except Exception:
         return []
     if time.time() - d.get("ts", 0) > max_horas * 3600:
-        print("betway.json antiguo: no se usa")
+        print(archivo, "antiguo: no se usa")
         return []
     return d.get("partidos", [])
 
 
-def anadir(cu, w):
+def anadir(cu, w, casa="Betway"):
     for stat, lado, ln, c, s in w["equipo"]:
         d = cu.setdefault(("eq", stat, lado, ln, s), {})
-        if c > d.get("Betway", 0):
-            d["Betway"] = c
+        if c > d.get(casa, 0):
+            d[casa] = c
     for stat, ln, c, s in w["total"]:
         d = cu.setdefault(("tot", stat, "total", ln, s), {})
-        if c > d.get("Betway", 0):
-            d["Betway"] = c
+        if c > d.get(casa, 0):
+            d[casa] = c
 # fin
