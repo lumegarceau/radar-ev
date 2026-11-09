@@ -36,7 +36,7 @@ TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bonos"]];
     e.preventDefault();e.stopPropagation();
     var k=b.getAttribute('data-fk'),c=S.data.filter(function(x){return x.k===k})[0];
     if(FAV[k])delete FAV[k];
-    else FAV[k]={t:Date.now(),c:c?c.best.c:null,d:c?c.dia:null};
+    else FAV[k]={t:Date.now(),c:c?c.best.c:null,b:c?c.best.b:null,d:c?c.dia:null};
     guardaFav();pintaStars(k);
     if(S.tab==='favoritos')draw();
     else if(FAV[k])invita();
@@ -117,7 +117,7 @@ TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bonos"]];
     }else{
       h+='<div class="n-s">'+lg+esc(c.liga)+(mk?' · '+mk:'')+cond+'</div>';
     }
-    h+='<div class="n-big"><div class="n-a"><b>'+esc(d.resto)+'</b><i>'+pc(c.prob)+'</i><span>Probabilidad estimada'+(d.ult.length?' · L10 '+d.h10+'/'+d.ult.length:'')+'</span></div>';
+    h+='<div class="n-big"><div class="n-a"><b>'+esc(J?d.resto:c.suceso)+'</b><i>'+pc(c.prob)+'</i><span>Probabilidad estimada'+(d.ult.length?' · L10 '+d.h10+'/'+d.ult.length:'')+'</span></div>';
     h+='<div class="n-e"><u>EV</u><i class="'+evc+'">'+evt(c)+'</i><span>Cuota estimada '+f2(c.fair)+'</span></div></div>';
     h+='<div class="bar"><u style="width:'+Math.round(c.prob*100)+'%"></u></div>';
     var it=tiles(c);
@@ -154,9 +154,39 @@ TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bonos"]];
   function diaL(d){
     try{var t=new Date(d+'T12:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});return t.charAt(0).toUpperCase()+t.slice(1)}catch(e){return d}
   }
+  var FOPEN={};
+  function fnum2(x){return Number(x).toFixed(2).replace('.',',')}
+  function favEd(c,f){
+    var cu=f.c||c.best.c,b=f.b||c.best.b;
+    var o='<div class="fed"><b>Tu apuesta</b><div class="fedr"><label>Cuota<input type="text" inputmode="decimal" value="'+fnum2(cu)+'" onchange="favSet(\''+esc(c.k).replace(/'/g,"\\'")+'\',\'c\',this.value)"></label>';
+    o+='<label>Casa<select onchange="favSet(\''+esc(c.k).replace(/'/g,"\\'")+'\',\'b\',this.value)">';
+    var vistos={};
+    c.q.forEach(function(q){vistos[q.b]=1;o+='<option value="'+esc(q.b)+'"'+(q.b===b?' selected':'')+'>'+esc(q.b)+' · '+fnum2(q.c)+'</option>'});
+    if(b&&!vistos[b])o+='<option value="'+esc(b)+'" selected>'+esc(b)+'</option>';
+    o+='</select></label></div>';
+    if(c.best.c>cu+0.004)o+='<div class="fedh">Ahora hay <b>'+fnum2(c.best.c)+'</b> en '+esc(c.best.b)+' <button type="button" onclick="favUsa(\''+esc(c.k).replace(/'/g,"\\'")+'\')">Usar esa</button></div>';
+    else if(c.best.c<cu-0.004)o+='<div class="fedh baja">La mejor cuota ahora es <b>'+fnum2(c.best.c)+'</b> ('+esc(c.best.b)+'): ha bajado desde tu cuota.</div>';
+    return o+'</div>';
+  }
+  window.favSet=function(k,campo,v){
+    var f=FAV[k];if(!f)return;
+    if(campo==='c'){var n=parseFloat(String(v).replace(',','.'));if(!(n>=1.01&&n<=100))return;f.c=n}
+    else{f.b=v;var c=S.data.filter(function(x){return x.k===k})[0];if(c){var q=c.q.filter(function(x){return x.b===v})[0];if(q)f.c=q.c}}
+    guardaFav();draw();
+  };
+  window.favUsa=function(k){
+    var f=FAV[k],c=S.data.filter(function(x){return x.k===k})[0];
+    if(!f||!c)return;f.c=c.best.c;f.b=c.best.b;guardaFav();draw();
+  };
+  document.addEventListener('toggle',function(e){
+    var t=e.target,k=t.getAttribute&&t.getAttribute('data-fk2');
+    if(!k)return;
+    if(t.open)FOPEN[k]=1;else delete FOPEN[k];
+  },true);
   function favRow(c,i){
+    var f=FAV[c.k]||{},cu=f.c||c.best.c,b=f.b||c.best.b;
     var p=c.estado==="ganada"?'<span class="v pos">Ganada</span>':c.estado==="perdida"?'<span class="v neg">Perdida</span>':c.estado==="nula"?'<span class="v gr">Nula</span>':'<span class="v gr">'+esc(c.hm)+'</span>';
-    return '<details class="tr"><summary class="row"><span class="n">'+(i+1)+'</span><div class="g">'+esc(c.suceso)+'<small>'+esc(c.local)+' v '+esc(c.visitante)+' · '+f2(c.best.c)+'</small></div>'+p+starB(c)+'<span class="ar">▾</span></summary><div class="tb">'+bd(c)+cbody(c)+'</div></details>';
+    return '<details class="tr" data-fk2="'+esc(c.k)+'"'+(FOPEN[c.k]?' open':'')+'><summary class="row"><span class="n">'+(i+1)+'</span><div class="g">'+esc(c.suceso)+'<small>'+esc(c.local)+' v '+esc(c.visitante)+' · '+fnum2(cu)+' en '+esc(b)+'</small></div>'+p+starB(c)+'<span class="ar">▾</span></summary><div class="tb">'+favEd(c,f)+bd(c)+cbody(c)+'</div></details>';
   }
   function favoritos(){
     var ks=Object.keys(FAV),L=[];
