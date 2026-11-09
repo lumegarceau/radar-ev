@@ -1,4 +1,4 @@
-import re, difflib
+import re, time
 from playwright.sync_api import sync_playwright
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -11,24 +11,6 @@ def limpio(pg):
     return t[:k] if k > 0 else t
 
 
-def nuevo(antes, despues):
-    a, b = antes.split(), despues.split()
-    sm = difflib.SequenceMatcher(None, a, b, autojunk=False)
-    out = []
-    for op, i1, i2, j1, j2 in sm.get_opcodes():
-        if op in ("insert", "replace"):
-            out.append(" ".join(b[j1:j2]))
-    return " | ".join(out)[:1800]
-
-
-JS_DOM = """()=>{
-  const els=Array.from(document.querySelectorAll('*')).filter(e=>e.children.length==0&&(e.textContent||'').trim()==='Mercado');
-  return els.slice(0,3).map(e=>{let p=e;for(let i=0;i<3&&p.parentElement;i++)p=p.parentElement;return p.outerHTML.slice(0,3500)});
-}"""
-JS_SEL = """()=>Array.from(document.querySelectorAll('select,[role=combobox],[role=listbox],[aria-haspopup],[class*=dropdown],[class*=Dropdown],[class*=select]'))
-  .slice(0,25).map(e=>e.tagName+'|'+(e.getAttribute('role')||'')+'|'+(e.className&&e.className.toString().slice(0,70))+'|'+(e.innerText||'').trim().slice(0,50).replace(/\\s+/g,' '))"""
-
-
 def prueba(nom, url):
     print("\n=====", nom, url)
     with sync_playwright() as pw:
@@ -36,43 +18,44 @@ def prueba(nom, url):
         ctx = br.new_context(user_agent=UA, locale="es-ES", timezone_id="Europe/Madrid",
                              viewport={"width": 1366, "height": 3000})
         pg = ctx.new_page()
+        t0 = time.time()
         try:
             pg.goto(url, timeout=60000, wait_until="domcontentloaded")
-            pg.wait_for_timeout(6000)
+            pg.wait_for_timeout(5000)
             try:
                 pg.get_by_text("Aceptar", exact=True).first.click(timeout=2500)
             except Exception:
                 pass
-            pg.wait_for_timeout(12000)
+            pg.wait_for_timeout(9000)
             pg.get_by_text("Francia", exact=True).first.click(timeout=6000)
-            pg.wait_for_timeout(12000)
+            pg.wait_for_timeout(9000)
             pg.get_by_text(re.compile(r"^Jugadores\b"), exact=False).first.click(timeout=4000)
-            pg.wait_for_timeout(5000)
-            print("HTML cerca de 'Mercado':")
-            for h in pg.evaluate(JS_DOM):
-                print("   ", re.sub(r"\s+", " ", h))
-            print("\nselectores candidatos:")
-            for s in pg.evaluate(JS_SEL):
-                print("   ", s)
-            # probar clic en el elemento 'Mercado' y en jugadores
-            antes = limpio(pg)
-            for intento in ["Mercado", "Jugador"]:
-                try:
-                    pg.locator("xpath=//*[normalize-space(text())='" + intento + "']").first.click(timeout=3000)
-                    pg.wait_for_timeout(3000)
-                    d = limpio(pg)
-                    print("\nclic en", intento, "-> aparece:", nuevo(antes, d) or "(nada)")
-                    antes = d
-                except Exception as e:
-                    print("\nclic en", intento, "falla:", repr(e)[:70])
-            # clic en un jugador
+            pg.wait_for_timeout(4000)
+            pg.locator("xpath=//*[normalize-space(text())='Mercado']").first.click(timeout=3000)
+            pg.wait_for_timeout(4000)
+            print("segundos hasta ver mercados:", round(time.time() - t0))
+            # tiempo total de la vista y titulos de mercados
+            t = limpio(pg)
+            print("longitud vista Mercado:", len(t))
+            tit = re.findall(r"((?:[A-ZÁÉÍÓÚÑ][\wáéíóúñ/]*\s){1,6}?(?:Totales|Cometidas|Recibidas|Paradas|Tarjetas?))\s(?=[A-ZÁÉÍÓÚÑ][a-zñáéíóú]+ [A-Z])", t)
+            print("titulos detectados:", sorted(set(tit))[:40])
+            for pal in ["Falta", "Tarjeta", "Entrada", "Parada", "Fuera de Juego", "Regate"]:
+                print("  contiene", pal, "->", t.count(pal))
+            # pulsar MOSTRAR TODO del primer mercado de tiros a puerta
+            antes = len(t)
             try:
-                pg.get_by_text("Kylian Mbappe", exact=False).first.click(timeout=3000)
+                bt = pg.get_by_text("MOSTRAR TODO", exact=True)
+                print("botones MOSTRAR TODO:", bt.count())
+                bt.nth(1).click(timeout=3000)
                 pg.wait_for_timeout(4000)
-                d = limpio(pg)
-                print("\nclic en Mbappe -> aparece:", nuevo(antes, d) or "(nada)")
+                t2 = limpio(pg)
+                print("tras MOSTRAR TODO (2o):", antes, "->", len(t2))
+                i = t2.find("Tiros a Puerta Totales")
+                print(t2[i:i + 2600])
             except Exception as e:
-                print("\nMbappe falla:", repr(e)[:70])
+                print("MOSTRAR TODO falla:", repr(e)[:80])
+            # ultimo trozo: otros mercados al final de la vista
+            print("\nFINAL de la vista:", t[-1800:])
         except Exception as e:
             print("FALLO", repr(e)[:200])
         br.close()
