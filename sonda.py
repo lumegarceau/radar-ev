@@ -22,7 +22,7 @@ def af(ruta, **p):
 print("=== A. API-Football: casas de cuotas disponibles")
 bm = af("/odds/bookmakers") or []
 print("casas:", len(bm))
-print(sorted(b["name"] for b in bm))
+print(sorted(str(b.get("id"))+":"+str(b.get("name")) for b in bm))
 hoy = datetime.now(timezone.utc).date()
 fx = af("/fixtures", league=5, season=2026, **{"from": str(hoy), "to": str(hoy + timedelta(days=5))}) or []
 print("partidos NL:", len(fx))
@@ -39,8 +39,8 @@ if pri:
     od = af("/odds", fixture=fid) or []
     for o in od:
         for b in o.get("bookmakers", []):
-            print("  casa", b["id"], b["name"], "| mercados:", len(b.get("bets", [])),
-                  "|", [x["name"] for x in b.get("bets", [])][:14])
+            print("  casa", b.get("id"), b.get("name"), "| mercados:", len(b.get("bets", [])),
+                  "|", [str(x.get("name")) for x in b.get("bets", [])][:14])
     if not od:
         print("  sin cuotas en API-Football para este partido")
 
