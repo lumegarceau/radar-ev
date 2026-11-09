@@ -1,4 +1,4 @@
-name: Sonda MLS
+name: Sonda
 on:
   workflow_dispatch:
 jobs:
@@ -10,9 +10,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Instalar
-        run: |
-          pip install playwright "python-socketio[client]" websocket-client
-          playwright install --with-deps chromium
       - name: Sonda
         run: python sonda.py
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
