@@ -111,10 +111,37 @@ def canon(n):
     return ALIAS.get(k)
 
 
+TRAD = {
+    "turkey": "turkiye", "turquia": "turkiye",
+    "czech republic": "czechia", "chequia": "czechia",
+    "espana": "spain", "inglaterra": "england", "francia": "france",
+    "italia": "italy", "alemania": "germany", "belgica": "belgium",
+    "croacia": "croatia", "paises bajos": "netherlands",
+    "holanda": "netherlands", "escocia": "scotland", "suiza": "switzerland",
+    "grecia": "greece", "islandia": "iceland", "noruega": "norway",
+    "dinamarca": "denmark", "polonia": "poland", "hungria": "hungary",
+    "rumania": "romania", "irlanda": "ireland", "gales": "wales",
+    "ucrania": "ukraine", "bosnia": "bosnia herzegovina",
+    "eslovaquia": "slovakia", "eslovenia": "slovenia", "suecia": "sweden",
+    "finlandia": "finland", "albania": "albania", "chipre": "cyprus",
+    "armenia": "armenia", "bielorrusia": "belarus", "letonia": "latvia",
+    "estonia": "estonia", "luxemburgo": "luxembourg", "bulgaria": "bulgaria",
+    "azerbaiyan": "azerbaijan", "andorra": "andorra", "gibraltar": "gibraltar",
+    "kazajistan": "kazakhstan", "moldavia": "moldova",
+    "islas feroe": "faroe islands", "macedonia del norte": "north macedonia",
+    "fyr macedonia": "north macedonia", "montenegro": "montenegro",
+    "san marino": "san marino", "liechtenstein": "liechtenstein",
+    "georgia": "georgia", "israel": "israel", "austria": "austria",
+    "serbia": "serbia", "kosovo": "kosovo", "malta": "malta",
+    "lituania": "lithuania", "irlanda del norte": "northern ireland",
+}
+
+
 def norm(s):
     s = unicodedata.normalize("NFD", s.lower())
     s = "".join(c for c in s if c.isalnum() or c == " ")
-    return " ".join(w for w in s.split() if w not in STOP)
+    r = " ".join(w for w in s.split() if w not in STOP)
+    return TRAD.get(r, r)
 
 
 def sim(a, b):

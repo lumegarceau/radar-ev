@@ -30,7 +30,7 @@ var AFFN={};
 Object.keys(AFF).forEach(function(k){AFFN[nk(k)]=AFF[k]});
 function link(b){return AFFN[nk(b)]||"#"}
 var ORDER=["España","Inglaterra","Italia","Francia","Alemania","Países Bajos","Portugal","Estados Unidos"];
-var LIGAS=["LaLiga","Segunda División","Liga F","Premier League","Serie A","Ligue 1","Bundesliga","Eredivisie","Primeira Liga","MLS"];
+var LIGAS=["LaLiga","Segunda División","Liga F","Premier League","Serie A","Ligue 1","Bundesliga","Eredivisie","Primeira Liga","MLS","Nations League"];
 var FLAG={"España":"🇪🇸","Inglaterra":"🇬🇧","Italia":"🇮🇹","Francia":"🇫🇷","Alemania":"🇩🇪","Países Bajos":"🇳🇱","Portugal":"🇵🇹","Estados Unidos":"🇺🇸"};
 var TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bookies"],["resultados","Resultados"]];
 var DEMO=[

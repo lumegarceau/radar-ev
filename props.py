@@ -9,6 +9,7 @@ import rwina as rw
 import rbway
 import rjug
 import rnivel
+import conv
 
 MAD = ZoneInfo("Europe/Madrid")
 TEMP = 2026
@@ -26,12 +27,13 @@ LIGAS = {
     88: ("Países Bajos", "Eredivisie"),
     94: ("Portugal", "Primeira Liga"),
     253: ("Estados Unidos", "MLS"),
+    5: ("Europa", "Nations League"),
 }
 SRIDS = set([
     "sr:tournament:8", "sr:tournament:54", "sr:tournament:17",
     "sr:tournament:18", "sr:tournament:23", "sr:tournament:34",
     "sr:tournament:35", "sr:tournament:37", "sr:tournament:238",
-    "sr:tournament:7", "sr:tournament:679",
+    "sr:tournament:7", "sr:tournament:679", "sr:tournament:23755",
     "sr:tournament:242",
 ])
 NOM = {
@@ -44,6 +46,7 @@ NOM = {
 }
 memo = {}
 sqm = {}
+conv_memo = {}
 dbg = {}
 
 
@@ -256,6 +259,12 @@ for lid, (pais, liga) in LIGAS.items():
             jug = jl if es_local else jv
             eq = loc if es_local else vis
             e = jug[pid]
+            if lid == 5 and pid >= 0:
+                if eq["id"] not in conv_memo:
+                    conv_memo[eq["id"]] = conv.pids(eq["name"], jug, hoy)
+                if pid not in conv_memo[eq["id"]]:
+                    cuenta("nl_sin_convocatoria")
+                    continue
             con_u.add((eq["name"], pid))
             if stat == "saves" and e["pos"] != "G":
                 continue

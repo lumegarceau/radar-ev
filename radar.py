@@ -24,12 +24,13 @@ LIGAS = {
     88: ("Países Bajos", "Eredivisie"),
     94: ("Portugal", "Primeira Liga"),
     253: ("Estados Unidos", "MLS"),
+    5: ("Europa", "Nations League"),
 }
 SRIDS = set([
     "sr:tournament:8", "sr:tournament:54", "sr:tournament:17",
     "sr:tournament:18", "sr:tournament:23", "sr:tournament:34",
     "sr:tournament:35", "sr:tournament:37", "sr:tournament:238",
-    "sr:tournament:7", "sr:tournament:679",
+    "sr:tournament:7", "sr:tournament:679", "sr:tournament:23755",
     "sr:tournament:242",
 ])
 NOM = {
