@@ -117,7 +117,7 @@ TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bonos"]];
     }else{
       h+='<div class="n-s">'+lg+esc(c.liga)+(mk?' · '+mk:'')+cond+'</div>';
     }
-    h+='<div class="n-big"><div class="n-a"><b>'+esc(J?d.resto:c.suceso)+'</b><i>'+pc(c.prob)+'</i><span>Probabilidad estimada'+(d.ult.length?' · L10 '+d.h10+'/'+d.ult.length:'')+'</span></div>';
+    h+='<div class="n-big"><div class="n-a"><b>'+(!J&&c.tid?cr(c.tid):'')+esc(J?d.resto:c.suceso)+'</b><i>'+pc(c.prob)+'</i><span>Probabilidad estimada'+(d.ult.length?' · L10 '+d.h10+'/'+d.ult.length:'')+'</span></div>';
     h+='<div class="n-e"><u>EV</u><i class="'+evc+'">'+evt(c)+'</i><span>Cuota estimada '+f2(c.fair)+'</span></div></div>';
     h+='<div class="bar"><u style="width:'+Math.round(c.prob*100)+'%"></u></div>';
     var it=tiles(c);
