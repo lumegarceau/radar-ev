@@ -272,6 +272,7 @@ TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bonos"]];
   }
   var kc27=k2cuotas;
   k2cuotas=function(c){return tndH(c)+kc27(c)};
+
   if(S.data&&S.data.length&&S.data[0].pri===undefined)load();
 })();
 if(S.data&&S.data.length)draw();
