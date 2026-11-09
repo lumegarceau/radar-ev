@@ -1,6 +1,5 @@
 import json, os, re, time, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone
-import rvalue as rv
 
 KEY = os.environ.get("API_FOOTBALL_KEY", "")
 
@@ -20,111 +19,96 @@ def af(ruta, **p):
     return j.get("response")
 
 
+print("=== A. API-Football: casas de cuotas disponibles")
+bm = af("/odds/bookmakers") or []
+print("casas:", len(bm))
+print(sorted(b["name"] for b in bm))
 hoy = datetime.now(timezone.utc).date()
-print("=== A. Convocatorias: tamano de la plantilla y si incluye a los que jugaron")
-for tid, nom in [(9, "Espana"), (10, "Inglaterra"), (2, "Francia"),
-                 (25, "Alemania"), (777, "Turquia"), (770, "Chequia")]:
-    sq = af("/players/squads", team=tid) or []
-    ids = set(p["id"] for e in sq for p in e.get("players") or [])
-    ult = af("/fixtures", team=tid, last=3) or []
-    jug = set()
-    for f in ult[:1]:
-        st = af("/fixtures/players", fixture=f["fixture"]["id"]) or []
-        for e in st:
-            if e["team"]["id"] == tid:
-                for p in e["players"]:
-                    s = p["statistics"][0]
-                    if (s["games"].get("minutes") or 0) > 0:
-                        jug.add(p["player"]["id"])
-    print(nom, "| plantilla:", len(ids), "| jugaron ultimo partido:", len(jug),
-          "| de ellos en plantilla:", len(jug & ids))
-    if ult:
-        ln = af("/fixtures/lineups", fixture=ult[0]["fixture"]["id"]) or []
-        print("    alineaciones del ultimo partido:", len(ln))
+fx = af("/fixtures", league=5, season=2026, **{"from": str(hoy), "to": str(hoy + timedelta(days=5))}) or []
+print("partidos NL:", len(fx))
+pri = None
+for f in fx:
+    n = f["teams"]["home"]["name"] + " v " + f["teams"]["away"]["name"]
+    if "France" in n or "Spain" in n or "England" in n:
+        pri = f
+        break
+pri = pri or (fx[0] if fx else None)
+if pri:
+    fid = pri["fixture"]["id"]
+    print("partido:", pri["teams"]["home"]["name"], "v", pri["teams"]["away"]["name"], fid)
+    od = af("/odds", fixture=fid) or []
+    for o in od:
+        for b in o.get("bookmakers", []):
+            print("  casa", b["id"], b["name"], "| mercados:", len(b.get("bets", [])),
+                  "|", [x["name"] for x in b.get("bets", [])][:14])
+    if not od:
+        print("  sin cuotas en API-Football para este partido")
 
-print("\n=== B. valueodds: partidos de selecciones (12 y 13 nov)")
-nl = af("/fixtures", league=5, season=2026,
-        **{"from": "2026-11-12", "to": "2026-11-13"}) or []
-for fecha in ("2026-11-12", "2026-11-13"):
-    lista = rv.listar(fecha)
-    print(fecha, "valueodds:", len(lista), "partidos")
-    for o in lista:
-        n = (o["home_team"].get("name", "") + " v " + o["away_team"].get("name", ""))
-        print("    vo:", n, "|", str(o.get("competition") or o.get("league") or "")[:40])
-enlazados = 0
-for f in nl[:20]:
-    dt = datetime.fromisoformat(f["fixture"]["date"])
-    lista = rv.listar(f["fixture"]["date"][:10])
-    o = rv.emparejar(f["teams"]["home"]["name"], f["teams"]["away"]["name"], dt, lista)
-    print("  API:", f["teams"]["home"]["name"], "v", f["teams"]["away"]["name"],
-          "->", "SI" if o else "NO emparejado")
-    if o and enlazados < 2:
-        enlazados += 1
-        j = rv.vget("/api/v1/fixtures/" + str(rv.idde(o)) + "/odds?format=compact")
-        if j:
-            casas = sorted(v.get("name", k) for k, v in (j.get("bookmakers") or {}).items())
-            tipos = {}
-            for m in j.get("markets") or []:
-                t = m.get("type")
-                tipos[t] = tipos.get(t, 0) + 1
-            print("     casas:", casas)
-            print("     mercados:", tipos)
-
-print("\n=== C. Winamax: partidos de selecciones")
-try:
-    import rwina as rw
-    rw.conectar()
-    d = rw.pedir("sport:1", "matches", 40)
-    ms = d.get("matches", {})
-    CL = ["spain", "espana", "france", "francia", "england", "inglaterra",
-          "germany", "alemania", "italy", "italia", "croatia", "croacia",
-          "belgium", "belgica", "czech", "chequia", "turk"]
-    cuenta = {}
-    for mid, m in ms.items():
-        if not isinstance(m, dict):
-            continue
-        n = (str(m.get("competitor1Name", "")) + " v " + str(m.get("competitor2Name", "")))
-        if any(c in n.lower() for c in CL):
-            t = m.get("srTournamentId")
-            cuenta[t] = cuenta.get(t, 0) + 1
-            print("  ", t, "|", n, "|", m.get("matchStart"))
-    print("torneos con selecciones:", cuenta)
-    rw.cerrar()
-except Exception as e:
-    print("FALLO Winamax", repr(e)[:200])
-
-print("\n=== D. Casas nuevas: se pueden leer con navegador?")
+print("\n=== B. Sportium y Marca Apuestas: llamadas internas (JSON) de la web")
 from playwright.sync_api import sync_playwright
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
-SITIOS = [
-    ("Betway NL", "https://betway.es/es/es/sports/grp/soccer"),
-    ("Sportium", "https://www.sportium.es/apuestas/futbol"),
-    ("Marca Apuestas", "https://www.marcaapuestas.es/es/"),
-    ("Retabet", "https://apuestas.retabet.es/futbol"),
-    ("Kirolbet", "https://www.kirolbet.es/apuestas/futbol"),
-    ("Betfair", "https://www.betfair.es/sport/football"),
-]
-with sync_playwright() as pw:
-    br = pw.chromium.launch()
-    ctx = br.new_context(user_agent=UA, locale="es-ES", timezone_id="Europe/Madrid",
-                         viewport={"width": 1366, "height": 2000})
-    for nom, url in SITIOS:
+CLAVES = ["Francia", "France", "Chequia", "Czech", "Inglaterra", "England", "Croacia", "Italia"]
+
+
+def prueba(nom, url, texto_enlace=None):
+    print("\n---", nom, url)
+    resp = []
+    with sync_playwright() as pw:
+        br = pw.chromium.launch()
+        ctx = br.new_context(user_agent=UA, locale="es-ES", timezone_id="Europe/Madrid",
+                             viewport={"width": 1366, "height": 2400})
         pg = ctx.new_page()
+
+        def on_resp(r):
+            try:
+                ct = (r.headers.get("content-type") or "")
+                if "json" not in ct:
+                    return
+                b = r.body()
+                resp.append((r.url, r.status, len(b), b[:600000].decode("utf-8", "ignore")))
+            except Exception:
+                pass
+        pg.on("response", on_resp)
         try:
             r = pg.goto(url, timeout=60000, wait_until="domcontentloaded")
-            pg.wait_for_timeout(9000)
+            print("estado", r.status if r else None, "| titulo", pg.title()[:70])
+            pg.wait_for_timeout(8000)
+            for t in ["Aceptar", "Aceptar todo", "Aceptar todas", "Acepto"]:
+                try:
+                    pg.get_by_text(t, exact=False).first.click(timeout=1500)
+                    break
+                except Exception:
+                    pass
+            if texto_enlace:
+                try:
+                    pg.get_by_text(texto_enlace, exact=False).first.click(timeout=5000)
+                    print("clic en", texto_enlace)
+                except Exception as e:
+                    print("no se pudo pulsar", texto_enlace, repr(e)[:80])
+            pg.wait_for_timeout(10000)
+            for _ in range(4):
+                pg.mouse.wheel(0, 1800)
+                pg.wait_for_timeout(1500)
             t = pg.inner_text("body")
+            print("texto:", len(t), "| URL final:", pg.url)
+            print("muestra:", re.sub(r"\s+", " ", t)[:900])
             hs = pg.evaluate("()=>Array.from(document.querySelectorAll('a[href]')).map(a=>a.getAttribute('href'))")
-            nat = sorted(set(h for h in hs if re.search(r"nations|naciones", h or "", re.I)))[:5]
-            print(nom, "| estado", r.status if r else None, "| titulo:", pg.title()[:60],
-                  "| texto", len(t), "| enlaces", len(hs),
-                  "| ligas:", [p for p in ["LaLiga", "Premier", "Bundesliga", "Nations"] if p in t],
-                  "| nations:", nat)
-            if len(t) < 600:
-                print("    cuerpo:", t[:200].replace("\n", " "))
+            print("enlaces nations/futbol:", sorted(set(h for h in hs if re.search(r"nations|naciones|futbol", h or "", re.I)))[:12])
         except Exception as e:
-            print(nom, "FALLO", repr(e)[:120])
-        pg.close()
-    br.close()
-print("fin")
+            print("FALLO", repr(e)[:160])
+        br.close()
+    print("respuestas JSON:", len(resp))
+    for u, st, n, body in sorted(resp, key=lambda x: -x[2])[:12]:
+        print("  ", st, n, u[:160])
+    for u, st, n, body in resp:
+        hit = [c for c in CLAVES if c in body]
+        if hit and n > 1500:
+            i = body.find(hit[0])
+            print("  >> contiene", hit[:4], "|", u[:140])
+            print("     ", re.sub(r"\s+", " ", body[max(0, i - 200):i + 500]))
+
+
+prueba("Sportium", "https://www.sportium.es/apuestas-deportivas/futbol/nations-league")
+prueba("Marca Apuestas", "https://www.marcaapuestas.es/es/", "Nations")
+print("\nfin")
