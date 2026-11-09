@@ -51,3 +51,13 @@ def pids(equipo, jug, hoy=None):
         if p is not None:
             out.add(p)
     return out
+
+
+def faltan(equipo, jug, hoy=None):
+    """Nombres de la lista que no se encuentran en el historial (diagnostico)."""
+    if not vigente(hoy):
+        return ["(lista caducada)"]
+    lista = (_cargar().get("equipos") or {}).get(clave(equipo))
+    if not lista:
+        return ["(sin lista para " + clave(equipo) + ")"]
+    return [n for n in lista if rjug.buscar(n, jug) is None]

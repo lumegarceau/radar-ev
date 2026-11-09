@@ -47,6 +47,7 @@ NOM = {
 memo = {}
 sqm = {}
 conv_memo = {}
+conv_diag = {}
 dbg = {}
 
 
@@ -262,9 +263,14 @@ for lid, (pais, liga) in LIGAS.items():
             if lid == 5 and pid >= 0:
                 if eq["id"] not in conv_memo:
                     conv_memo[eq["id"]] = conv.pids(eq["name"], jug, hoy)
+                    conv_diag[eq["name"]] = (
+                        len([k for k in jug if k >= 0]),
+                        len(conv_memo[eq["id"]]),
+                        conv.faltan(eq["name"], jug, hoy))
                 if pid not in conv_memo[eq["id"]]:
                     cuenta("nl_sin_convocatoria")
                     continue
+                cuenta("nl_convocado")
             con_u.add((eq["name"], pid))
             if stat == "saves" and e["pos"] != "G":
                 continue
@@ -364,6 +370,9 @@ for (eqn, nom), jug in list(sin_u.items())[:12]:
     print("  ", eqn, "|", nom, "->", [c["n"] for c in cands])
 print("sin emparejar valueodds:", len(sin_v), sorted(sin_v)[:15])
 print("descartados por nivel de liga:", rnivel.bloqueadas[0])
+print("props Nations League:", sum(1 for c in nuevos if c.get("lid") == 5))
+for en, (nh, nc, fl) in sorted(conv_diag.items()):
+    print("  convocatoria", en, "| en historial:", nh, "| convocados con historial:", nc, "| sin historial:", fl)
 print("peticiones API-Football:", gasto[0])
 bwn = [c for c in nuevos if any(q["b"] == "Betway" for q in c["cuotas"])]
 mej = [c for c in bwn if max(c["cuotas"], key=lambda q: q["c"])["b"] == "Betway"]
