@@ -1,4 +1,4 @@
-import json, os, time, urllib.parse, urllib.request
+import json, os, re, time, urllib.parse, urllib.request
 from datetime import datetime, timedelta, timezone
 import rvalue as rv
 
@@ -20,76 +20,111 @@ def af(ruta, **p):
     return j.get("response")
 
 
-print("=== 1. valueodds: TODAS las casas que devuelve (antes de filtrar)")
 hoy = datetime.now(timezone.utc).date()
-cuenta = {}
-vistos = 0
-for d in range(0, 4):
-    fecha = str(hoy + timedelta(days=d))
+print("=== A. Convocatorias: tamano de la plantilla y si incluye a los que jugaron")
+for tid, nom in [(9, "Espana"), (10, "Inglaterra"), (2, "Francia"),
+                 (25, "Alemania"), (777, "Turquia"), (770, "Chequia")]:
+    sq = af("/players/squads", team=tid) or []
+    ids = set(p["id"] for e in sq for p in e.get("players") or [])
+    ult = af("/fixtures", team=tid, last=3) or []
+    jug = set()
+    for f in ult[:1]:
+        st = af("/fixtures/players", fixture=f["fixture"]["id"]) or []
+        for e in st:
+            if e["team"]["id"] == tid:
+                for p in e["players"]:
+                    s = p["statistics"][0]
+                    if (s["games"].get("minutes") or 0) > 0:
+                        jug.add(p["player"]["id"])
+    print(nom, "| plantilla:", len(ids), "| jugaron ultimo partido:", len(jug),
+          "| de ellos en plantilla:", len(jug & ids))
+    if ult:
+        ln = af("/fixtures/lineups", fixture=ult[0]["fixture"]["id"]) or []
+        print("    alineaciones del ultimo partido:", len(ln))
+
+print("\n=== B. valueodds: partidos de selecciones (12 y 13 nov)")
+nl = af("/fixtures", league=5, season=2026,
+        **{"from": "2026-11-12", "to": "2026-11-13"}) or []
+for fecha in ("2026-11-12", "2026-11-13"):
     lista = rv.listar(fecha)
-    print(fecha, "partidos en valueodds:", len(lista))
-    for o in lista[:14]:
+    print(fecha, "valueodds:", len(lista), "partidos")
+    for o in lista:
+        n = (o["home_team"].get("name", "") + " v " + o["away_team"].get("name", ""))
+        print("    vo:", n, "|", str(o.get("competition") or o.get("league") or "")[:40])
+enlazados = 0
+for f in nl[:20]:
+    dt = datetime.fromisoformat(f["fixture"]["date"])
+    lista = rv.listar(f["fixture"]["date"][:10])
+    o = rv.emparejar(f["teams"]["home"]["name"], f["teams"]["away"]["name"], dt, lista)
+    print("  API:", f["teams"]["home"]["name"], "v", f["teams"]["away"]["name"],
+          "->", "SI" if o else "NO emparejado")
+    if o and enlazados < 2:
+        enlazados += 1
         j = rv.vget("/api/v1/fixtures/" + str(rv.idde(o)) + "/odds?format=compact")
-        if not j:
+        if j:
+            casas = sorted(v.get("name", k) for k, v in (j.get("bookmakers") or {}).items())
+            tipos = {}
+            for m in j.get("markets") or []:
+                t = m.get("type")
+                tipos[t] = tipos.get(t, 0) + 1
+            print("     casas:", casas)
+            print("     mercados:", tipos)
+
+print("\n=== C. Winamax: partidos de selecciones")
+try:
+    import rwina as rw
+    rw.conectar()
+    d = rw.pedir("sport:1", "matches", 40)
+    ms = d.get("matches", {})
+    CL = ["spain", "espana", "france", "francia", "england", "inglaterra",
+          "germany", "alemania", "italy", "italia", "croatia", "croacia",
+          "belgium", "belgica", "czech", "chequia", "turk"]
+    cuenta = {}
+    for mid, m in ms.items():
+        if not isinstance(m, dict):
             continue
-        vistos += 1
-        for k, v in (j.get("bookmakers") or {}).items():
-            n = v.get("name", k)
-            cuenta[n] = cuenta.get(n, 0) + 1
-print("partidos revisados:", vistos)
-for n, c in sorted(cuenta.items(), key=lambda kv: -kv[1]):
-    marca = "OK " if rv.canon(n) else "-- "
-    print("  ", marca, n, c)
+        n = (str(m.get("competitor1Name", "")) + " v " + str(m.get("competitor2Name", "")))
+        if any(c in n.lower() for c in CL):
+            t = m.get("srTournamentId")
+            cuenta[t] = cuenta.get(t, 0) + 1
+            print("  ", t, "|", n, "|", m.get("matchStart"))
+    print("torneos con selecciones:", cuenta)
+    rw.cerrar()
+except Exception as e:
+    print("FALLO Winamax", repr(e)[:200])
 
-print("\n=== 2. API-Football: Nations League")
-r = af("/leagues", search="Nations League") or []
-for x in r:
-    l = x["league"]
-    print("liga", l["id"], l["name"], l["type"])
-    for s in x["seasons"][-3:]:
-        c = s["coverage"]
-        print("   temporada", s["year"], s["start"], s["end"],
-              "| stats jugadores:", c["fixtures"]["statistics_players"],
-              "| alineaciones:", c["fixtures"]["lineups"],
-              "| plantillas:", c.get("players"), "| cuotas:", c.get("odds"))
-ids = [x["league"]["id"] for x in r if "UEFA" in x["league"]["name"]
-       or x["league"]["id"] == 5]
-for lid in ids[:3]:
-    for temp in (2026, 2025):
-        fx = af("/fixtures", league=lid, season=temp,
-                **{"from": str(hoy), "to": str(hoy + timedelta(days=40))}) or []
-        print("liga", lid, "temporada", temp, "partidos proximos 40 dias:", len(fx))
-        for f in fx[:12]:
-            print("   ", f["fixture"]["date"][:16], f["teams"]["home"]["name"], "v",
-                  f["teams"]["away"]["name"], "| id", f["fixture"]["id"],
-                  "| equipo ids", f["teams"]["home"]["id"], f["teams"]["away"]["id"])
-        if fx:
-            tid = fx[0]["teams"]["home"]["id"]
-            sq = af("/players/squads", team=tid) or []
-            print("   plantilla", fx[0]["teams"]["home"]["name"], ":",
-                  [(p["name"], p.get("position")) for p in (sq[0]["players"][:8] if sq else [])])
-            ps = af("/players", team=tid, season=temp, league=lid) or []
-            print("   /players con liga", lid, ":", len(ps))
-            if ps:
-                p0 = ps[0]
-                print("   ejemplo:", p0["player"]["name"],
-                      [(s["league"]["name"], s["games"]["appearences"])
-                       for s in p0["statistics"][:4]])
-            break
-
-print("\n=== 3. Ultimos partidos jugados de una seleccion (para historial)")
-r = af("/fixtures", team=9, last=8) or []   # 9 = Espana
-for f in r:
-    print("  ", f["fixture"]["date"][:10], f["league"]["name"], "|",
-          f["teams"]["home"]["name"], f["goals"]["home"], "-", f["goals"]["away"],
-          f["teams"]["away"]["name"], "| id", f["fixture"]["id"])
-if r:
-    fid = r[0]["fixture"]["id"]
-    st = af("/fixtures/players", fixture=fid) or []
-    print("  estadisticas de jugadores del ultimo partido:", len(st), "equipos")
-    if st:
-        print("   ejemplo:", st[0]["players"][0]["player"]["name"],
-              st[0]["players"][0]["statistics"][0]["shots"])
-    ln = af("/fixtures/lineups", fixture=fid) or []
-    print("  alineaciones disponibles:", len(ln))
+print("\n=== D. Casas nuevas: se pueden leer con navegador?")
+from playwright.sync_api import sync_playwright
+UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+      "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+SITIOS = [
+    ("Betway NL", "https://betway.es/es/es/sports/grp/soccer"),
+    ("Sportium", "https://www.sportium.es/apuestas/futbol"),
+    ("Marca Apuestas", "https://www.marcaapuestas.es/es/"),
+    ("Retabet", "https://apuestas.retabet.es/futbol"),
+    ("Kirolbet", "https://www.kirolbet.es/apuestas/futbol"),
+    ("Betfair", "https://www.betfair.es/sport/football"),
+]
+with sync_playwright() as pw:
+    br = pw.chromium.launch()
+    ctx = br.new_context(user_agent=UA, locale="es-ES", timezone_id="Europe/Madrid",
+                         viewport={"width": 1366, "height": 2000})
+    for nom, url in SITIOS:
+        pg = ctx.new_page()
+        try:
+            r = pg.goto(url, timeout=60000, wait_until="domcontentloaded")
+            pg.wait_for_timeout(9000)
+            t = pg.inner_text("body")
+            hs = pg.evaluate("()=>Array.from(document.querySelectorAll('a[href]')).map(a=>a.getAttribute('href'))")
+            nat = sorted(set(h for h in hs if re.search(r"nations|naciones", h or "", re.I)))[:5]
+            print(nom, "| estado", r.status if r else None, "| titulo:", pg.title()[:60],
+                  "| texto", len(t), "| enlaces", len(hs),
+                  "| ligas:", [p for p in ["LaLiga", "Premier", "Bundesliga", "Nations"] if p in t],
+                  "| nations:", nat)
+            if len(t) < 600:
+                print("    cuerpo:", t[:200].replace("\n", " "))
+        except Exception as e:
+            print(nom, "FALLO", repr(e)[:120])
+        pg.close()
+    br.close()
 print("fin")
