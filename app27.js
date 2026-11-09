@@ -8,6 +8,7 @@ TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bonos"]];
     home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></svg>',
     star:'<svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>',
     gear:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
+    dn:'<svg viewBox="0 0 24 24"><path d="M3 7l6 6 4-4 8 8M15 17h6v-6"/></svg>',
     chev:'<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>'
   };
   window.SV=SV;
@@ -101,7 +102,7 @@ TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bonos"]];
     }
     h+='<div class="box">';
     a.forEach(function(c,i){
-      h+='<details class="tr"><summary class="row"><span class="n">'+(i+1)+'</span><div class="g">'+esc(c.suceso)+'<small>'+esc(c.local)+' v '+esc(c.visitante)+' · '+esc(c.hm)+'</small></div>'+fn(c)+bs(c)+starB(c)+'<span class="ar">▾</span></summary><div class="tb">'+bd(c)+cbody(c)+'</div></details>';
+      h+='<details class="tr"><summary class="row"><span class="n">'+(i+1)+'</span><div class="g">'+esc(c.suceso)+'<small>'+esc(c.local)+' v '+esc(c.visitante)+' · '+esc(c.hm)+tndS(c)+'</small></div>'+fn(c)+bs(c)+starB(c)+'<span class="ar">▾</span></summary><div class="tb">'+bd(c)+cbody(c)+'</div></details>';
     });
     return h+'</div></section>';
   };
@@ -248,6 +249,30 @@ TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bonos"]];
     document.body.classList.toggle('sinnav',!esR);
     bnav();
   };
+
+  // ---------- tendencia de la cuota (frente a la primera detectada por el radar) ----------
+  var dh0=deHist;
+  deHist=function(r){var o=dh0(r);o.pri=r.primera||null;return o};
+  function tnd(c){
+    var p=c.pri&&Number(c.pri.c);
+    if(!p||!c.best)return null;
+    var d=Math.round((c.best.c-p)*100);
+    if(Math.abs(d)<2)return null;
+    return {up:d>0,p:p,n:c.best.c,b:c.pri.b,t:String(c.pri.t||'').slice(11,16),d:String(c.pri.t||'').slice(5,10)};
+  }
+  function fn2(x){return Number(x).toFixed(2).replace('.',',')}
+  function tndH(c){
+    var t=tnd(c);if(!t)return '';
+    var cuando=t.t?'Primera cuota detectada: '+fn2(t.p)+(t.b?' en '+esc(t.b):'')+' · '+t.t:'';
+    return '<div class="tnd '+(t.up?'up':'dn')+'">'+(t.up?SV.trend:SV.dn)+'<span>'+(t.up?'Cuota al alza':'Cuota a la baja')+'</span><em><s>'+fn2(t.p)+'</s> → <b>'+fn2(t.n)+'</b></em>'+(cuando?'<small>'+cuando+'</small>':'')+'</div>';
+  }
+  function tndS(c){
+    var t=tnd(c);if(!t)return '';
+    return ' · <span class="tnd s '+(t.up?'up':'dn')+'">'+(t.up?SV.trend:SV.dn)+'<s>'+fn2(t.p)+'</s>→'+fn2(t.n)+'</span>';
+  }
+  var kc27=k2cuotas;
+  k2cuotas=function(c){return tndH(c)+kc27(c)};
+  if(S.data&&S.data.length&&S.data[0].pri===undefined)load();
 })();
 if(S.data&&S.data.length)draw();
 // fin

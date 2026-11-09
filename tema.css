@@ -211,3 +211,17 @@ html,body{overflow-x:hidden}
 .fedh{margin-top:7px;font-size:12.5px;color:#0b6b36;background:var(--acbg);border-radius:9px;padding:6px 9px}
 .fedh.baja{color:#92400e;background:#fff4d6}
 .fedh button{margin-left:6px;border:0;background:var(--navy);color:#fff;border-radius:999px;padding:4px 11px;font-weight:700;cursor:pointer}
+
+/* tendencia de la cuota */
+.tnd{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:10px 0 0;padding:8px 10px;border-radius:10px;font-size:13px;font-weight:700;line-height:1.25}
+.tnd svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.tnd em{font-style:normal;margin-left:auto;font-variant-numeric:tabular-nums}
+.tnd s{opacity:.7;font-weight:600}
+.tnd b{font-weight:800}
+.tnd small{flex-basis:100%;font-size:11px;font-weight:500;opacity:.75}
+.tnd.dn{background:#fdecec;color:#c0262d}
+.tnd.up{background:#e7f8ee;color:#0f8a45}
+.tnd.s{display:inline-flex;margin:0;padding:1px 6px;gap:3px;font-size:11px;border-radius:6px;vertical-align:middle}
+.tnd.s svg{width:12px;height:12px}
+.tnd.s s{margin-right:1px}
+@media (prefers-color-scheme:dark){.tnd.dn{background:#3a1519;color:#ff8a90}.tnd.up{background:#0e2e1d;color:#4ade80}}
