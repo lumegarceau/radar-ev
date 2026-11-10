@@ -40,26 +40,31 @@ for b in bk:
 
 print("== B. Partidos proximos (futbol)")
 hoy = datetime.now(ZoneInfo("Europe/Madrid")).date()
-fx = lista(api("fixtures", sportId=10, **{"from": str(hoy), "to": str(hoy + timedelta(days=3))}))
+fx = [f for f in lista(api("fixtures", sportId=10, **{"from": str(hoy), "to": str(hoy + timedelta(days=3))})) if isinstance(f, dict)]
 print("partidos:", len(fx))
-cand = [f for f in fx if isinstance(f, dict)]
-nl = [f for f in cand if any(x in json.dumps(f, ensure_ascii=False) for x in ("Italy", "Italia", "France", "Francia", "England", "Inglaterra"))]
-elegido = (nl or cand)[:1]
+if fx:
+    print("claves de un partido:", sorted(fx[0].keys()))
+PAL = ("italy", "france", "england", "croatia", "turk", "belgium", "spain", "czech", "germany")
+def nombres_f(f):
+    return (str(f.get("participant1Name")) + " " + str(f.get("participant2Name"))).lower()
+nl = [f for f in fx if sum(p in nombres_f(f) for p in PAL) >= 2]
+print("partidos de selecciones fuertes:", [nombres_f(f) for f in nl])
+elegidos = nl[:3] or fx[:2]
 cat = {}
 for v in lista(api("markets")):
     if isinstance(v, dict):
         cat[str(v.get("marketId"))] = str(v.get("marketName", ""))
-for f in elegido:
+for f in elegidos:
     fid = f.get("fixtureId")
-    print("== C. Fixture", fid, f.get("participant1Name"), f.get("participant2Name"))
+    print("== C. Fixture", fid, f.get("participant1Name"), "-", f.get("participant2Name"))
     od = api("odds", fixtureId=fid) or {}
     bo = od.get("bookmakerOdds") or {}
     print("casas con cuotas:", len(bo))
     for slug, d in sorted(bo.items()):
         mk = (d or {}).get("markets") or {}
-        if any(k in slug.lower() for k in BUSCA) or True:
-            nombres = [cat.get(str(m), str(m)) for m in mk]
-            jug = [n for n in nombres if any(w in n.lower() for w in ("player", "jugador", "shots", "foul", "tackle"))]
-            print("  %-22s mercados %3d | tipo jugador/props %3d" % (slug, len(mk), len(jug)))
-            if any(k in slug.lower() for k in BUSCA):
-                print("      ejemplos:", jug[:8])
+        nom = [cat.get(str(m), str(m)) for m in mk]
+        jug = [n for n in nom if any(w in n.lower() for w in ("player", "jugador", "shots", "foul", "tackle"))]
+        marca = any(k in slug.lower() for k in BUSCA)
+        print("  %-22s mercados %3d | jugador/props %3d%s" % (slug, len(mk), len(jug), "  <==" if marca else ""))
+        if marca:
+            print("      ejemplos:", jug[:10])

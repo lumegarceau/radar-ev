@@ -167,7 +167,9 @@ def leer_evento(ctx, base, fila):
             jug = o
             print("      jugadores:", res)
             if not res:
-                print("      texto jugadores:", limpio(pg)[:500].replace("\n", " | "))
+                tx = limpio(pg)
+                i = tx.find(c1 + " v ")
+                print("      texto jugadores:", tx[max(i, 0):max(i, 0) + 700].replace("\n", " | "))
         else:
             print("      sin pestana Jugadores")
     except Exception as e:
