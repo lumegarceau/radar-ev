@@ -169,6 +169,7 @@ def main():
             eventos += nuevos
         print("   eventos candidatos:", len(eventos))
         vistos = 0
+        hechos = set()
         for h in eventos:
             if time.time() - T0 > LIMITE_S or vistos >= MAX_EVENTOS:
                 print("   limite alcanzado")
@@ -186,6 +187,9 @@ def main():
             c1, c2 = equipos_de(meta["des"])
             if not ini or not c1 or ini < ahora - 3600 or ini > ahora + HORAS * 3600:
                 continue
+            if (c1, c2, round(ini)) in hechos:
+                continue  # el mismo partido aparece con dos enlaces
+            hechos.add((c1, c2, round(ini)))
             tabs_ok = []
             filas = []
             for tab in PESTANAS:

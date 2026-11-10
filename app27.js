@@ -253,12 +253,22 @@ TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bonos"]];
   // ---------- tendencia de la cuota (frente a la primera detectada por el radar) ----------
   var dh0=deHist;
   deHist=function(r){var o=dh0(r);o.pri=r.primera||null;return o};
+  function hace(iso){
+    var ms=Date.now()-new Date(iso).getTime();
+    if(!iso||isNaN(ms)||ms<0)return '';
+    var m=Math.round(ms/60000);
+    if(m<2)return 'hace un momento';
+    if(m<60)return 'hace '+m+' min';
+    var h=Math.floor(m/60);
+    if(h>=24)return 'hace +24 h';
+    return 'hace '+h+' h'+(m%60>=10?' '+(m%60)+' min':'');
+  }
   function tnd(c){
     var p=c.pri&&Number(c.pri.c);
     if(!p||!c.best)return null;
     var d=Math.round((c.best.c-p)*100);
     if(Math.abs(d)<2)return null;
-    return {up:d>0,p:p,n:c.best.c,b:c.pri.b,t:String(c.pri.t||'').slice(11,16),d:String(c.pri.t||'').slice(5,10)};
+    return {up:d>0,p:p,n:c.best.c,b:c.pri.b,t:hace(c.pri.t)};
   }
   function fn2(x){return Number(x).toFixed(2).replace('.',',')}
   function tndH(c){

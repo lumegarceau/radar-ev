@@ -77,9 +77,19 @@ def parsear_equipo(texto, c1, c2):
     }
     cola = (r"(?: Principal Todo)? Más de Menos de "
             r"(\d+\.\d+) (\d+\.\d+) (\d+\.\d+) (\d+\.\d+)")
+    PERIODO = re.compile(r"(?:1\s*[ªa]|2\s*[ªa]|primera|segunda|1st|2nd)\s*(?:parte|mitad|tiempo|half)"
+                         r"|(?:parte|mitad|tiempo|half)\s*[12]", re.I)
     for stat, p in pat.items():
+        vistos = set()
         for m in re.finditer(p + cola, t):
             lado = eq.get(m.group(1)) if m.group(1) else None
+            # los mercados de la 1a/2a parte repiten el titulo: nos quedamos
+            # solo con el primero de cada tipo (el del partido completo)
+            if (stat, lado) in vistos:
+                continue
+            if PERIODO.search(t[max(0, m.start() - 60):m.end()]):
+                continue
+            vistos.add((stat, lado))
             r = _ou(t, m.group(2), m.group(3), m.group(4), m.group(5))
             if not r:
                 continue
