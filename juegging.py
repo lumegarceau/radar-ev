@@ -10,17 +10,15 @@ BASE = "https://apuestas.juegging.es"
 ARCHIVO = "juegging.json"
 MADRID = ZoneInfo("Europe/Madrid")
 HORAS = 80
-LIMITE_S = 22 * 60
+LIMITE_S = 33 * 60
 MAX_EVENTOS = 70
 T0 = time.time()
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 # listados donde buscar partidos (competiciones fijas + portada + proximos)
-LISTADOS = ["/esp/Sport", "/esp/Sport/Hoy/ProximosEventos",
-            "/esp/Sport/Competicion/1", "/esp/Sport/Competicion/341",
-            "/esp/Sport/Competicion/3",
-            "/esp/Sport/Competicion/2881", "/esp/Sport/Competicion/6095",
-            "/esp/Sport/Competicion/1513"]
+LISTADOS = ["/esp/Sport/Competicion/2881", "/esp/Sport/Competicion/3",
+            "/esp/Sport/Competicion/341", "/esp/Sport/Competicion/1",
+            "/esp/Sport", "/esp/Sport/Hoy/ProximosEventos"]
 PESTANAS = ["REMATES A PUERTA", "FALTAS", "PARADAS"]
 NUM = re.compile(r"^\d+[.,]\d+$")
 IGNORADOS = set()
@@ -187,6 +185,7 @@ def main():
             ini = inicio_de(meta["dt"])
             c1, c2 = equipos_de(meta["des"])
             if not ini or not c1 or ini < ahora - 3600 or ini > ahora + HORAS * 3600:
+                print("      descartado (fuera de plazo):", meta.get("des", "")[:50], "|", meta.get("dt"))
                 continue
             if (c1, c2, round(ini)) in hechos:
                 continue  # el mismo partido aparece con dos enlaces
@@ -204,6 +203,7 @@ def main():
                 except Exception as e:
                     print("      pestana", tab, "falla", repr(e)[:60])
             if not tabs_ok:
+                print("      sin props:", c1, "v", c2, "|", meta.get("sct"))
                 continue  # no es futbol con props
             vistos += 1
             # sin duplicados (el mismo jugador/linea aparece una sola vez)
