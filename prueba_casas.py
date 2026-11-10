@@ -47,7 +47,7 @@ if fx:
 PAL = ("italy", "france", "england", "croatia", "turk", "belgium", "spain", "czech", "germany")
 def nombres_f(f):
     return (str(f.get("participant1Name")) + " " + str(f.get("participant2Name"))).lower()
-nl = [f for f in fx if sum(p in nombres_f(f) for p in PAL) >= 2]
+nl = [f for f in fx if sum(p in nombres_f(f) for p in PAL) >= 2 and 'srl' not in nombres_f(f)]
 print("partidos de selecciones fuertes:", [nombres_f(f) for f in nl])
 elegidos = nl[:3] or fx[:2]
 cat = {}
