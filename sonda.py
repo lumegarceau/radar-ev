@@ -5,11 +5,6 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 URL = "https://apuestas.juegging.es/esp/Sport/Evento/12067249"
 
-
-def limpio(pg):
-    return re.sub(r"\s+", " ", pg.inner_text("body"))
-
-
 with sync_playwright() as pw:
     br = pw.chromium.launch()
     ctx = br.new_context(user_agent=UA, locale="es-ES", timezone_id="Europe/Madrid",
@@ -17,21 +12,20 @@ with sync_playwright() as pw:
     pg = ctx.new_page()
     pg.goto(URL, timeout=60000, wait_until="domcontentloaded")
     pg.wait_for_timeout(15000)
-    print("url:", pg.url, "| titulo:", pg.title())
-    t = limpio(pg)
+    t = re.sub(r"\s+", " ", pg.inner_text("body"))
     print("longitud:", len(t))
-    i = t.find("Checa")
-    print("== A. Texto desde el partido (3500 car.)")
-    print(t[max(i - 100, 0):max(i - 100, 0) + 3500])
-    print("\n== B. Palabras clave")
-    for w in ("Jugador", "Tiros", "Córners", "Faltas", "Tarjetas", "Entradas", "Paradas", "Goleador", "Disparos"):
-        print("  ", w, "->", w.lower() in t.lower())
-    print("\n== C. Pestañas / cabeceras de mercado")
-    cab = pg.evaluate("""()=>Array.from(document.querySelectorAll('h2,h3,h4,[class*=tab],[class*=Tab],[class*=cabecera],[class*=mercado],[class*=grupo]'))
-        .map(e=>(e.innerText||'').trim().replace(/\\s+/g,' ').slice(0,60)).filter(x=>x&&x.length<60)""")
-    vistos = []
-    for c in cab:
-        if c not in vistos:
-            vistos.append(c)
-    print(vistos[:80])
+    print("== A. Titulos de mercado (mayusculas)")
+    tit = []
+    for m in re.finditer(r"((?:[A-ZÁÉÍÓÚÑ0-9ºª¿?\(\),\.\-/ ]{6,}))(?= [A-Z0-9a-záéíóú])", t):
+        s = m.group(1).strip()
+        if len(s) > 5 and s not in tit:
+            tit.append(s)
+    print(tit[:150])
+    print("\n== B. Extractos")
+    for w in ("Faltas", "Paradas", "Córners", "Tarjetas", "Player "):
+        idx = [m.start() for m in re.finditer(re.escape(w), t)]
+        print("\n--", w, "apariciones:", len(idx))
+        for i in idx[:3]:
+            print("   ...", t[max(i - 60, 0):i + 420])
+    open("evento.txt", "w", encoding="utf-8").write(t)
     br.close()
