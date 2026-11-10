@@ -166,6 +166,8 @@ def leer_evento(ctx, base, fila):
                 o, res = rsport.parsear_jugadores(limpio(pg), c1, c2)
             jug = o
             print("      jugadores:", res)
+            if not res:
+                print("      texto jugadores:", limpio(pg)[:500].replace("\n", " | "))
         else:
             print("      sin pestana Jugadores")
     except Exception as e:
