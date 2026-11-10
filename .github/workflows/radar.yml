@@ -4,10 +4,14 @@ on:
   push:
     paths: ["go.txt"]
   schedule:
-    - cron: "0 7 * * *"
-    - cron: "0 11 * * *"
-    - cron: "0 14 * * *"
+    # 00, 07, 10, 14, 17, 20 y 22 h (Madrid en invierno = UTC+1)
+    - cron: "0 23 * * *"
+    - cron: "0 6 * * *"
+    - cron: "0 9 * * *"
+    - cron: "0 13 * * *"
+    - cron: "0 16 * * *"
     - cron: "0 19 * * *"
+    - cron: "0 21 * * *"
 permissions:
   contents: write
 concurrency:
@@ -47,6 +51,12 @@ jobs:
       - name: Guardar historial
         run: python guardar.py
         continue-on-error: true
+      - name: Avisar de errores de cuota
+        run: python notificar.py
+        continue-on-error: true
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT }}
       - name: Guardar datos
         if: always()
         run: |

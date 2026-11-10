@@ -2,10 +2,14 @@ name: Cuotas Juegging (Kirolbet)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "40 6 * * *"
-    - cron: "40 10 * * *"
-    - cron: "40 14 * * *"
-    - cron: "40 18 * * *"
+    # 45 min antes de cada pasada del radar
+    - cron: "15 22 * * *"
+    - cron: "15 5 * * *"
+    - cron: "15 8 * * *"
+    - cron: "15 12 * * *"
+    - cron: "15 15 * * *"
+    - cron: "15 18 * * *"
+    - cron: "15 20 * * *"
 permissions:
   contents: write
 concurrency:

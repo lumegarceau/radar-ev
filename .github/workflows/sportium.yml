@@ -2,10 +2,14 @@ name: Cuotas Sportium y Marca
 on:
   workflow_dispatch:
   schedule:
-    - cron: "20 6 * * *"
-    - cron: "20 10 * * *"
-    - cron: "20 13 * * *"
-    - cron: "20 18 * * *"
+    # 45 min antes de cada pasada del radar
+    - cron: "15 22 * * *"
+    - cron: "15 5 * * *"
+    - cron: "15 8 * * *"
+    - cron: "15 12 * * *"
+    - cron: "15 15 * * *"
+    - cron: "15 18 * * *"
+    - cron: "15 20 * * *"
 permissions:
   contents: write
 concurrency:
