@@ -10,9 +10,19 @@ with sync_playwright() as pw:
     ctx = br.new_context(user_agent=UA, locale="es-ES", timezone_id="Europe/Madrid",
                          viewport={"width": 1366, "height": 4000})
     pg = ctx.new_page()
-    pg.goto(URL, timeout=60000, wait_until="domcontentloaded")
-    pg.wait_for_timeout(15000)
-    t = re.sub(r"\s+", " ", pg.inner_text("body"))
+    t = ""
+    for intento in range(1, 4):
+        pg.goto(URL, timeout=60000, wait_until="domcontentloaded")
+        for _ in range(12):
+            pg.wait_for_timeout(5000)
+            t = re.sub(r"\s+", " ", pg.inner_text("body"))
+            if len(t) > 5000:
+                break
+        print("intento", intento, "longitud", len(t))
+        if len(t) > 5000:
+            break
+        print("   texto corto:", t[:400])
+        pg.reload()
     print("longitud:", len(t))
     print("== A. Titulos de mercado (mayusculas)")
     tit = []
