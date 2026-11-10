@@ -126,9 +126,12 @@ if not wina_ok:
 print("winamax:", len(wm), "partidos")
 bw = rbway.cargar()
 print("betway:", len(bw), "partidos")
+# Kirolbet y Juegging comparten cuotas: se leen en Juegging y se muestran como Kirolbet
 ESP = [("Sportium", rbway.cargar("sportium.json")),
-       ("Marcaapuestas", rbway.cargar("marca.json"))]
-print("sportium:", len(ESP[0][1]), "partidos | marca:", len(ESP[1][1]), "partidos")
+       ("Marcaapuestas", rbway.cargar("marca.json")),
+       ("Kirolbet", rbway.cargar("juegging.json"))]
+print("sportium:", len(ESP[0][1]), "partidos | marca:", len(ESP[1][1]),
+      "partidos | kirolbet:", len(ESP[2][1]), "partidos")
 
 nuevos = []
 sin_u = {}
@@ -402,7 +405,7 @@ print("peticiones API-Football:", gasto[0])
 bwn = [c for c in nuevos if any(q["b"] == "Betway" for q in c["cuotas"])]
 mej = [c for c in bwn if max(c["cuotas"], key=lambda q: q["c"])["b"] == "Betway"]
 print("props con cuota de Betway:", len(bwn), "| Betway mejor cuota:", len(mej))
-for casa_es in ("Sportium", "Marcaapuestas"):
+for casa_es in ("Sportium", "Marcaapuestas", "Kirolbet"):
     ces = [c for c in nuevos if any(q["b"] == casa_es for q in c["cuotas"])]
     mes = [c for c in ces if max(c["cuotas"], key=lambda q: q["c"])["b"] == casa_es]
     print("props con cuota de", casa_es + ":", len(ces), "| mejor cuota:", len(mes))

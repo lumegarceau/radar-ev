@@ -158,8 +158,10 @@ print("winamax:", len(wm), "partidos;", ne, "de equipo;", nt, "de totales")
 bw = rbway.cargar()
 print("betway:", len(bw), "partidos")
 ESP = [("Sportium", rbway.cargar("sportium.json")),
-       ("Marcaapuestas", rbway.cargar("marca.json"))]
-print("sportium:", len(ESP[0][1]), "partidos | marca:", len(ESP[1][1]), "partidos")
+       ("Marcaapuestas", rbway.cargar("marca.json")),
+       ("Kirolbet", rbway.cargar("juegging.json"))]
+print("sportium:", len(ESP[0][1]), "partidos | marca:", len(ESP[1][1]),
+      "partidos | kirolbet:", len(ESP[2][1]), "partidos")
 con_es = 0
 res = []
 sin_par = []
@@ -309,7 +311,7 @@ print("Descartadas por nivel de liga:", rnivel.bloqueadas[0])
 print("Partidos con cuotas de valueodds:", con_vo)
 print("Partidos con cuotas de Winamax:", con_wi)
 print("Partidos con cuotas de Betway:", con_bw)
-print("Partidos con cuotas de Sportium/Marca:", con_es)
+print("Partidos con cuotas de Sportium/Marca/Kirolbet:", con_es)
 print("Sin pareja en valueodds:", len(sin_par), sin_par[:6])
 print("Tarjetas omitidas (formato distinto):", rv.omitidas["tarjetas"])
 sa = sorted(rv.saltadas.items(), key=lambda kv: -kv[1])
