@@ -21,6 +21,7 @@ LISTADOS = ["/esp/Sport", "/esp/Sport/Hoy/ProximosEventos",
             "/esp/Sport/Competicion/3"]
 PESTANAS = ["REMATES A PUERTA", "FALTAS", "PARADAS"]
 NUM = re.compile(r"^\d+[.,]\d+$")
+IGNORADOS = set()
 
 
 def a_float(s):
@@ -41,21 +42,18 @@ def clasificar(desc):
     m = re.match(r"^Player\s+(.+?)\s*\+\s*(\d+(?:[.,]\d+)?)\s*$", desc, re.I)
     if not m:
         return None
-    t = m.group(1).lower()
+    t = re.sub(r"\s+", " ", m.group(1).strip().lower())
     lin = a_float(m.group(2))
-    if abs(lin - round(lin) - 0.5) > 1e-9 and abs(lin * 2 - round(lin * 2)) > 1e-9:
+    if abs((lin % 1) - 0.5) > 1e-9:
         return None
     n = int(lin + 0.5)
-    if "remates a puerta" in t:
-        return ("sot", n)
-    if t.startswith("remates") or t.startswith("tiros"):
-        return ("shots", n)
-    if "faltas cometidas" in t:
-        return ("fouls", n)
-    if "faltas recibidas" in t:
-        return ("drawn", n)
-    if "paradas" in t:
-        return ("saves", n)
+    # solo los nombres EXACTOS: hay variantes (1a parte, dentro del area...)
+    # con otras cuotas que no se deben mezclar con estas
+    EXACTOS = {"remates a puerta": "sot", "remates": "shots",
+               "faltas cometidas": "fouls", "faltas recibidas": "drawn",
+               "paradas portero": "saves"}
+    if t in EXACTOS:
+        return (EXACTOS[t], n)
     return None
 
 
@@ -99,6 +97,7 @@ def parsear_pestana(texto):
                 resumen[l] = c
             else:
                 resumen[l] = "ignorado"
+                IGNORADOS.add(re.sub(r"\s*\+\s*\d+(?:[.,]\d+)?\s*$", "", l))
             i += 1 + len(nombres)
             continue
         i += 1
@@ -215,6 +214,7 @@ def main():
             partidos.append({"inicio": ini, "c1": c1, "c2": c2, "equipo": [], "total": [],
                              "jugador": jug, "liga": meta["sct"], "fuente": "Juegging"})
         br.close()
+    print("   mercados ignorados (variantes):", sorted(IGNORADOS)[:25])
     with open(ARCHIVO, "w", encoding="utf-8") as f:
         json.dump({"ts": time.time(), "partidos": partidos}, f, ensure_ascii=False)
     print("guardado", ARCHIVO, len(partidos), "partidos")
