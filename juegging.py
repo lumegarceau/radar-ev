@@ -11,14 +11,16 @@ ARCHIVO = "juegging.json"
 MADRID = ZoneInfo("Europe/Madrid")
 HORAS = 80
 LIMITE_S = 22 * 60
-MAX_EVENTOS = 45
+MAX_EVENTOS = 70
 T0 = time.time()
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 # listados donde buscar partidos (competiciones fijas + portada + proximos)
 LISTADOS = ["/esp/Sport", "/esp/Sport/Hoy/ProximosEventos",
             "/esp/Sport/Competicion/1", "/esp/Sport/Competicion/341",
-            "/esp/Sport/Competicion/3"]
+            "/esp/Sport/Competicion/3",
+            "/esp/Sport/Competicion/2881", "/esp/Sport/Competicion/6095",
+            "/esp/Sport/Competicion/1513"]
 PESTANAS = ["REMATES A PUERTA", "FALTAS", "PARADAS"]
 NUM = re.compile(r"^\d+[.,]\d+$")
 IGNORADOS = set()
