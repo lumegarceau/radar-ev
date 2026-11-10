@@ -18,6 +18,18 @@ CASAS = [
 BUSCAR = ["LaLiga", "La Liga", "Segunda División", "Premier League",
           "Championship", "Serie A", "Ligue 1", "Bundesliga", "Eredivisie",
           "Primeira Liga", "Champions League", "Europa League", "MLS"]
+# IDs de competicion fijos (los nombres de ambas webs se repiten entre paises)
+IDS_LIGAS = {
+    "sportium": {"La Liga": 45211, "Segunda": 45215, "Premier": 40527,
+                 "Championship": 40602, "Serie A": 44571, "Ligue 1": 46074,
+                 "Bundesliga": 45915, "Eredivisie": 43094,
+                 "Primeira": 44979, "Champions": 45225, "Europa League": 45223,
+                 "MLS": 44663},
+    "marcaapuestas": {"La Liga": 19160, "Segunda": 48352, "Premier": 19157,
+                      "Serie A": 19159, "Ligue 1": 19327, "Bundesliga": 19158,
+                      "Eredivisie": 19358, "Primeira": 19211,
+                      "Champions": 19161, "Europa League": 19162, "MLS": 19302},
+}
 HORAS = 80
 MAX_EVENTOS = 30
 LIMITE_S = 17 * 60
@@ -96,11 +108,9 @@ def descubrir(pg, base):
     for k, v in sorted(hall.items(), key=lambda z: z[1]):
         print("      ", k, v.replace("\n", " "))
     sel = {}
-    for k, v in hall.items():
-        nom = v.split("\n")[0].strip()
-        for b in BUSCAR:
-            if nom.lower() == b.lower() or nom.lower().endswith(" " + b.lower()):
-                sel["%s #%s" % (b, k)] = int(k)
+    fijos = IDS_LIGAS.get(base.split("//")[-1].split("/")[0].split(".")[-2], {})
+    for nombre, k in fijos.items():
+        sel["%s #%s" % (nombre, k)] = k
     return sel
 
 
