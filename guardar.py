@@ -141,6 +141,25 @@ for k, r in sel.items():
     r["vigente"] = r["aus"] < 2
     if not r["vigente"]:
         ocultas += 1
+# limpieza unica: cuotas de Kirolbet mal leidas antes del arreglo de Juegging
+FIX_TS = "2026-11-10T20:20"
+limpiadas = 0
+if not meta.get("limpieza_kirolbet"):
+    for k, r in sel.items():
+        if r.get("estado") != "pendiente":
+            continue
+        tiene_k = any(q.get("b") == "Kirolbet" for q in r.get("cuotas", []))
+        if k in vistas:
+            for o in ("primera", "max"):
+                x = r.get(o) or {}
+                if x.get("b") == "Kirolbet" and str(x.get("t", "")) < FIX_TS:
+                    r[o] = dict(r["ultima"])
+                    limpiadas += 1
+        elif tiene_k and ahora < datetime.fromisoformat(r["inicio"]):
+            r["aus"] = 2
+            r["vigente"] = False
+            limpiadas += 1
+    meta["limpieza_kirolbet"] = True
 meta["updated_at"] = radar.get("updated_at")
 meta["v"] = 9
 json.dump(H, open(FH, "w"), ensure_ascii=False)
@@ -148,6 +167,7 @@ print("pasada de props completa:", props_ok)
 print("selecciones nuevas:", nuevas, "| actualizadas:", act)
 print("ocultas por dejar de cumplir:", ocultas)
 print("quitadas por cuota mal leida:", quitadas)
+print("limpiadas por Kirolbet mal leido:", limpiadas)
 print("regla vigente:", REGLA, "| fichas antiguas etiquetadas v0:", sin_regla)
 print("total en historial:", len(sel))
 # fin
