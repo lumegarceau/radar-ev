@@ -96,6 +96,62 @@ def _marcas_equipo(c1, c2):
     return [c1.split(), c2.split()]
 
 
+def _segmentar(S, N, etiquetas):
+    """Parte S (palabras) en N entradas 'nombre + etiqueta de equipo'."""
+    nombres, actual, j = [], [], 0
+    while j < len(S):
+        hit = None
+        for e in etiquetas:
+            if actual and S[j:j + len(e)] == e:
+                hit = e
+                break
+        if hit:
+            nombres.append(" ".join(actual))
+            actual = []
+            j += len(hit)
+            continue
+        actual.append(S[j])
+        j += 1
+    if actual or len(nombres) != N:
+        return None
+    return nombres
+
+
+def _inferir(S, N, preferidas):
+    """Si las etiquetas esperadas no sirven, busca dos etiquetas (1-3 palabras)
+    que expliquen la lista."""
+    nombres = _segmentar(S, N, preferidas)
+    if nombres:
+        return nombres
+    cuentas = {}
+    for n in (1, 2, 3):
+        for i in range(1, len(S) - n + 1):
+            g = tuple(S[i:i + n])
+            cuentas[g] = cuentas.get(g, 0) + 1
+    cand = [g for g, c in cuentas.items() if c >= 2 or N <= 4]
+    cand.sort(key=lambda g: (-cuentas[g], -len(g)))
+    cand = cand[:60]
+    mejor = None
+    for a in cand:
+        r = _segmentar(S, N, [list(a)])
+        if r:
+            sc = len(a)
+            if mejor is None or sc > mejor[0]:
+                mejor = (sc, r)
+    for i, a in enumerate(cand):
+        for b in cand[i + 1:]:
+            if cuentas[a] + cuentas[b] < N:
+                continue
+            r = _segmentar(S, N, [list(a), list(b)])
+            if r:
+                sc = len(a) + len(b)
+                if mejor is None or sc > mejor[0]:
+                    mejor = (sc, r)
+    if mejor:
+        return mejor[1]
+    return None
+
+
 def parsear_jugadores(texto, c1, c2):
     """Mercados de jugador de la vista 'Mercado' (columnas por linea).
     Devuelve [(stat, nombre, n, cuota)] y un resumen de secciones."""
@@ -116,27 +172,16 @@ def parsear_jugadores(texto, c1, c2):
     for k, (i, n, stat, tit) in enumerate(pos):
         j = i + n
         fin = pos[k + 1][0] if k + 1 < len(pos) else len(toks)
-        # nombres hasta las cabeceras "1 o +"
-        nombres = []
-        actual = []
+        # palabras hasta las cabeceras "1 o +"
+        S = []
         while j < len(toks):
             if RE_HEAD.match(toks[j]) and toks[j + 1:j + 3] == ["o", "+"]:
                 break
-            hit = None
-            for e in equipos:
-                if toks[j:j + len(e)] == e:
-                    hit = e
-                    break
-            if hit and actual:
-                nombres.append(" ".join(actual))
-                actual = []
-                j += len(hit)
-                continue
-            actual.append(toks[j])
+            S.append(toks[j])
             j += 1
-            if len(actual) > 6:
+            if len(S) > 400:
                 break
-        if actual or not nombres:
+        if not S or j >= len(toks):
             resumen[tit] = "sin_datos"
             continue
         heads = []
@@ -144,9 +189,9 @@ def parsear_jugadores(texto, c1, c2):
                 and toks[j + 1:j + 3] == ["o", "+"]:
             heads.append(int(toks[j]))
             j += 3
-        N, K = len(nombres), len(heads)
+        K = len(heads)
         vals = []
-        while j < len(toks) and len(vals) < N * K:
+        while j < len(toks):
             x = toks[j]
             if RE_ODD.match(x):
                 vals.append(float(x))
@@ -155,8 +200,13 @@ def parsear_jugadores(texto, c1, c2):
             else:
                 break
             j += 1
-        if len(vals) != N * K or K == 0:
-            resumen[tit] = "columnas_no_cuadran %d/%d" % (len(vals), N * K)
+        if K == 0 or len(vals) % K:
+            resumen[tit] = "columnas_no_cuadran %d/%d" % (len(vals), K)
+            continue
+        N = len(vals) // K
+        nombres = _inferir(S, N, equipos)
+        if not nombres:
+            resumen[tit] = "no_se_separan_nombres N=%d: %s" % (N, " ".join(S[:14]))
             continue
         for h in range(K):
             for p in range(N):
