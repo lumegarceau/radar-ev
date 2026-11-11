@@ -10,7 +10,7 @@ BASE = "https://apuestas.juegging.es"
 ARCHIVO = "juegging.json"
 MADRID = ZoneInfo("Europe/Madrid")
 HORAS = 80
-LIMITE_S = 33 * 60
+LIMITE_S = 30 * 60
 MAX_EVENTOS = 70
 T0 = time.time()
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -155,6 +155,8 @@ def main():
                              viewport={"width": 1366, "height": 4000})
         pg = ctx.new_page()
         eventos = []
+        origen = {}
+        cerrados = set()  # competiciones ordenadas por fecha: al pasarnos de plazo, el resto tambien
         for ruta in LISTADOS:
             if not cargar(pg, BASE + ruta, 1500):
                 print("   listado no carga:", ruta)
@@ -164,6 +166,8 @@ def main():
             except Exception:
                 hs = []
             nuevos = [h for h in dict.fromkeys(hs) if h not in eventos]
+            for h in nuevos:
+                origen[h] = ruta
             print("   listado", ruta, "->", len(hs), "enlaces,", len(nuevos), "nuevos")
             eventos += nuevos
         print("   eventos candidatos:", len(eventos))
@@ -173,6 +177,8 @@ def main():
             if time.time() - T0 > LIMITE_S or vistos >= MAX_EVENTOS:
                 print("   limite alcanzado")
                 break
+            if origen.get(h) in cerrados:
+                continue
             url = BASE + h if h.startswith("/") else h
             if not cargar(pg, url, 5000):
                 continue
@@ -186,6 +192,8 @@ def main():
             c1, c2 = equipos_de(meta["des"])
             if not ini or not c1 or ini < ahora - 3600 or ini > ahora + HORAS * 3600:
                 print("      descartado (fuera de plazo):", meta.get("des", "")[:50], "|", meta.get("dt"))
+                if ini and ini > ahora + HORAS * 3600 and origen.get(h, "").startswith("/esp/Sport/Competicion/"):
+                    cerrados.add(origen[h])
                 continue
             if (c1, c2, round(ini)) in hechos:
                 continue  # el mismo partido aparece con dos enlaces
