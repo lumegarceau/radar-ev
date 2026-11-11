@@ -7,6 +7,7 @@ import rvalue as rv
 import rwina as rw
 import rnivel
 import rbway
+import detector as det
 
 MAD = ZoneInfo("Europe/Madrid")
 TEMP = 2026
@@ -206,6 +207,26 @@ for lid, (pais, liga) in LIGAS.items():
                 rbway.anadir(cu, z, casa_es)
         if not cu:
             continue
+        try:
+            for (kind, stat, lado, ln, sent), q in cu.items():
+                if kind == "eq":
+                    nombre_e = loc["name"] if lado == "home" else vis["name"]
+                else:
+                    nombre_e = "Total del partido"
+                frase_e = " +" if sent == "over" else " menos de "
+                det.registrar(
+                    "%s|%s|%s|%s|%s|%s" % (x["fixture"]["id"], kind, stat,
+                                           lado, ln, sent),
+                    {"tipo": "equipo" if kind == "eq" else "total",
+                     "fixture": x["fixture"]["id"], "pais": pais,
+                     "liga": liga, "local": loc["name"],
+                     "visitante": vis["name"],
+                     "inicio": dt.isoformat(timespec="minutes"),
+                     "mercado": stat, "linea": ln, "sentido": sent,
+                     "suceso": nombre_e + frase_e + fl(ln) + " " + NOM[stat]},
+                    q)
+        except Exception as e_det:
+            print("detector (equipo) fallo:", repr(e_det)[:100])
         hl = hist(loc["id"])
         hv = hist(vis["id"])
         if not hl or not hv:
@@ -294,6 +315,10 @@ for lid, (pais, liga) in LIGAS.items():
                 "cuotas": [{"b": b, "c": c} for b, c in q.items()],
             })
 
+try:
+    det.guardar(("equipo", "total"))
+except Exception as e_det:
+    print("detector (guardar) fallo:", repr(e_det)[:100])
 if res:
     ahora = datetime.now(MAD).isoformat(timespec="minutes")
     dia = {"fecha": str(hoy), "candidatos": res}

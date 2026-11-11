@@ -10,6 +10,7 @@ import rbway
 import rjug
 import rnivel
 import conv
+import detector as det
 
 MAD = ZoneInfo("Europe/Madrid")
 TEMP = 2026
@@ -275,6 +276,25 @@ for lid, (pais, liga) in LIGAS.items():
                           "equipo, también si juega el suplente. En las "
                           "demás casas cuenta solo a este portero.")
             del cu[key]
+        try:
+            for (stat_d, pid_d, n_d, lado_d), q_d in cu.items():
+                jg_d = jl if lado_d == "home" else jv
+                eq_d = loc if lado_d == "home" else vis
+                if pid_d < 0:
+                    nom_d = "Porteros de " + eq_d["name"]
+                else:
+                    nom_d = disp.get(pid_d) or (jg_d.get(pid_d) or {}).get("n", "")
+                det.registrar(
+                    "%s|jug|%s|%s|%s" % (x["fixture"]["id"], stat_d, pid_d, n_d),
+                    {"tipo": "jugador", "fixture": x["fixture"]["id"],
+                     "pais": pais, "liga": liga, "local": loc["name"],
+                     "visitante": vis["name"], "equipo": eq_d["name"],
+                     "inicio": dt.isoformat(timespec="minutes"),
+                     "mercado": stat_d, "linea": n_d, "sentido": "over",
+                     "suceso": nom_d + " " + str(n_d) + "+ " + NOM[stat_d]},
+                    q_d)
+        except Exception as e_det:
+            print("detector (jugador) fallo:", repr(e_det)[:100])
         for key in sorted(cu, key=str):
             stat, pid, n, lado = key
             q = cu[key]
@@ -376,6 +396,10 @@ dia["candidatos"] = [c for c in dia["candidatos"]
 data["updated_at"] = ahora
 data["props_ok"] = wina_ok
 json.dump(data, open(fn, "w"), ensure_ascii=False)
+try:
+    det.guardar(("jugador",))
+except Exception as e_det:
+    print("detector (guardar) fallo:", repr(e_det)[:100])
 por = {}
 for c in nuevos:
     por[c["mercado"]] = por.get(c["mercado"], 0) + 1
