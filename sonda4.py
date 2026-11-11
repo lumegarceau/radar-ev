@@ -8,7 +8,20 @@ from playwright.sync_api import sync_playwright
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
-P = urllib.parse.urlparse(os.environ.get("PROXY_URL", ""))
+RAW = os.environ.get("PROXY_URL", "")
+VAL = "".join(RAW.split())
+if VAL and "://" not in VAL:
+    VAL = "http://" + VAL
+if VAL.startswith("http://http"):
+    VAL = VAL[len("http://"):]
+print("secreto recibido:", "si" if RAW else "NO", "| caracteres:", len(RAW),
+      "| espacios o saltos:", len(RAW) - len(VAL.replace("http://", "", 1)) if RAW else 0)
+if VAL:
+    pre = VAL.split("@")[0]
+    print("forma:", "http://" if VAL.startswith("http") else "?",
+          "| tiene @:", "@" in VAL, "| usuario:", pre.split("//")[-1].split(":")[0][:40],
+          "| host:", VAL.split("@")[-1][:40])
+P = urllib.parse.urlparse(VAL)
 PROXY = {"server": "%s://%s:%s" % (P.scheme or "http", P.hostname, P.port),
          "username": urllib.parse.unquote(P.username or ""),
          "password": urllib.parse.unquote(P.password or "")}
