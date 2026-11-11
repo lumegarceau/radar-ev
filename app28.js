@@ -1,5 +1,5 @@
 // Errores de cuota de TODOS los mercados (subpestaña). No toca la lista de siempre.
-var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",dud:0}};
+var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act"}};
 (function(){
   var s=document.createElement("style");
   s.textContent=".erc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}"+
@@ -12,7 +12,7 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",dud:0}};
   ".erf select{display:block;width:100%;margin-top:3px;padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit;color:var(--tx);background:#fff}";
   document.head.appendChild(s);
   var MK={corners:"córners",cards:"tarjetas",fouls:"faltas",shots:"remates",sot:"remates a puerta",goals:"goles",drawn:"faltas recibidas",saves:"paradas",tk:"entradas"};
-  var MAXC=3;
+  
   function f2(x){return Number(x).toFixed(2).replace(".",",")}
   function T(s){var d=Date.parse(s);return isNaN(d)?null:d}
   function hace(ms){
@@ -32,18 +32,20 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",dud:0}};
   }
   function hm(s){return String(s||"").slice(11,16)}
   function dm(s){return String(s||"").slice(8,10)+"/"+String(s||"").slice(5,7)}
-  function cred(r){
-    return (r.serie||[]).some(function(x){return x.c<=MAXC})||(r.primera&&r.primera.c<=MAXC);
+  function ok(x){return x.c<=3?x.gap>=0.30:x.gap>=0.70}
+  function cred(r,soloUlt){
+    if(soloUlt)return ok(r.ultima);
+    return (r.serie||[]).some(ok)||ok(r.primera);
   }
   function listar(){
     var d=ER.data&&ER.data.sel||{},now=Date.now(),f=ER.f;
     return Object.keys(d).map(function(k){var r=d[k];r._k=k;return r}).filter(function(r){
-      if(!f.dud&&!cred(r))return false;
+      if(!cred(r,f.solo==="act"))return false;
       if(f.mk&&r.mercado!==f.mk)return false;
       if(f.casa&&!((r.primera.casas||[]).concat(r.ultima.casas||[])).some(function(b){return b===f.casa}))return false;
       if(f.solo==="act"&&!(r.activo&&T(r.inicio)>now))return false;
       return true;
-    }).sort(function(a,b){return (T(b.primera.t)||0)-(T(a.primera.t)||0)});
+    }).sort(function(a,b){return b.ultima.gap-a.ultima.gap});
   }
   function card(r){
     var now=Date.now(),ini=T(r.inicio),p=r.primera,u=r.ultima;
@@ -76,18 +78,18 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",dud:0}};
       }
       return h+'<div class="empty">Cargando...</div>';
     }
-    h+='<p class="upd">Aquí entran todos los mercados del radar, no solo los seleccionados. Se avisa cuando la mejor cuota supera en más de un 25 % a la segunda, con al menos 4 casas independientes. Solo se muestran los creíbles (cuota hasta 3,00). Actualizado: '+esc(String(ER.data.actualizado||"").slice(0,16).replace("T"," "))+'</p>';
+    h+='<p class="upd">Aquí entran todos los mercados del radar, no solo los seleccionados. Solo salen los que cumplen: cuota hasta 3,00 y al menos un 30 % por encima de la segunda, o cuota mayor de 3,00 y al menos un 70 %. Siempre ordenados de mayor a menor diferencia. Actualizado: '+esc(String(ER.data.actualizado||"").slice(0,16).replace("T"," "))+'</p>';
     var all=ER.data.sel||{},mks={},casas={};
     Object.keys(all).forEach(function(k){var r=all[k];mks[r.mercado]=1;(r.ultima.casas||[]).forEach(function(b){casas[b]=1})});
     var omk=[["","Todos"]].concat(Object.keys(mks).sort().map(function(m){return [m,MK[m]||m]}));
     var oca=[["","Todas"]].concat(Object.keys(casas).sort().map(function(b){return [b,b]}));
-    h+='<div class="erf">'+sel("solo","Mostrar",[["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.f.solo)+sel("mk","Mercado",omk,ER.f.mk)+sel("casa","Casa con la mejor cuota",oca,ER.f.casa)+sel("dud","Cuotas altas (dudosas)",[["0","Ocultar"],["1","Mostrar"]],ER.f.dud)+'</div>';
+    h+='<div class="erf">'+sel("solo","Mostrar",[["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.f.solo)+sel("mk","Mercado",omk,ER.f.mk)+sel("casa","Casa con la mejor cuota",oca,ER.f.casa)+'</div>';
     var l=listar();
     h+='<div class="upd">'+l.length+' resultado'+(l.length===1?'':'s')+'</div>';
     return h+(l.length?l.slice(0,80).map(card).join(""):'<div class="empty">Ahora mismo no hay ninguno con estos filtros.</div>');
   }
   window.erS=function(s){ER.sub=s;if(s==="todos")ER.data=null;draw()};
-  window.erF=function(k,v){ER.f[k]=(k==="dud")?Number(v):v;draw()};
+  window.erF=function(k,v){ER.f[k]=v;draw()};
   var e0=errores;
   errores=function(){
     var h='<div class="chips"><button class="'+(ER.sub==="sel"?"on":"")+'" onclick="erS(\'sel\')">Selecciones</button><button class="'+(ER.sub==="todos"?"on":"")+'" onclick="erS(\'todos\')">Todos los mercados</button></div>';
