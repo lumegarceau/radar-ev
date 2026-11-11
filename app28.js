@@ -32,7 +32,7 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act"}};
   }
   function hm(s){return String(s||"").slice(11,16)}
   function dm(s){return String(s||"").slice(8,10)+"/"+String(s||"").slice(5,7)}
-  function ok(x){return x.c<=3?x.gap>=0.30:x.gap>=0.70}
+  function ok(x){if(x.c>5&&x.ref>=2.5)return false;return x.c<=3?x.gap>=0.30:x.gap>=0.70}
   function cred(r,soloUlt){
     if(soloUlt)return ok(r.ultima);
     return (r.serie||[]).some(ok)||ok(r.primera);
@@ -45,7 +45,7 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act"}};
       if(f.casa&&!((r.primera.casas||[]).concat(r.ultima.casas||[])).some(function(b){return b===f.casa}))return false;
       if(f.solo==="act"&&!(r.activo&&T(r.inicio)>now))return false;
       return true;
-    }).sort(function(a,b){return b.ultima.gap-a.ultima.gap});
+    }).sort(function(a,b){var ga=a.ultima.c>3?1:0,gb=b.ultima.c>3?1:0;return ga!==gb?ga-gb:b.ultima.gap-a.ultima.gap});
   }
   function card(r){
     var now=Date.now(),ini=T(r.inicio),p=r.primera,u=r.ultima;
@@ -78,7 +78,7 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act"}};
       }
       return h+'<div class="empty">Cargando...</div>';
     }
-    h+='<p class="upd">Aquí entran todos los mercados del radar, no solo los seleccionados. Solo salen los que cumplen: cuota hasta 3,00 y al menos un 30 % por encima de la segunda, o cuota mayor de 3,00 y al menos un 70 %. Siempre ordenados de mayor a menor diferencia. Actualizado: '+esc(String(ER.data.actualizado||"").slice(0,16).replace("T"," "))+'</p>';
+    h+='<p class="upd">Aquí entran todos los mercados del radar, no solo los seleccionados. Solo salen los que cumplen: cuota hasta 3,00 y al menos un 30 % por encima de la segunda, o cuota mayor de 3,00 y al menos un 70 % (si pasa de 5,00, la segunda cuota tiene que ser menor de 2,50). Primero van las de cuota hasta 3,00 y luego las de más de 3,00, cada grupo de mayor a menor diferencia. Actualizado: '+esc(String(ER.data.actualizado||"").slice(0,16).replace("T"," "))+'</p>';
     var all=ER.data.sel||{},mks={},casas={};
     Object.keys(all).forEach(function(k){var r=all[k];mks[r.mercado]=1;(r.ultima.casas||[]).forEach(function(b){casas[b]=1})});
     var omk=[["","Todos"]].concat(Object.keys(mks).sort().map(function(m){return [m,MK[m]||m]}));
