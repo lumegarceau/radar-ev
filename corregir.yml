@@ -1,0 +1,50 @@
+name: Corregir resultados
+on:
+  workflow_dispatch:
+  push:
+    paths: ["c.txt"]
+  schedule:
+    - cron: "0 6 * * *"
+    - cron: "0 15 * * *"
+    - cron: "0 19 * * *"
+    - cron: "0 23 * * *"
+permissions:
+  contents: write
+concurrency:
+  group: radar
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Corregir
+        run: python resultados.py
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+      - name: Resolver errores de cuota de todos los mercados
+        if: always()
+        run: python resolver_errores.py
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+      - name: Guardar datos
+        if: always()
+        run: |
+          git config user.name "radar-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git rm -r -q --cached __pycache__ || true
+          git add -A
+          git commit -m "resultados" || echo "sin cambios"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs && git push && exit 0
+            git rebase --abort || true
+            sleep 5
+          done
+          exit 1
