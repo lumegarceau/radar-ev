@@ -29,6 +29,11 @@ jobs:
         run: python resultados.py
         env:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+      - name: Resolver errores de cuota de todos los mercados
+        if: always()
+        run: python resolver_errores.py
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
       - name: Guardar datos
         if: always()
         run: |
