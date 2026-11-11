@@ -30,7 +30,8 @@ jobs:
       - name: Instalar
         run: |
           pip install playwright
-          playwright install --with-deps chromium
+          playwright install chromium
+          timeout 120 playwright install-deps chromium || echo "dependencias del sistema: se sigue sin ellas"
       - name: Leer cuotas de Sportium y Marca
         run: python sportium.py
       - name: Guardar datos
