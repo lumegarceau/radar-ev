@@ -1,0 +1,42 @@
+name: Cuotas Betsson
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: betsson
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar
+        run: |
+          pip install playwright
+          playwright install chromium
+          timeout 120 playwright install-deps chromium || echo "dependencias del sistema: se sigue sin ellas"
+      - name: Leer cuotas de Betsson
+        run: python betsson.py
+        env:
+          PROXY_URL: ${{ secrets.PROXY_URL }}
+      - name: Guardar datos
+        if: always()
+        run: |
+          git config user.name "radar-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add betsson.json
+          git commit -m "betsson" || echo "sin cambios"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs && git push && exit 0
+            git rebase --abort || true
+            sleep 5
+          done
+          exit 1
