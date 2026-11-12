@@ -158,14 +158,16 @@ print("winamax:", len(wm), "partidos;", ne, "de equipo;", nt, "de totales")
 
 bw = rbway.cargar()
 print("betway:", len(bw), "partidos")
+BETFAIR = rbway.cargar("betfair.json", 5)
 ESP = [("Sportium", rbway.cargar("sportium.json")),
        ("Marcaapuestas", rbway.cargar("marca.json")),
        ("Kirolbet", rbway.cargar("juegging.json")),
        ("Betsson", rbway.cargar("betsson.json", 5)),
-       ("Betfair", rbway.cargar("betfair.json", 5))]
+       ("Betfair", BETFAIR),
+       ("PokerStars", BETFAIR)]  # PokerStars = misma plataforma y cuotas que Betfair
 print("sportium:", len(ESP[0][1]), "partidos | marca:", len(ESP[1][1]),
       "partidos | kirolbet:", len(ESP[2][1]), "partidos | betsson:",
-      len(ESP[3][1]), "partidos")
+      len(ESP[3][1]), "partidos | betfair:", len(ESP[4][1]), "partidos")
 con_es = 0
 res = []
 sin_par = []

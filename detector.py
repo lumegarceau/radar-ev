@@ -17,6 +17,7 @@ MAX_SERIE = 80
 GRUPOS = [
     {"paf", "leovegas", "casumo", "speedybet", "yosports", "enracha"},
     {"sportium", "marcaapuestas", "marca apuestas"},
+    {"betfair", "pokerstars"},
 ]
 PASADA = {}
 

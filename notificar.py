@@ -17,6 +17,7 @@ UMBRAL = 0.25
 GRUPOS = [
     {"paf", "leovegas", "casumo", "speedybet", "yosports", "enracha"},
     {"sportium", "marcaapuestas", "marca apuestas"},
+    {"betfair", "pokerstars"},
 ]
 
 
