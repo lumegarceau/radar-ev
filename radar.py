@@ -160,9 +160,11 @@ bw = rbway.cargar()
 print("betway:", len(bw), "partidos")
 ESP = [("Sportium", rbway.cargar("sportium.json")),
        ("Marcaapuestas", rbway.cargar("marca.json")),
-       ("Kirolbet", rbway.cargar("juegging.json"))]
+       ("Kirolbet", rbway.cargar("juegging.json")),
+       ("Betsson", rbway.cargar("betsson.json"))]
 print("sportium:", len(ESP[0][1]), "partidos | marca:", len(ESP[1][1]),
-      "partidos | kirolbet:", len(ESP[2][1]), "partidos")
+      "partidos | kirolbet:", len(ESP[2][1]), "partidos | betsson:",
+      len(ESP[3][1]), "partidos")
 con_es = 0
 res = []
 sin_par = []
