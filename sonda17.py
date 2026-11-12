@@ -37,6 +37,7 @@ def ip_publica():
 
 
 
+PESADO = ("image", "media", "font")
 MK = re.compile(r"tiro|remate|falta|parada|jugador|puerta|arco", re.I)
 STEALTH = ("Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
            "Object.defineProperty(navigator,'languages',{get:()=>['es-ES','es']});window.chrome={runtime:{}};")
