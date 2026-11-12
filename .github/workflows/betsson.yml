@@ -1,6 +1,11 @@
 name: Cuotas Betsson
 on:
   workflow_dispatch:
+  schedule:
+    # 10:00, 14:00 y 19:00 de Madrid, 40 min antes de una pasada del radar
+    - cron: "20 8 * * *"
+    - cron: "20 12 * * *"
+    - cron: "20 17 * * *"
 permissions:
   contents: write
 concurrency:
