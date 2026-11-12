@@ -284,6 +284,8 @@ def main():
                 print("betfair: limite de tiempo, se corta")
                 break
             res, err = leer_partido(br, u)
+            if not res and "respuestas 0" in str(err):
+                res, err = leer_partido(br, u)
             nombre = urllib.parse.unquote(u).split("/")[-2]
             if not res:
                 print("  ", nombre, "-> falla:", err)
@@ -294,7 +296,10 @@ def main():
             if len(eq) != 2:
                 print("  ", nombre, "-> no saco los equipos de:", titulo[:60])
                 continue
-            ini = inicio_de(cuerpo, eq[0])
+            ini = inicio_de(cuerpo, eq[0] + " - " + eq[1])
+            if not ini:
+                k = cuerpo.find(eq[0] + " - " + eq[1])
+                print("      no saco la hora de:", cuerpo[max(0, k):max(0, k) + 160])
             print("  ", t, "| cuotas de jugador:", len(jug), "| inicio:",
                   datetime.fromtimestamp(ini, MAD).strftime("%d/%m %H:%M") if ini else None)
             if not ini or not jug:
