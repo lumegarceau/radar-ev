@@ -1,0 +1,21 @@
+name: Sonda proxy
+on:
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar
+        run: |
+          pip install playwright
+          playwright install chromium
+          timeout 120 playwright install-deps chromium || echo "dependencias del sistema: se sigue sin ellas"
+      - name: Sonda
+        run: python sonda16.py
+        env:
+          PROXY_URL: ${{ secrets.PROXY_URL }}
