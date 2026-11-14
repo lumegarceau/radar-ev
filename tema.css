@@ -226,3 +226,7 @@ html,body{overflow-x:hidden}
 .tnd.s s{margin-right:1px}
 @media (prefers-color-scheme:dark){.tnd.dn{background:#3a1519;color:#ff8a90}.tnd.up{background:#0e2e1d;color:#4ade80}}
 
+
+/* v8: el Top 5 no se ensancha con nombres largos (la cuota se salia de la pantalla) */
+.tops{grid-template-columns:minmax(0,1fr)!important}
+.tops>*{min-width:0}
