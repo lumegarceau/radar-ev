@@ -5,7 +5,10 @@ import os
 import time
 import unicodedata
 from datetime import date, timedelta
-from rcommon import api
+from rcommon import api, agotado
+
+REFRESCOS_J = [0]
+MAX_REFRESCOS_J = int(os.environ.get("MAX_REFRESCOS_JUG", "100"))
 
 CORTE = str(date.today() - timedelta(days=5))
 VARIANTES = {
@@ -55,12 +58,14 @@ def jugadores_fixture(fid, viejo):
     ant = None
     if os.path.exists(f):
         ant = json.load(open(f))
-        if ant.get("v") == 2:
+        # v3 = incluye goles del jugador. Los v2 se rehacen poco a poco.
+        if ant.get("v") == 3 or REFRESCOS_J[0] >= MAX_REFRESCOS_J or agotado():
             return ant
+        REFRESCOS_J[0] += 1
     r = api("/fixtures/players", fixture=fid)
     if r is None:
         return ant or {}
-    d = {"v": 2}
+    d = {"v": 3}
     for eq in r:
         lista = []
         for p in eq["players"]:
@@ -81,6 +86,7 @@ def jugadores_fixture(fid, viejo):
                 "fouls": fo.get("committed") or 0,
                 "drawn": fo.get("drawn") or 0,
                 "saves": go.get("saves") or 0,
+                "goals": go.get("total") or 0,
                 "tk": tk.get("total") or 0,
             })
         d[str(eq["team"]["id"])] = lista
@@ -272,6 +278,23 @@ def buscar(nombre, jug):
         if len(c) == 1:
             return c[0]
     return None
+
+
+def referencia(juegos, stat, n, es_local):
+    """Referencia L20 / L10 / L10 como local o visitante del jugador, sin
+    umbrales. Solo informativa (registro de errores de cuota)."""
+    try:
+        jj = validos(juegos, stat)
+        if not jj:
+            return None
+        ult = jj[-10:]
+        cond = [g for g in jj if g["local"] == es_local][-10:]
+        return {"l20": "%d/%d" % (sum(1 for g in jj if g[stat] >= n), len(jj)),
+                "l10": "%d/%d" % (sum(1 for g in ult if g[stat] >= n), len(ult)),
+                "cond": "%d/%d" % (sum(1 for g in cond if g[stat] >= n), len(cond)),
+                "condTxt": "local" if es_local else "visitante"}
+    except Exception:
+        return None
 
 
 def prob_jug(juegos, stat, n, es_local):

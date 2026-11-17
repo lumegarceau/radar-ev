@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from rcommon import api, gasto
-from rmodelo import historial, analizar, analizar_total, tot_vals
+from rmodelo import historial, analizar, analizar_total, tot_vals, referencia
 import rvalue as rv
 import rwina as rw
 import rnivel
@@ -41,6 +41,7 @@ NOM = {
     "shots": "tiros",
     "sot": "tiros a puerta",
     "goals": "goles",
+    "offsides": "fueras de juego",
 }
 memo = {}
 
@@ -213,11 +214,20 @@ for lid, (pais, liga) in LIGAS.items():
         if not cu:
             continue
         try:
+            hl0 = hist(loc["id"])
+            hv0 = hist(vis["id"])
+        except Exception:
+            hl0 = hv0 = []
+        try:
             for (kind, stat, lado, ln, sent), q in cu.items():
                 if kind == "eq":
                     nombre_e = loc["name"] if lado == "home" else vis["name"]
+                    es_l0 = lado == "home"
+                    hist0 = {"eq": referencia(hl0 if es_l0 else hv0, stat, ln, sent, es_l0)}
                 else:
                     nombre_e = "Total del partido"
+                    hist0 = {"loc": referencia(hl0, stat, ln, sent, True, True),
+                             "vis": referencia(hv0, stat, ln, sent, False, True)}
                 frase_e = " +" if sent == "over" else " menos de "
                 det.registrar(
                     "%s|%s|%s|%s|%s|%s" % (x["fixture"]["id"], kind, stat,
@@ -228,7 +238,8 @@ for lid, (pais, liga) in LIGAS.items():
                      "visitante": vis["name"],
                      "inicio": dt.isoformat(timespec="minutes"),
                      "mercado": stat, "linea": ln, "sentido": sent,
-                     "suceso": nombre_e + frase_e + fl(ln) + " " + NOM[stat]},
+                     "suceso": nombre_e + frase_e + fl(ln) + " " + NOM[stat],
+                     "hist": hist0},
                     q)
         except Exception as e_det:
             print("detector (equipo) fallo:", repr(e_det)[:100])

@@ -102,7 +102,7 @@ TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bonos"]];
     }
     h+='<div class="box">';
     a.forEach(function(c,i){
-      h+='<details class="tr"><summary class="row"><span class="n">'+(i+1)+'</span><div class="g">'+esc(c.suceso)+'<small>'+esc(c.local)+' v '+esc(c.visitante)+' · '+esc(c.hm)+tndS(c)+'</small></div>'+fn(c)+bs(c)+starB(c)+'<span class="ar">▾</span></summary><div class="tb">'+bd(c)+cbody(c)+'</div></details>';
+      h+='<details class="tr"><summary class="row"><span class="n">'+(i+1)+'</span><div class="g">'+esc(c.suceso)+'<small>'+esc(c.local)+' v '+esc(c.visitante)+' · '+esc(c.hm)+'</small></div>'+fn(c)+bs(c)+starB(c)+'<span class="ar">▾</span></summary><div class="tb">'+bd(c)+cbody(c)+'</div></details>';
     });
     return h+'</div></section>';
   };
@@ -145,7 +145,7 @@ TABS=[["radar","Radar"],["errores","Errores de cuota"],["bookies","Bonos"]];
     }
     var g=grupo(S.tab);
     b.innerHTML=BN.map(function(x){
-      var n=x[0]==='favoritos'?Object.keys(FAV).length:0;
+      var n=x[0]==='favoritos'?Object.keys(FAV).filter(function(k){var c=(S.data||[]).filter(function(y){return y.k===k})[0];return c&&c.estado!=="ganada"&&c.estado!=="perdida"&&c.estado!=="nula"}).length:0;
       return '<button type="button" data-b="'+x[0]+'" class="'+(g===x[0]?'on':'')+'">'+SV[x[2]]+'<span>'+x[1]+'</span>'+(n?'<em>'+n+'</em>':'')+'</button>';
     }).join('');
   }

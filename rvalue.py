@@ -14,6 +14,7 @@ STAT = {
     "team_shots": "shots",
     "team_shots_on_target": "sot",
     "team_goals": "goals",
+    "team_offsides": "offsides",
 }
 TOT = {
     "total_corners": "corners",
@@ -22,6 +23,7 @@ TOT = {
     "total_shots": "shots",
     "total_shots_on_target": "sot",
     "total_goals": "goals",
+    "total_offsides": "offsides",
 }
 JUG = {
     "player_shots": "shots",
@@ -30,6 +32,7 @@ JUG = {
     "player_fouls_drawn": "drawn",
     "player_saves": "saves",
     "player_tackles": "tk",
+    "player_goals": "goals",
 }
 ALIAS = {
     "1xbet": "1XBET",

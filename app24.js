@@ -6,7 +6,7 @@ var RV={f:{ev:"",p:"",c:"",liga:"",mk:"",tipo:"",ver:""},t5:5,dn:10};
   ".rf select{display:block;width:100%;margin-top:3px;padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit;color:var(--tx);background:#fff}"+
   ".h3r{margin:14px 0 6px;font-size:14px}";
   document.head.appendChild(s);
-  var MK={corners:"córners",cards:"tarjetas",fouls:"faltas",shots:"remates",sot:"remates a puerta",goals:"goles",drawn:"faltas recibidas",saves:"paradas",tk:"entradas"};
+  var MK={corners:"córners",cards:"tarjetas",fouls:"faltas",shots:"remates",sot:"remates a puerta",goals:"goles",offsides:"fueras de juego",drawn:"faltas recibidas",saves:"paradas",tk:"entradas"};
   var TN={eq_over:"Equipo +",eq_under:"Equipo -",total_over:"Total +",total_under:"Total -",jugador:"Jugador"};
   var RNG={
     ev:{lt10:[-1e9,10],"10_20":[10,20],"20_30":[20,30],"30_50":[30,50],gt50:[50,1e9],ge20:[20,1e9],ge30:[30,1e9]},

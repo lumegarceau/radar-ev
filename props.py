@@ -44,6 +44,7 @@ NOM = {
     "drawn": "faltas recibidas",
     "saves": "paradas",
     "tk": "entradas",
+    "goals": "goles",
 }
 memo = {}
 sqm = {}
@@ -296,7 +297,10 @@ for lid, (pais, liga) in LIGAS.items():
                      "visitante": vis["name"], "equipo": eq_d["name"],
                      "inicio": dt.isoformat(timespec="minutes"),
                      "mercado": stat_d, "linea": n_d, "sentido": "over",
-                     "suceso": nom_d + " " + str(n_d) + "+ " + NOM[stat_d]},
+                     "suceso": nom_d + " " + str(n_d) + "+ " + NOM[stat_d],
+                     "hist": {"jug": rjug.referencia(
+                         (jg_d.get(pid_d) or {}).get("g") or [], stat_d, n_d,
+                         lado_d == "home")}},
                     q_d)
         except Exception as e_det:
             print("detector (jugador) fallo:", repr(e_det)[:100])
@@ -416,6 +420,12 @@ print("props omitidos por baja confirmada:", omit_baja)
 print("props con duda:", sum(1 for c in nuevos if c.get("duda")))
 print("con dorsal:", sum(1 for c in nuevos if c.get("num")))
 print("cuotas de valueodds emparejadas:", n_vo)
+try:
+    print("valueodds: mercados de fueras de juego / goles vistos:",
+          {t: n for t, n in sorted(rv.tipos.items())
+           if "offside" in str(t) or "goal" in str(t) or "score" in str(t)})
+except Exception as e_log:
+    print("log de mercados valueodds fallo:", repr(e_log)[:80])
 print("jugadores emparejados:", len(con_u))
 print("sin emparejar Winamax:", len(sin_u))
 for (eqn, nom), jug in list(sin_u.items())[:12]:

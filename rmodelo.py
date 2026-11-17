@@ -11,17 +11,26 @@ STATS = {
     "Shots on Goal": "sot",
     "Yellow Cards": "yc",
     "Red Cards": "rc",
+    "Offsides": "offsides",
 }
-SIN_NULO = ("corners", "fouls", "shots")
+SIN_NULO = ("corners", "fouls", "shots", "offsides")
+REFRESCOS = [0]
+MAX_REFRESCOS = int(os.environ.get("MAX_REFRESCOS_STATS", "150"))
 
 
 def stats(fid, viejo):
     f = "cache/s" + str(fid) + ".json"
+    ant = None
     if os.path.exists(f):
-        return json.load(open(f))
+        ant = json.load(open(f))
+        # "_o": ya se pidieron tambien los fueras de juego. Los ficheros antiguos
+        # no los tienen: se vuelven a pedir poco a poco (maximo por pasada).
+        if ant.get("_o") or REFRESCOS[0] >= MAX_REFRESCOS or agotado():
+            return {k: v for k, v in ant.items() if k != "_o"}
+        REFRESCOS[0] += 1
     r = api("/fixtures/statistics", fixture=fid)
     if r is None:
-        return {}
+        return {k: v for k, v in (ant or {}).items() if k != "_o"}
     d = {}
     for t in r:
         e = {}
@@ -39,7 +48,9 @@ def stats(fid, viejo):
             e["cards"] = e["yc"] + e.get("rc", 0)
         d[str(t["team"]["id"])] = e
     if len(d) == 2 or viejo:
-        json.dump(d, open(f, "w"))
+        d2 = dict(d)
+        d2["_o"] = 1
+        json.dump(d2, open(f, "w"))
     return d
 
 
@@ -186,3 +197,25 @@ def analizar_total(hl, hv, stat, linea, sentido):
         "prob": round((pa + pb) / 2, 3),
     }
 # fin
+
+
+def referencia(h, stat, linea, sentido, es_local, total=False):
+    """Referencia L20 / L10 / L10 como local o visitante de una linea, sin los
+    umbrales de analizar(). Solo informativa (registro de errores de cuota)."""
+    try:
+        if total:
+            vals = [(x["local"], x["pro"][stat] + x["contra"][stat]) for x in h
+                    if stat in x["pro"] and stat in x["contra"]]
+        else:
+            vals = [(x["local"], x["pro"][stat]) for x in h if stat in x["pro"]]
+        if not vals:
+            return None
+        v = [a for _, a in vals]
+        ult = v[-10:]
+        cond = [a for lc, a in vals if lc == es_local][-10:]
+        return {"l20": "%d/%d" % (tasa(v, linea, sentido), len(v)),
+                "l10": "%d/%d" % (tasa(ult, linea, sentido), len(ult)),
+                "cond": "%d/%d" % (tasa(cond, linea, sentido), len(cond)),
+                "condTxt": "local" if es_local else "visitante"}
+    except Exception:
+        return None

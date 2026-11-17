@@ -11,7 +11,7 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act"}};
   ".erf{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.erf label{font-size:12px;color:var(--mu)}"+
   ".erf select{display:block;width:100%;margin-top:3px;padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit;color:var(--tx);background:#fff}";
   document.head.appendChild(s);
-  var MK={corners:"córners",cards:"tarjetas",fouls:"faltas",shots:"remates",sot:"remates a puerta",goals:"goles",drawn:"faltas recibidas",saves:"paradas",tk:"entradas"};
+  var MK={corners:"córners",cards:"tarjetas",fouls:"faltas",shots:"remates",sot:"remates a puerta",goals:"goles",offsides:"fueras de juego",drawn:"faltas recibidas",saves:"paradas",tk:"entradas"};
   
   function f2(x){return Number(x).toFixed(2).replace(".",",")}
   function T(s){var d=Date.parse(s);return isNaN(d)?null:d}
@@ -64,7 +64,15 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act"}};
     h+='<div class="ch">'+chips+'</div>';
     h+='<div class="pt">Mejor cuota <b>'+f2(u.c)+'</b> en '+esc((u.casas||[]).join(", "))+' · la siguiente es '+f2(u.ref)+' · '+Math.round(u.gap*100)+' % más · '+u.n+' casas independientes</div>';
     h+='<div class="pt">Primera vez: '+dm(p.t)+' '+hm(p.t)+' ('+hace(now-tp)+') · visible durante '+dur((tu||tp)-tp)+' · '+(r.vistas||1)+' lecturas'+(r.max&&r.max.gap>u.gap+0.01?' · máximo '+Math.round(r.max.gap*100)+' %':'')+'</div>';
+    h+=refTxt(r);
     return h+estado+'</div>';
+  }
+  function seg(x){return x?('L20 <b>'+esc(x.l20)+'</b> · L10 <b>'+esc(x.l10)+'</b> · Como '+esc(x.condTxt)+' L10 <b>'+esc(x.cond)+'</b>'):''}
+  function refTxt(r){
+    var q=r.hist;if(!q)return '';
+    if(q.eq||q.jug){var s=seg(q.eq||q.jug);return s?'<div class="pt">Referencia: '+s+'</div>':''}
+    var a=seg(q.loc),b=seg(q.vis);if(!a&&!b)return '';
+    return '<div class="pt">Referencia · '+esc(r.local)+' (total del partido): '+(a||'sin datos')+'</div><div class="pt">Referencia · '+esc(r.visitante)+' (total del partido): '+(b||'sin datos')+'</div>';
   }
   function sel(id,t,ops,v){
     return '<div><label>'+t+'</label><select onchange="erF(\''+id+'\',this.value)">'+ops.map(function(o){return '<option value="'+esc(o[0])+'"'+(String(o[0])===String(v)?' selected':'')+'>'+esc(o[1])+'</option>'}).join("")+'</select></div>';

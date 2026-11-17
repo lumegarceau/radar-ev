@@ -1,5 +1,5 @@
 (function(){
-  var MK={corners:"córners",cards:"tarjetas",fouls:"faltas",shots:"remates",sot:"remates a puerta",goals:"goles",drawn:"faltas recibidas",saves:"paradas",tk:"entradas"};
+  var MK={corners:"córners",cards:"tarjetas",fouls:"faltas",shots:"remates",sot:"remates a puerta",goals:"goles",offsides:"fueras de juego",drawn:"faltas recibidas",saves:"paradas",tk:"entradas"};
   var TN={eq_over:"Equipo +",eq_under:"Equipo -",total_over:"Total +",total_under:"Total -",jugador:"Jugador"};
   function fila(n,a){
     var res=a.g+a.p;

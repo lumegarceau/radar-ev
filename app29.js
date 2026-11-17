@@ -2,7 +2,7 @@
 // y clasificación por casas de las selecciones. No cambia ninguna cifra existente.
 var ES={sec:"sel",casa:""};
 (function(){
-  var MKE={corners:"córners",cards:"tarjetas",fouls:"faltas",shots:"remates",sot:"remates a puerta",goals:"goles",drawn:"faltas recibidas",saves:"paradas",tk:"entradas"};
+  var MKE={corners:"córners",cards:"tarjetas",fouls:"faltas",shots:"remates",sot:"remates a puerta",goals:"goles",offsides:"fueras de juego",drawn:"faltas recibidas",saves:"paradas",tk:"entradas"};
   var TPE={jugador:"Jugador",equipo:"Equipo",total:"Total del partido"};
   function okE(x){if(x.c>5&&x.ref>=2.5)return false;return x.c<=3?x.gap>=0.30:x.gap>=0.70}
   function credE(r){return (r.serie||[]).some(okE)||okE(r.primera)}

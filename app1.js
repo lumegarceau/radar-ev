@@ -53,7 +53,7 @@ function load(){
     }
     list=list.filter(function(c){return c&&c.prob&&c.cuotas&&c.cuotas.length&&c.vigente});
     if(list.length)S.demo=false;
-    if(rd&&rd.updated_at)document.getElementById("upd").textContent="Act. "+rd.updated_at.slice(11,16);
+    if(rd&&rd.updated_at)document.getElementById("upd").textContent="Última actualización: "+rd.updated_at.slice(11,16);
     if(!list.length){
       list=DEMO.map(function(c){return Object.assign({},c,{dia:hoyS(),hm:c.hora,estado:"pendiente"})});
     }

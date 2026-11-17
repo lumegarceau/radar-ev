@@ -95,6 +95,8 @@ def guardar(tipos):
             sel[clave] = r
             nuevos += 1
         r["ultima"] = snap
+        if ctx.get("hist"):
+            r["hist"] = ctx["hist"]
         r["vistas"] = r.get("vistas", 0) + 1
         r["activo"] = True
         r["aus"] = 0

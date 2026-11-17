@@ -1,5 +1,5 @@
 var SIL='<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="24" r="11" fill="#0f9d58"/><path d="M8 64c2-16 12-22 24-22s22 6 24 22z" fill="#0f9d58"/></svg>';
-var MKN={shots:"Remates",sot:"Remates a puerta",fouls:"Faltas cometidas",drawn:"Faltas recibidas",saves:"Paradas",corners:"Córners",cards:"Tarjetas",goals:"Goles"};
+var MKN={shots:"Remates",sot:"Remates a puerta",fouls:"Faltas cometidas",drawn:"Faltas recibidas",saves:"Paradas",corners:"Córners",cards:"Tarjetas",goals:"Goles",offsides:"Fueras de juego"};
 (function(){
   var s=document.createElement("style");
   s.textContent=[
