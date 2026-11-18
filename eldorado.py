@@ -21,8 +21,8 @@ STEALTH = ("Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
            "Object.defineProperty(navigator,'languages',{get:()=>['es-ES','es']});window.chrome={runtime:{}};")
 PESADO = ("image", "media", "font")
 HORAS = 60
-MAX_EVENTOS = 40
-MAX_LIGAS = 8
+MAX_EVENTOS = 60
+MAX_LIGAS = 70
 LIMITE_S = 20 * 60
 PRIO = re.compile(r"premier|laliga|la liga|segunda|serie a|bundesliga|ligue 1|champions|europa|eredivisie|primeira|conference|copa|championship|liga", re.I)
 TORNEOS = {}
@@ -223,19 +223,28 @@ def main():
         print("eldorado: eventos de la primera liga:", len(eventos))
         print("eldorado: torneos vistos en la API:", len(TORNEOS), list(TORNEOS.items())[:25])
         extra = []
-        for tid, nm in TORNEOS.items():
-            if tid != "19000000008" and PRIO.search(nm):
+        orden = sorted(TORNEOS.items(), key=lambda kv: (0 if PRIO.search(kv[1]) else 1))
+        for tid, nm in orden:
+            if tid != "19000000008":
                 extra.append("/sports/soccer-1001/%s-%s?tab=matches" % (slug(nm), tid))
-        print("eldorado: ligas extra a probar:", len(extra), extra[:MAX_LIGAS])
+        print("eldorado: ligas a recorrer:", min(len(extra), MAX_LIGAS - 1), "de", len(extra))
+        t_ligas = time.time()
         for h in extra[:MAX_LIGAS - 1]:
+            if time.time() - t_ligas > 8 * 60:
+                print("eldorado: limite de tiempo en ligas")
+                break
             n0 = len(ligas)
             try:
                 pg.evaluate("(u)=>{history.pushState({},'',u);window.dispatchEvent(new PopStateEvent('popstate',{state:{}}))}", h)
             except Exception:
                 continue
-            pg.wait_for_timeout(8000)
+            for _ in range(8):
+                pg.wait_for_timeout(1000)
+                if len(ligas) > n0:
+                    pg.wait_for_timeout(700)
+                    break
             recoger(ligas[n0:])
-            print("   liga", h[-50:], "-> eventos acumulados:", len(eventos))
+        print("eldorado: eventos acumulados tras recorrer ligas:", len(eventos))
         lista = []
         for e in eventos.values():
             t = epoch(e.get("scheduledTimeUtc") or e.get("scheduledTime") or e.get("startDate"))
