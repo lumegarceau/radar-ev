@@ -1,1 +1,1 @@
-{"45": {"sot": 2, "shots": 21, "fouls": 6, "corners": 4, "yc": 2, "rc": 0, "cards": 2}, "57": {"sot": 4, "shots": 13, "fouls": 12, "corners": 4, "yc": 3, "rc": 1, "cards": 4}}
+{"45": {"sot": 2, "offsides": 1, "shots": 21, "yc": 2, "corners": 4, "rc": 0, "fouls": 6, "cards": 2}, "57": {"sot": 4, "offsides": 0, "shots": 13, "yc": 1, "corners": 4, "rc": 1, "fouls": 12, "cards": 2}, "_o": 1}
