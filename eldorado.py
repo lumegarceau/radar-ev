@@ -122,6 +122,9 @@ def parsear(det, c1, c2):
                         mt = re.match(r"^(.+?) - Total de Córners$", tn)
                         if mt:
                             stat = "corners"
+            if mt and re.search(r"mitad|half|tiempo", mt.group(1), re.I):
+                cuenta("equipo_mitad_ignorado")
+                continue
             if mt:
                 lado = rbway.lado_de(mt.group(1), c1, c2)
                 if lado is None:
