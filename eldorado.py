@@ -20,11 +20,12 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 STEALTH = ("Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
            "Object.defineProperty(navigator,'languages',{get:()=>['es-ES','es']});window.chrome={runtime:{}};")
 PESADO = ("image", "media", "font")
-HORAS = 40
+HORAS = 60
 MAX_EVENTOS = 40
 MAX_LIGAS = 8
 LIMITE_S = 20 * 60
-PRIO = re.compile(r"premier|laliga|la-liga|segunda|serie-a|bundesliga|ligue-1|champions|europa|eredivisie|primeira|conference|copa", re.I)
+PRIO = re.compile(r"premier|laliga|la liga|segunda|serie a|bundesliga|ligue 1|champions|europa|eredivisie|primeira|conference|copa|championship|liga", re.I)
+TORNEOS = {}
 STAT_J = {"Remates a Puerta del Jugador": "sot", "Remates Totales del Jugador": "shots",
           "Faltas del Jugador": "fouls", "Entradas del Jugador": "tk"}
 GOLES = {"Jugador- Anotará en cualquier momento": 1, "Anota 2 o más": 2}
@@ -167,6 +168,11 @@ def main():
                 u = r.url
                 if "sportsapi" not in u or "json" not in (r.headers.get("content-type") or "").lower():
                     return
+                if "sportsapi" in u and "eventview" not in u:
+                    tx = r.text()
+                    if len(tx) < 3000000:
+                        for mt in re.finditer(r'"tournamentId":\s*(\d+),\s*"tournamentName":\s*"([^"]+)"', tx):
+                            TORNEOS[mt.group(1)] = mt.group(2)
                 if "multi-leagueview" in u:
                     ligas.append(r.text())
                 elif "eventview/normalized/" in u:
@@ -215,20 +221,16 @@ def main():
                     pass
         recoger(ligas)
         print("eldorado: eventos de la primera liga:", len(eventos))
-        try:
-            hrefs = pg.eval_on_selector_all("a[href*='/sports/soccer-1001/']", "els=>els.map(e=>e.getAttribute('href'))")
-        except Exception:
-            hrefs = []
+        print("eldorado: torneos vistos en la API:", len(TORNEOS), list(TORNEOS.items())[:25])
         extra = []
-        for h in hrefs or []:
-            if h and h not in extra and PRIO.search(h) and "19000000008" not in h:
-                extra.append(h)
-        print("eldorado: ligas extra encontradas:", len(extra), extra[:12])
+        for tid, nm in TORNEOS.items():
+            if tid != "19000000008" and PRIO.search(nm):
+                extra.append("/sports/soccer-1001/%s-%s?tab=matches" % (slug(nm), tid))
+        print("eldorado: ligas extra a probar:", len(extra), extra[:MAX_LIGAS])
         for h in extra[:MAX_LIGAS - 1]:
             n0 = len(ligas)
             try:
-                pg.evaluate("(u)=>{history.pushState({},'',u);window.dispatchEvent(new PopStateEvent('popstate',{state:{}}))}",
-                            h if "?" in h else h + "?tab=matches")
+                pg.evaluate("(u)=>{history.pushState({},'',u);window.dispatchEvent(new PopStateEvent('popstate',{state:{}}))}", h)
             except Exception:
                 continue
             pg.wait_for_timeout(8000)
@@ -239,6 +241,9 @@ def main():
             t = epoch(e.get("scheduledTimeUtc") or e.get("scheduledTime") or e.get("startDate"))
             if t and ahora - 3600 < t < ahora + HORAS * 3600 and not e.get("live"):
                 lista.append((t, e))
+        for e in list(eventos.values())[:3]:
+            print("eldorado: fecha de ejemplo:", e.get("scheduledTimeUtc"), "|", e.get("scheduledTime"), "|", e.get("startDate"), "| live:", e.get("live"), "->", epoch(e.get("scheduledTimeUtc")))
+        print("eldorado: ahora (epoch):", int(ahora))
         lista.sort(key=lambda x: x[0])
         lista = lista[:MAX_EVENTOS]
         print("eldorado: partidos a leer:", len(lista), "| MB hasta aqui: %.1f" % (BYTES[0] / 1048576.0))
