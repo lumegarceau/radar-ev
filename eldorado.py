@@ -21,7 +21,8 @@ STEALTH = ("Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
            "Object.defineProperty(navigator,'languages',{get:()=>['es-ES','es']});window.chrome={runtime:{}};")
 PESADO = ("image", "media", "font")
 HORAS = 60
-MAX_EVENTOS = 60
+MAX_EVENTOS = 80
+MIN_MERCADOS = 120
 MAX_LIGAS = 70
 LIMITE_S = 20 * 60
 PRIO = re.compile(r"premier|laliga|la liga|segunda|serie a|bundesliga|ligue 1|champions|europa|eredivisie|primeira|conference|copa|championship|liga", re.I)
@@ -248,7 +249,7 @@ def main():
         lista = []
         for e in eventos.values():
             t = epoch(e.get("scheduledTimeUtc") or e.get("scheduledTime") or e.get("startDate"))
-            if t and ahora - 3600 < t < ahora + HORAS * 3600 and not e.get("live"):
+            if t and ahora - 3600 < t < ahora + HORAS * 3600 and not e.get("live") and (e.get("marketsCount") or 0) >= MIN_MERCADOS:
                 lista.append((t, e))
         for e in list(eventos.values())[:3]:
             print("eldorado: fecha de ejemplo:", e.get("scheduledTimeUtc"), "|", e.get("scheduledTime"), "|", e.get("startDate"), "| live:", e.get("live"), "->", epoch(e.get("scheduledTimeUtc")))
