@@ -16,7 +16,8 @@ API = "https://www.betsson.es/api/sb/v1/widgets/"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 HORAS = 40            # solo partidos que empiezan en las proximas horas
-MAX_EVENTOS = 40
+MAX_EVENTOS = 70
+PAISES_EXTRA = ["brasil", "belgica", "alemania", "turquia", "dinamarca"]
 LIMITE_S = 25 * 60
 # etiqueta exacta del mercado de jugador -> estadistica del radar
 STAT = {"Total de tiros al arco": "sot", "Total de tiros": "shots",
@@ -197,6 +198,14 @@ def main():
             except Exception:
                 pass
         pg.wait_for_timeout(15000)
+        # paginas de pais con las ligas que el listado general no trae
+        for pais in PAISES_EXTRA:
+            try:
+                pg.goto(LISTADO + "/" + pais, timeout=60000, wait_until="domcontentloaded")
+                pg.wait_for_timeout(8000)
+            except Exception as ex:
+                print("betsson: pais", pais, "falla", repr(ex)[:60])
+        print("betsson: eventos tras paginas de pais:", len(evs))
         h = {k: v for k, v in hdr.items()
              if not k.startswith(":") and not k.startswith("sec-") and k not in PROHIBIDAS}
         print("betsson: eventos en el listado:", len(evs), "| cabeceras capturadas:", len(h),

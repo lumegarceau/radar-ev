@@ -21,10 +21,10 @@ STEALTH = ("Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
            "Object.defineProperty(navigator,'languages',{get:()=>['es-ES','es']});window.chrome={runtime:{}};")
 PESADO = ("image", "media", "font")
 HORAS = 60
-MAX_EVENTOS = 80
+MAX_EVENTOS = 140
 MIN_MERCADOS = 120
 MAX_LIGAS = 130
-LIMITE_S = 20 * 60
+LIMITE_S = 24 * 60
 PRIO = re.compile(r"jupiler|pro league|s[uü]per ?lig|2\. ?bundesliga|superliga|brasileir|serie [ab]|eerste|liga portugal|primeira|segunda|laliga|ligue [12]|bundesliga|eredivisie|championship|premier|champions|europa|conference|copa|liga", re.I)
 PRIO0 = re.compile(r"jupiler|pro league|s[uü]per ?lig|2\. ?bundesliga|superliga|brasileir|serie a", re.I)
 TORNEOS = {}

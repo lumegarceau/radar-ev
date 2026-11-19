@@ -20,7 +20,7 @@ BUSCAR = ["LaLiga", "La Liga", "Segunda División", "Premier League",
           "Primeira Liga", "Champions League", "Europa League", "MLS"]
 # IDs de competicion fijos (los nombres de ambas webs se repiten entre paises)
 IDS_LIGAS = {
-    "sportium": {"2. Bundesliga": 45985, "Super Lig": 44674, "La Liga": 45211, "Segunda": 45215, "Premier": 40527,
+    "sportium": {"2. Bundesliga": 45985, "Super Lig": 44674, "Brasil Serie A": 42382, "Belgica": 42039, "Superligaen": 39511, "La Liga": 45211, "Segunda": 45215, "Premier": 40527,
                  "Championship": 40602, "Serie A": 44571, "Ligue 1": 46074,
                  "Bundesliga": 45915, "Eredivisie": 43094,
                  "Primeira": 44979, "Champions": 45225, "Europa League": 45223,
