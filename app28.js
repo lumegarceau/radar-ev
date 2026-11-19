@@ -1,5 +1,5 @@
 // Errores de cuota de TODOS los mercados (subpestaña). No toca la lista de siempre.
-var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act"}};
+var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap",pct:"",vent:"10"}};
 (function(){
   var s=document.createElement("style");
   s.textContent=".erc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}"+
@@ -37,6 +37,20 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act"}};
     if(soloUlt)return ok(r.ultima);
     return (r.serie||[]).some(ok)||ok(r.primera);
   }
+  function kn(s){var m=/^(\d+)\/(\d+)$/.exec(s||"");return m?[+m[1],+m[2]]:null}
+  // % de veces que se cumplio el suceso en los ultimos 10 o 20 partidos (en totales, el peor de los dos equipos)
+  function tasaR(r,vent){
+    var q=r.hist;if(!q)return null;
+    var key=vent==="20"?"l20":"l10";
+    var ps=(q.eq||q.jug)?[q.eq||q.jug]:[q.loc,q.vis],out=[];
+    for(var i=0;i<ps.length;i++){
+      if(!ps[i])return null;
+      var x=kn(ps[i][key]);
+      if(!x||x[1]<5)return null;
+      out.push(x[0]/x[1]);
+    }
+    return Math.min.apply(null,out);
+  }
   function listar(){
     var d=ER.data&&ER.data.sel||{},now=Date.now(),f=ER.f;
     return Object.keys(d).map(function(k){var r=d[k];r._k=k;return r}).filter(function(r){
@@ -44,8 +58,11 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act"}};
       if(f.mk&&r.mercado!==f.mk)return false;
       if(f.casa&&!((r.primera.casas||[]).concat(r.ultima.casas||[])).some(function(b){return b===f.casa}))return false;
       if(f.solo==="act"&&!(r.activo&&T(r.inicio)>now))return false;
+      if(f.pct){var t=tasaR(r,f.vent);if(t==null||t*100<Number(f.pct)-0.001)return false}
       return true;
-    }).sort(function(a,b){var ga=a.ultima.c>3?1:0,gb=b.ultima.c>3?1:0;return ga!==gb?ga-gb:b.ultima.gap-a.ultima.gap});
+    }).sort(function(a,b){
+      if(f.ord==="rec"||f.ord==="ant"){var d=(T(b.primera.t)||0)-(T(a.primera.t)||0);return f.ord==="rec"?d:-d}
+      var ga=a.ultima.c>3?1:0,gb=b.ultima.c>3?1:0;return ga!==gb?ga-gb:b.ultima.gap-a.ultima.gap});
   }
   function card(r){
     var now=Date.now(),ini=T(r.inicio),p=r.primera,u=r.ultima;
@@ -91,7 +108,7 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act"}};
     Object.keys(all).forEach(function(k){var r=all[k];mks[r.mercado]=1;(r.ultima.casas||[]).forEach(function(b){casas[b]=1})});
     var omk=[["","Todos"]].concat(Object.keys(mks).sort().map(function(m){return [m,MK[m]||m]}));
     var oca=[["","Todas"]].concat(Object.keys(casas).sort().map(function(b){return [b,b]}));
-    h+='<div class="erf">'+sel("solo","Mostrar",[["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.f.solo)+sel("mk","Mercado",omk,ER.f.mk)+sel("casa","Casa con la mejor cuota",oca,ER.f.casa)+'</div>';
+    h+='<div class="erf">'+sel("solo","Mostrar",[["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.f.solo)+sel("mk","Mercado",omk,ER.f.mk)+sel("casa","Casa con la mejor cuota",oca,ER.f.casa)+sel("ord","Ordenar por",[["gap","Mayor diferencia"],["rec","Más recientes publicados"],["ant","Más antiguos publicados"]],ER.f.ord)+sel("pct","Acierto mínimo",[["","Sin filtro"],["30","30 % o más"],["40","40 % o más"],["50","50 % o más"],["60","60 % o más"],["70","70 % o más"],["80","80 % o más"]],ER.f.pct)+(ER.f.pct?sel("vent","Acierto en los últimos",[["10","10 partidos"],["20","20 partidos"]],ER.f.vent):'')+'</div>'+(ER.f.pct?'<p class="upd">Acierto = veces que se cumplió el suceso en esos partidos. En los totales del partido deben cumplirlo los dos equipos. Los errores sin datos de referencia (los registrados antes de esta actualización o con menos de 5 partidos) no salen con este filtro.</p>':'');
     var l=listar();
     h+='<div class="upd">'+l.length+' resultado'+(l.length===1?'':'s')+'</div>';
     return h+(l.length?l.slice(0,80).map(card).join(""):'<div class="empty">Ahora mismo no hay ninguno con estos filtros.</div>');

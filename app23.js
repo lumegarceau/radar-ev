@@ -20,11 +20,19 @@
     "sportium":"Dobla tu depósito hasta 200 €.",
     "marcaapuestas":"Hasta 200 € en apuestas gratis.",
     "daznbet":"Recibe el 100 % de tu primera apuesta, hasta 200 €, ganes o pierdas.",
-    "versus":"Sin bono de bienvenida.",
+    "versus":"Bono de bienvenida del 100 % en tus tres primeros depósitos, hasta 200 €.",
     "888sports":"10 € gratis al registrarte y tu primera apuesta asegurada hasta 100 €.",
     "bet365":"Hasta 200 € en créditos de apuestas.",
     "bwin":"Una apuesta gratuita de hasta 100 €.",
-    "1xbet":"Hasta 300 € en freebets con tus tres primeros depósitos."
+    "1xbet":"Hasta 300 € en freebets con tus tres primeros depósitos.",
+    "kirolbet":"Sin bono de bienvenida.",
+    "betsson":"20 € gratis por verificar la cuenta.",
+    "casinomarbella":"Duplica tu depósito hasta 100 €.",
+    "casumo":"Reembolso del 100 % de tu primera apuesta, hasta 50 €.",
+    "goldenbull":"10 € gratis al registrarte.",
+    "interwetten":"Reembolso de 50 € en freebets en tu primera apuesta.",
+    "luckia":"Bono de bienvenida del 100 % en tus tres primeros depósitos, hasta 200 €.",
+    "retabet":"Duplica tu primer depósito, hasta 200 €."
   };
   var AVISO_NO='<div class="r18"><span class="b18">+18</span><span>Solo para mayores de 18 años. Juega con responsabilidad: apostar puede crear adicción. Si el juego te causa problemas, pide ayuda en <a href="https://www.jugarbien.es" target="_blank" rel="noopener">jugarbien.es</a>.</span></div>';
   bookies=function(){
