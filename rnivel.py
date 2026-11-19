@@ -29,7 +29,7 @@ CODIGO = {
     "Estonia": "EST", "Georgia": "GEO", "Armenia": "ARM",
     "Belarus": "BLR", "Bosnia-and-Herzegovina": "BIH", "Albania": "ALB",
     "North-Macedonia": "MKD", "Montenegro": "MNE", "Kosovo": "KOS",
-    "Luxembourg": "LUX", "Malta": "MLT", "Moldova": "MDA",
+    "Luxembourg": "LUX", "Malta": "MLT", "Moldova": "MDA", "Brazil": "BRA",
 }
 # Nombre en API-Football -> nombre en la lista de Elo (ambos sin tildes)
 ALIAS = {

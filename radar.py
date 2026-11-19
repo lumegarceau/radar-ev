@@ -26,6 +26,11 @@ LIGAS = {
     94: ("Portugal", "Primeira Liga"),
     253: ("Estados Unidos", "MLS"),
     5: ("Europa", "Nations League"),
+    71: ("Brasil", "Brasileirão"),
+    144: ("Bélgica", "Jupiler Pro League"),
+    79: ("Alemania", "2. Bundesliga"),
+    203: ("Turquía", "Süper Lig"),
+    119: ("Dinamarca", "Superliga"),
 }
 SRIDS = set([
     "sr:tournament:8", "sr:tournament:54", "sr:tournament:17",
@@ -33,6 +38,8 @@ SRIDS = set([
     "sr:tournament:35", "sr:tournament:37", "sr:tournament:238",
     "sr:tournament:7", "sr:tournament:679", "sr:tournament:23755",
     "sr:tournament:242",
+    "sr:tournament:325", "sr:tournament:38", "sr:tournament:44",
+    "sr:tournament:52", "sr:tournament:39",
 ])
 NOM = {
     "corners": "córners",
