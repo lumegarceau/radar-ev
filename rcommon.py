@@ -9,6 +9,7 @@ KEY = os.environ.get("API_FOOTBALL_KEY", "")
 BASE = "https://v3.football.api-sports.io"
 PAUSA = float(os.environ.get("PAUSA", "0.15"))
 LIMITE = int(os.environ.get("LIMITE", "6800"))
+RESERVA = int(os.environ.get("RESERVA", "200"))  # peticiones del dia que se dejan sin gastar
 TIEMPO = int(os.environ.get("TIEMPO", "2700"))
 t0 = time.time()
 gasto = [0]
@@ -31,7 +32,9 @@ def api(ruta, **p):
         time.sleep(PAUSA)
         gasto[0] += 1
         try:
-            j = json.load(urllib.request.urlopen(req, timeout=30))
+            resp = urllib.request.urlopen(req, timeout=30)
+            quedan = resp.headers.get("x-ratelimit-requests-remaining")
+            j = json.load(resp)
         except Exception as e:
             print("fallo conexion", ruta, str(e)[:60])
             time.sleep(5)
@@ -46,5 +49,8 @@ def api(ruta, **p):
                 time.sleep(30)
                 continue
             return None
+        if quedan and str(quedan).isdigit() and int(quedan) < RESERVA:
+            print("API-Football: quedan", quedan, "peticiones hoy; se para para no agotarlas")
+            gasto[0] = LIMITE
         return j["response"]
     return None

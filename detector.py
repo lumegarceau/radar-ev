@@ -107,6 +107,13 @@ def guardar(tipos):
                            "gap": snap["gap"], "b": snap["casas"]})
         r["serie"] = r["serie"][-MAX_SERIE:]
     cerrados = 0
+    try:
+        from rcommon import agotado as _agotado
+        sin_api = len(PASADA) == 0 and _agotado()
+    except Exception:
+        sin_api = False
+    if sin_api:
+        print("errores de cuota: la API no ha dado datos (limite diario); no se cierran por ausencia")
     for clave, r in sel.items():
         if not r.get("activo"):
             continue
@@ -118,7 +125,7 @@ def guardar(tipos):
             r["cerrado"] = ini
             cerrados += 1
             continue
-        if r.get("tipo") in tipos:
+        if r.get("tipo") in tipos and not sin_api:
             r["aus"] = r.get("aus", 0) + 1
             if r["aus"] >= 2:
                 r["activo"] = False
