@@ -23,9 +23,10 @@ PESADO = ("image", "media", "font")
 HORAS = 60
 MAX_EVENTOS = 80
 MIN_MERCADOS = 120
-MAX_LIGAS = 70
+MAX_LIGAS = 130
 LIMITE_S = 20 * 60
-PRIO = re.compile(r"premier|laliga|la liga|segunda|serie a|bundesliga|ligue 1|champions|europa|eredivisie|primeira|conference|copa|championship|liga", re.I)
+PRIO = re.compile(r"jupiler|pro league|s[uü]per ?lig|2\. ?bundesliga|superliga|brasileir|serie [ab]|eerste|liga portugal|primeira|segunda|laliga|ligue [12]|bundesliga|eredivisie|championship|premier|champions|europa|conference|copa|liga", re.I)
+PRIO0 = re.compile(r"jupiler|pro league|s[uü]per ?lig|2\. ?bundesliga|superliga|brasileir|serie a", re.I)
 TORNEOS = {}
 STAT_J = {"Remates a Puerta del Jugador": "sot", "Remates Totales del Jugador": "shots",
           "Faltas del Jugador": "fouls", "Entradas del Jugador": "tk"}
@@ -33,6 +34,7 @@ GOLES = {"Jugador- Anotará en cualquier momento": 1, "Anota 2 o más": 2}
 T0 = time.time()
 BYTES = [0]
 CUENTA = {}
+DIAG = [0]
 
 
 def proxy():
@@ -122,7 +124,7 @@ def parsear(det, c1, c2):
                         mt = re.match(r"^(.+?) - Total de Córners$", tn)
                         if mt:
                             stat = "corners"
-            if mt and re.search(r"mitad|half|tiempo", mt.group(1), re.I):
+            if mt and (re.search(r"mitad|half|tiempo", mt.group(1), re.I) or re.search(r"1st|2nd|half|1h|2h", str(m.get("name") or ""), re.I)):
                 cuenta("equipo_mitad_ignorado")
                 continue
             if mt:
@@ -132,6 +134,10 @@ def parsear(det, c1, c2):
                     continue
         if stat is None:
             continue
+        if stat == "corners" and DIAG[0] < 8:
+            DIAG[0] += 1
+            print("   DIAG corners:", c1, "-", c2, "| tn:", tn, "| name:", m.get("name"), "| specifiers:", m.get("specifiers"),
+                  "| outs:", [(o.get("name"), o.get("specifier"), o.get("odds")) for o in outs[:6]])
         for o in outs:
             try:
                 ln = float(o.get("specifier"))
@@ -227,14 +233,16 @@ def main():
         print("eldorado: eventos de la primera liga:", len(eventos))
         print("eldorado: torneos vistos en la API:", len(TORNEOS), list(TORNEOS.items())[:25])
         extra = []
-        orden = sorted(TORNEOS.items(), key=lambda kv: (0 if PRIO.search(kv[1]) else 1))
+        orden = sorted(TORNEOS.items(), key=lambda kv: (0 if PRIO0.search(kv[1]) else (1 if PRIO.search(kv[1]) else 2)))
         for tid, nm in orden:
             if tid != "19000000008":
                 extra.append("/sports/soccer-1001/%s-%s?tab=matches" % (slug(nm), tid))
         print("eldorado: ligas a recorrer:", min(len(extra), MAX_LIGAS - 1), "de", len(extra))
         t_ligas = time.time()
+        con_datos = []
         for h in extra[:MAX_LIGAS - 1]:
-            if time.time() - t_ligas > 8 * 60:
+            n_ev0 = len(eventos)
+            if time.time() - t_ligas > 10 * 60:
                 print("eldorado: limite de tiempo en ligas")
                 break
             n0 = len(ligas)
@@ -248,6 +256,9 @@ def main():
                     pg.wait_for_timeout(700)
                     break
             recoger(ligas[n0:])
+            if len(eventos) > n_ev0:
+                con_datos.append("%s(+%d)" % (h.split("/")[-1].split("?")[0], len(eventos) - n_ev0))
+        print("eldorado: ligas con partidos:", con_datos)
         print("eldorado: eventos acumulados tras recorrer ligas:", len(eventos))
         lista = []
         for e in eventos.values():
