@@ -24,6 +24,8 @@ LIGAS = [
     "belgium/pro-league",
     "turkey/super-lig",
     "denmark/superligaen",
+    "brazil/brasileiro-serie-a",
+    "germany/2--bundesliga",
 ]
 PEST = ["main-markets", "corners", "goals", "other"]
 JS_TAB = (
