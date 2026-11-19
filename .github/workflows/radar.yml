@@ -35,19 +35,23 @@ jobs:
         run: python radar.py
         env:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
-          LIMITE: "4200"
+          LIMITE: "2500"
+          MAX_REFRESCOS_STATS: "40"
+          MAX_REFRESCOS_JUG: "30"
       - name: Props de jugadores
         run: python props.py
         continue-on-error: true
         env:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
-          LIMITE: "3000"
+          LIMITE: "2000"
+          MAX_REFRESCOS_STATS: "40"
+          MAX_REFRESCOS_JUG: "30"
       - name: Arbitros
         run: python arbitros.py
         continue-on-error: true
         env:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
-          LIMITE: "1500"
+          LIMITE: "800"
       - name: Guardar historial
         run: python guardar.py
         continue-on-error: true
