@@ -191,7 +191,9 @@ def parsear_jugadores(texto, c1, c2):
             j += 1
             if len(S) > 400:
                 break
-        if not S or j >= len(toks):
+        # tabla plegada: lo que sigue al titulo es otro mercado (p.ej.
+        # "Asistencias Totales"), no los jugadores de este
+        if not S or j >= len(toks) or "Totales" in S or i + n + len(S) > fin:
             resumen[tit] = "sin_datos"
             continue
         heads = []
@@ -224,4 +226,21 @@ def parsear_jugadores(texto, c1, c2):
                 if v:
                     out.append((stat, nombres[p], heads[h], v))
         resumen[tit] = "%d jugadores x %d lineas" % (N, K)
-    return out, resumen
+    return limpiar_clones(out), resumen
+
+
+def limpiar_clones(out):
+    """Si dos estadisticas distintas tienen las mismas cuotas jugador a jugador
+    (p.ej. remates = tiros a puerta), es que se ha leido la misma tabla dos
+    veces: se descartan ambas."""
+    d = {}
+    for s, n, l, q in out:
+        d.setdefault(s, {})[(n, l)] = q
+    malas = set()
+    ks = sorted(d)
+    for a in range(len(ks)):
+        for b in range(a + 1, len(ks)):
+            com = set(d[ks[a]]) & set(d[ks[b]])
+            if len(com) >= 8 and sum(1 for k in com if abs(d[ks[a]][k] - d[ks[b]][k]) < 1e-9) >= 0.6 * len(com):
+                malas.update((ks[a], ks[b]))
+    return [x for x in out if x[0] not in malas]

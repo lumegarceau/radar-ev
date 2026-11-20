@@ -200,7 +200,30 @@ def cargar(archivo=ARCHIVO, max_horas=10):
     if time.time() - d.get("ts", 0) > max_horas * 3600:
         print(archivo, "antiguo: no se usa")
         return []
-    return d.get("partidos", [])
+    ps = d.get("partidos", [])
+    for p in ps:
+        if p.get("jugador"):
+            p["jugador"] = _sanear(p["jugador"])
+    return ps
+
+
+def _sanear(jug):
+    """Descarta lecturas corruptas de la tabla de jugadores: nombres con texto
+    de otro mercado y estadisticas que son copia exacta de otra."""
+    jug = [x for x in jug if "Totales" not in str(x[1])]
+    d = {}
+    for s, n, l, q in jug:
+        d.setdefault(s, {})[(n, l)] = q
+    malas = set()
+    ks = sorted(d)
+    for a in range(len(ks)):
+        for b in range(a + 1, len(ks)):
+            com = set(d[ks[a]]) & set(d[ks[b]])
+            if len(com) >= 8 and sum(1 for k in com if abs(d[ks[a]][k] - d[ks[b]][k]) < 1e-9) >= 0.6 * len(com):
+                malas.update((ks[a], ks[b]))
+    if malas:
+        print("  jugadores descartados por tabla duplicada:", sorted(malas))
+    return [x for x in jug if x[0] not in malas]
 
 
 def anadir(cu, w, casa="Betway"):
