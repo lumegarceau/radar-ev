@@ -1,5 +1,5 @@
 // Errores de cuota de TODOS los mercados (subpestaña). No toca la lista de siempre.
-var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap",pct:"",vent:"10",rev:"pend"},fs:"pub",fp:"act",limpio:false,s:{casa:"",cmin:"",cmax:"",emin:"",ord:"gap"},p:{casa:"",cmin:"",cmax:"",emin:"",ord:"pub"}};
+var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap",pct:"",vent:"10",rev:"pend"},fs:"pub",fp:"act",limpio:false,s:{casa:"",cmin:"",cmax:"",emin:"",ord:"gap"},p:{casa:"",cmin:"",cmax:"",emin:"",ord:"pub",ref:"min"}};
 (function(){
   var s=document.createElement("style");
   s.textContent=".erc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}"+
@@ -69,6 +69,17 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
       out.push(x[0]/x[1]);
     }
     return Math.min.apply(null,out);
+  }
+  // referencia suficiente: al menos 10 partidos (L10) y 5 como local/visitante; en totales, los dos equipos
+  function refOk(r){
+    var q=r.hist;if(!q)return false;
+    var ps=(q.eq||q.jug)?[q.eq||q.jug]:[q.loc,q.vis];
+    for(var i=0;i<ps.length;i++){
+      if(!ps[i])return false;
+      var a=kn(ps[i].l10),b=kn(ps[i].cond);
+      if(!a||a[1]<10||!b||b[1]<5)return false;
+    }
+    return true;
   }
   function listar(){
     var d=ER.data&&ER.data.sel||{},now=Date.now(),f=ER.f;
@@ -190,10 +201,10 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
     h+='<p class="upd">Errores de cuota que el radar ha detectado y que se han revisado a mano antes de publicarse. Son los que cuentan en las estadísticas. Un error de cuota no garantiza ganar dinero: las casas pueden limitar la apuesta, anularla o corregir la cuota.</p>';
     var casasP={};
     Object.keys(c.ok).forEach(function(k){var r=d[k];if(r&&r.ultima)(r.ultima.casas||[]).forEach(function(b){casasP[b]=1})});
-    h+='<div class="erf">'+sel("fp","Mostrar",[["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.fp)+'</div>'+formG("p",ER.p,Object.keys(casasP),ORD_P)+'<p class="upd">EV = lo que paga la mejor cuota frente a la segunda (el mercado), sin contar el historial del equipo.</p>';
+    h+='<div class="erf">'+sel("fp","Mostrar",[["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.fp)+'</div>'+selG("p","ref","Partidos de referencia",[["min","Mínimo 10 (y 5 local/visitante)"],["todo","Sin mínimo"]],ER.p.ref)+formG("p",ER.p,Object.keys(casasP),ORD_P)+'<p class="upd">EV = lo que paga la mejor cuota frente a la segunda (el mercado), sin contar el historial del equipo.</p>';
     function evP(r){var u=r.ultima||{};return u.ref>0?u.c/u.ref-1:null}
     l=Object.keys(c.ok).filter(function(k){return d[k]}).map(function(k){var r=d[k];r._k=k;return r}).filter(function(r){
-      return (ER.fp==="todo"||(r.activo&&T(r.inicio)>now))&&pasa(ER.p,r.ultima.casas||[],r.ultima.c,evP(r));
+      return (ER.fp==="todo"||(r.activo&&T(r.inicio)>now))&&(ER.p.ref!=="min"||refOk(r))&&pasa(ER.p,r.ultima.casas||[],r.ultima.c,evP(r));
     });
     if(ER.p.ord==="pub")l.sort(function(a,b){return (c.ok[b._k]||0)-(c.ok[a._k]||0)});
     else ordenar(l,ER.p.ord,function(r){return r.ultima.c},evP,function(r){return T(r.inicio)});
