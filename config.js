@@ -15,3 +15,5 @@ window.addEventListener("DOMContentLoaded",function(){
     return Promise.resolve(null);
   };
 });
+// Correos con permiso de administrador (marcar errores de cuota como publicados o descartados)
+window.ADMIN_EMAILS=["superaumentos@gmail.com"];
