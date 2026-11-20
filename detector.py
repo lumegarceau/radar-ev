@@ -64,6 +64,19 @@ def ahora():
     return datetime.now(MAD).isoformat(timespec="minutes")
 
 
+def _suficiente(h):
+    """Al menos 10 partidos de referencia (el L10 solo cuenta partidos de titular)."""
+    try:
+        ps = [h.get("eq") or h.get("jug")] if (h.get("eq") or h.get("jug")) else [h.get("loc"), h.get("vis")]
+        for p in ps:
+            a, b = str((p or {}).get("l10", "")).split("/")
+            if int(b) < 10:
+                return False
+        return True
+    except Exception:
+        return False
+
+
 def registrar(clave, ctx, q):
     """clave unica de la linea; ctx = datos del partido y del suceso."""
     try:
@@ -72,6 +85,9 @@ def registrar(clave, ctx, q):
         pass
     e = evaluar(q)
     if not e:
+        return False
+    h = (ctx or {}).get("hist")
+    if h and not _suficiente(h):
         return False
     snap = dict(e)
     snap["t"] = ahora()

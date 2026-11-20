@@ -7,6 +7,7 @@
   C.curCargar=function(){C.cur.cargado=true;return Promise.resolve()};
   C.curSet=function(){return Promise.reject()};
   C.curBorrarNo=function(){return Promise.resolve()};
+  C.curVaciar=function(){return Promise.reject()};
   var cfg=window.FB_CONFIG;
   if(!cfg||!cfg.apiKey)return;
   C.ok=true;
@@ -75,6 +76,13 @@
     var F=firebase.firestore.FieldValue,o={no:{}};
     keys.forEach(function(k){o.no[k]=F.delete();delete C.cur.no[k]});
     return DOC().set(o,{merge:true}).catch(function(){});
+  };
+  // quita de publicados y de descartados las claves indicadas (para volver a revisarlas)
+  C.curVaciar=function(keys){
+    if(!C.admin||!db)return Promise.reject(new Error("no admin"));
+    var F=firebase.firestore.FieldValue,o={ok:{},no:{}};
+    keys.forEach(function(k){o.ok[k]=F.delete();o.no[k]=F.delete()});
+    return DOC().set(o,{merge:true}).then(function(){keys.forEach(function(k){delete C.cur.ok[k];delete C.cur.no[k]})});
   };
   C.guardar=function(f){
     if(!C.user||!db)return;

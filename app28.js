@@ -1,5 +1,5 @@
 // Errores de cuota de TODOS los mercados (subpestaña). No toca la lista de siempre.
-var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap",pct:"",vent:"10",rev:"pend"},fs:"pub",fp:"act",limpio:false};
+var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap",pct:"",vent:"10",rev:"pend"},fs:"pub",fp:"fut",limpio:false};
 (function(){
   var s=document.createElement("style");
   s.textContent=".erc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}"+
@@ -51,9 +51,10 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
     if(!adm())return '';
     var k=encodeURIComponent(r._k).replace(/'/g,"%27"),c=cur();
     function b(t,e,cl){return '<button type="button" class="'+cl+'" onclick="erM(decodeURIComponent(\''+k+'\'),\''+e+'\')">'+t+'</button>'}
-    if(modo==="todos")return '<div class="erb">'+(c.ok[r._k]?'<span class="erp">Publicado</span>':c.no[r._k]?'<span class="erp no">Descartado</span>':'')+b('✓ Es error','ok','y')+b('✗ Descartar','no','n')+'</div>';
-    if(modo==="pub")return '<div class="erb">'+b('Quitar y descartar','no','n')+'</div>';
-    if(modo==="desc")return '<div class="erb">'+b('✓ Publicar','ok','y')+'</div>';
+    function hh(t){var d=new Date(t);return isNaN(d)?'':' '+('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
+    if(modo==="todos")return '<div class="erb">'+(c.ok[r._k]?'<span class="erp">Publicado'+hh(c.ok[r._k])+'</span>':c.no[r._k]?'<span class="erp no">Descartado'+hh(c.no[r._k])+'</span>':'')+b('✓ Es error','ok','y')+b('✗ Descartar','no','n')+'</div>';
+    if(modo==="pub")return '<div class="erb"><span class="erp">Publicado'+hh(c.ok[r._k])+'</span>'+b('Quitar y descartar','no','n')+'</div>';
+    if(modo==="desc")return '<div class="erb"><span class="erp no">Descartado'+hh(c.no[r._k])+'</span>'+b('✓ Publicar','ok','y')+'</div>';
     return '';
   }
   function kn(s){var m=/^(\d+)\/(\d+)$/.exec(s||"");return m?[+m[1],+m[2]]:null}
@@ -70,10 +71,22 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
     }
     return Math.min.apply(null,out);
   }
+  // al menos 10 partidos como titular de referencia (el L10 solo cuenta partidos de titular con 45+ min)
+  function titOk(r){
+    var q=r.hist;if(!q)return false;
+    var ps=(q.eq||q.jug)?[q.eq||q.jug]:[q.loc,q.vis];
+    for(var i=0;i<ps.length;i++){
+      if(!ps[i])return false;
+      var a=kn(ps[i].l10);
+      if(!a||a[1]<10)return false;
+    }
+    return true;
+  }
   function listar(){
     var d=ER.data&&ER.data.sel||{},now=Date.now(),f=ER.f;
     return Object.keys(d).map(function(k){var r=d[k];r._k=k;return r}).filter(function(r){
       if(!cred(r,f.solo==="act"))return false;
+      if(!titOk(r))return false;
       if(f.mk&&r.mercado!==f.mk)return false;
       if(f.casa&&!((r.primera.casas||[]).concat(r.ultima.casas||[])).some(function(b){return b===f.casa}))return false;
       if(f.solo==="act"&&!(r.activo&&T(r.inicio)>now))return false;
@@ -114,6 +127,9 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
   function sel(id,t,ops,v){
     return '<div><label>'+t+'</label><select onchange="erF(\''+id+'\',this.value)">'+ops.map(function(o){return '<option value="'+esc(o[0])+'"'+(String(o[0])===String(v)?' selected':'')+'>'+esc(o[1])+'</option>'}).join("")+'</select></div>';
   }
+  function selG(g,id,t,ops,v){
+    return '<div><label>'+t+'</label><select onchange="erG(\''+g+'\',\''+id+'\',this.value)">'+ops.map(function(o){return '<option value="'+esc(o[0])+'"'+(String(o[0])===String(v)?' selected':'')+'>'+esc(o[1])+'</option>'}).join("")+'</select></div>';
+  }
   function todos(){
     var h='<h2>Errores de cuota en todos los mercados</h2>';
     if(!ER.data){cargarER();return h+'<div class="empty">Cargando...</div>'}
@@ -142,30 +158,52 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
     var nd=Object.keys(c.no).filter(function(k){return d[k]&&T(d[k].inicio)>now});
     if(ER.fs==="desc"&&!adm())ER.fs="pub";
     if(adm())h+='<div class="chips"><button class="'+(ER.fs==="pub"?"on":"")+'" onclick="erSS(\'pub\')">Publicados</button><button class="'+(ER.fs==="desc"?"on":"")+'" onclick="erSS(\'desc\')">Descartes ('+nd.length+')</button></div>';
+    if(adm())h+='<div class="erf"><div><label>Reiniciar revisión</label><button type="button" class="n" style="display:block;width:100%;margin-top:3px;padding:9px;border-radius:8px;border:1px solid #e4b4b0;background:#fff;color:#b42318;font:inherit;font-weight:700" onclick="erReset()">Quitar publicados y descartados de partidos sin empezar</button></div></div>';
     var l;
     if(ER.fs==="desc"){
       h+='<p class="upd">Solo lo ves tú. Los descartados se borran solos cuando empieza el partido.</p>';
+      h+='<div class="erf">'+selG("d","vent","Devolver a Publicados los descartados en",[["","Elige..."],["15","los últimos 15 minutos"],["60","la última hora"],["180","las últimas 3 horas"],["360","las últimas 6 horas"],["1440","las últimas 24 horas"]],"")+'</div>';
       l=nd.map(function(k){var r=d[k];r._k=k;return r}).sort(function(a,b){return (c.no[b._k]||0)-(c.no[a._k]||0)});
       h+='<div class="upd">'+l.length+' descartado'+(l.length===1?'':'s')+'</div>';
       return h+(l.length?l.map(function(r){return card(r,"desc")}).join(""):'<div class="empty">No hay descartes pendientes.</div>');
     }
     h+='<p class="upd">Errores de cuota que el radar ha detectado y que se han revisado a mano antes de publicarse. Son los que cuentan en las estadísticas. Un error de cuota no garantiza ganar dinero: las casas pueden limitar la apuesta, anularla o corregir la cuota.</p>';
-    h+='<div class="erf">'+sel("fp","Mostrar",[["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.fp)+'</div>';
+    h+='<div class="erf">'+sel("fp","Mostrar",[["fut","Partido sin empezar (también corregidos)"],["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.fp)+'</div>';
     l=Object.keys(c.ok).filter(function(k){return d[k]}).map(function(k){var r=d[k];r._k=k;return r}).filter(function(r){
-      return ER.fp==="todo"||(r.activo&&T(r.inicio)>now);
+      return ER.fp==="todo"||(ER.fp==="fut"?T(r.inicio)>now:(r.activo&&T(r.inicio)>now));
     }).sort(function(a,b){return (c.ok[b._k]||0)-(c.ok[a._k]||0)});
     h+='<div class="upd">'+l.length+' resultado'+(l.length===1?'':'s')+'</div>';
     return h+(l.length?l.slice(0,80).map(function(r){return card(r,"pub")}).join(""):'<div class="empty">Ahora mismo no hay ninguno publicado.</div>');
   }
   window.erM=function(k,e){
     if(!adm())return;
+    if(e==="no"&&!confirm("¿Descartar este error?"))return;
     CUENTA.curSet(k,e).then(function(){draw()}).catch(function(){alert("No se ha podido guardar. Comprueba que has entrado con tu cuenta y que las reglas de Firebase están puestas.");draw()});
     draw();
   };
   window.erSS=function(s){ER.fs=s;draw()};
+  window.erReset=function(){
+    if(!adm())return;
+    var c=cur(),d=(ER.data&&ER.data.sel)||{},now=Date.now();
+    var ks=Object.keys(c.ok).concat(Object.keys(c.no)).filter(function(k,i,a){return a.indexOf(k)===i&&(!d[k]||T(d[k].inicio)>now)});
+    if(!ks.length){alert("No hay nada que reiniciar.");return}
+    if(!confirm("Se van a quitar "+ks.length+" errores de Publicados y Descartes (solo de partidos sin empezar) para que vuelvas a revisarlos desde cero. Los de partidos ya jugados no se tocan. ¿Seguro?"))return;
+    CUENTA.curVaciar(ks).then(function(){alert("Hecho. Vuelven a salir en Todos los mercados, pendientes de revisar.");draw()}).catch(function(){alert("No se ha podido guardar. Inténtalo otra vez.");draw()});
+  };
   window.curCambio=function(){if(S.tab==="errores"||S.tab==="resultados")draw()};
   window.erS=function(s){ER.sub=s;if(s==="todos"||s==="fuera")ER.data=null;if(s==="fuera"&&window.CUENTA)CUENTA.curCargar(true);draw()};
   window.erF=function(k,v){ER.f[k]=v;draw()};
+  window.erG=function(g,k,v){
+    if(g!=="d"){ER[g][k]=v;draw();return}
+    if(!v||!adm())return;
+    var c=cur(),d=(ER.data&&ER.data.sel)||{},lim=Date.now()-Number(v)*60000,now=Date.now();
+    var ks=Object.keys(c.no).filter(function(k){return d[k]&&T(d[k].inicio)>now&&c.no[k]>=lim});
+    if(!ks.length){alert("No hay descartados en ese periodo.");draw();return}
+    if(!confirm("Se van a devolver "+ks.length+" errores a Publicados. ¿Seguro?")){draw();return}
+    var p=Promise.resolve();
+    ks.forEach(function(k){p=p.then(function(){return CUENTA.curSet(k,"ok")})});
+    p.then(function(){alert("Hecho: "+ks.length+" errores devueltos a Publicados.");draw()}).catch(function(){alert("No se ha podido guardar todo. Vuelve a intentarlo.");draw()});
+  };
   var e0=errores;
   errores=function(){
     if(ER.sub==="todos"&&!adm())ER.sub="sel";
