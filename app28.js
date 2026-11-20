@@ -1,5 +1,5 @@
 // Errores de cuota de TODOS los mercados (subpestaña). No toca la lista de siempre.
-var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap",pct:"",vent:"10",rev:"pend"},fs:"pub",fp:"act",limpio:false,s:{casa:"",cmin:"",cmax:"",emin:"",ord:"gap"},p:{casa:"",cmin:"",cmax:"",emin:"",ord:"pub",ref:"min"}};
+var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap",pct:"",vent:"10",rev:"pend"},fs:"pub",fp:"act",limpio:false};
 (function(){
   var s=document.createElement("style");
   s.textContent=".erc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:#fff}"+
@@ -70,17 +70,6 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
     }
     return Math.min.apply(null,out);
   }
-  // referencia suficiente: al menos 10 partidos (L10) y 5 como local/visitante; en totales, los dos equipos
-  function refOk(r){
-    var q=r.hist;if(!q)return false;
-    var ps=(q.eq||q.jug)?[q.eq||q.jug]:[q.loc,q.vis];
-    for(var i=0;i<ps.length;i++){
-      if(!ps[i])return false;
-      var a=kn(ps[i].l10),b=kn(ps[i].cond);
-      if(!a||a[1]<10||!b||b[1]<5)return false;
-    }
-    return true;
-  }
   function listar(){
     var d=ER.data&&ER.data.sel||{},now=Date.now(),f=ER.f;
     return Object.keys(d).map(function(k){var r=d[k];r._k=k;return r}).filter(function(r){
@@ -125,44 +114,6 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
   function sel(id,t,ops,v){
     return '<div><label>'+t+'</label><select onchange="erF(\''+id+'\',this.value)">'+ops.map(function(o){return '<option value="'+esc(o[0])+'"'+(String(o[0])===String(v)?' selected':'')+'>'+esc(o[1])+'</option>'}).join("")+'</select></div>';
   }
-  function selG(g,id,t,ops,v){
-    return '<div><label>'+t+'</label><select onchange="erG(\''+g+'\',\''+id+'\',this.value)">'+ops.map(function(o){return '<option value="'+esc(o[0])+'"'+(String(o[0])===String(v)?' selected':'')+'>'+esc(o[1])+'</option>'}).join("")+'</select></div>';
-  }
-  function numG(g,id,t,v){
-    return '<div><label>'+t+'</label><input type="number" inputmode="decimal" step="0.01" value="'+esc(v)+'" onchange="erG(\''+g+'\',\''+id+'\',this.value)" style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit;color:var(--tx);background:#fff"></div>';
-  }
-  function num(x){x=String(x==null?"":x).replace(",",".").trim();if(x==="")return null;var n=Number(x);return isNaN(n)?null:n}
-  // filtros comunes: casa con la mejor cuota, cuota min/max, EV minimo (%)
-  function pasa(f,casa,cuota,ev){
-    if(f.casa&&casa.indexOf(f.casa)<0)return false;
-    var a=num(f.cmin),b=num(f.cmax),e=num(f.emin);
-    if(a!=null&&cuota<a-1e-9)return false;
-    if(b!=null&&cuota>b+1e-9)return false;
-    if(e!=null&&(ev==null||ev*100<e-1e-9))return false;
-    return true;
-  }
-  function formG(g,f,casas,ords){
-    var oc=[["","Todas"]].concat(casas.sort().map(function(b){return [b,b]}));
-    return '<div class="erf">'+selG(g,"casa","Casa con la mejor cuota",oc,f.casa)+selG(g,"ord","Ordenar por",ords,f.ord)+numG(g,"cmin","Cuota mínima",f.cmin)+numG(g,"cmax","Cuota máxima",f.cmax)+numG(g,"emin","EV mínimo (%)",f.emin)+'</div>';
-  }
-  function ordenar(l,ord,fc,fe,fi){
-    var k={ev:function(x){return -(fe(x)==null?-1e9:fe(x))},cu:function(x){return -fc(x)},cd:function(x){return fc(x)},hi:function(x){return fi(x)||1e18},hl:function(x){return -(fi(x)||0)}}[ord];
-    if(k)l.sort(function(a,b){return k(a)-k(b)});
-    return l;
-  }
-  var ORD_S=[["gap","Mayor diferencia"],["ev","EV (mayor)"],["cu","Cuota (mayor)"],["cd","Cuota (menor)"],["hi","Hora de inicio (más próxima)"],["hl","Hora de inicio (más lejana)"]];
-  var ORD_P=[["pub","Más recientes publicados"],["ev","EV (mayor)"],["cu","Cuota (mayor)"],["cd","Cuota (menor)"],["hi","Hora de inicio (más próxima)"],["hl","Hora de inicio (más lejana)"]];
-  function selec(){
-    var f=ER.s,h='<h2>Posibles errores de cuota</h2><p class="upd">Selecciones donde la mejor cuota supera en más de un 25 % a la segunda. Puede que una casa haya calculado mal la probabilidad. El EV es el del modelo con la mejor cuota.</p>';
-    var base=S.data.filter(function(c){return c.gap>0.25&&!c.empez});
-    var casas={};base.forEach(function(c){casas[c.best.b]=1});
-    h+=formG("s",f,Object.keys(casas),ORD_S);
-    var l=base.filter(function(c){return pasa(f,[c.best.b],c.best.c,c.ev)});
-    if(f.ord==="gap")l.sort(function(a,b){return b.gap-a.gap});
-    else ordenar(l,f.ord,function(c){return c.best.c},function(c){return c.ev},function(c){return c.fin});
-    h+='<div class="upd">'+l.length+' resultado'+(l.length===1?'':'s')+'</div>';
-    return h+(l.length?l.map(window.card).join(""):'<div class="empty">Ahora mismo no hay ninguno con estos filtros.</div>');
-  }
   function todos(){
     var h='<h2>Errores de cuota en todos los mercados</h2>';
     if(!ER.data){cargarER();return h+'<div class="empty">Cargando...</div>'}
@@ -199,15 +150,10 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
       return h+(l.length?l.map(function(r){return card(r,"desc")}).join(""):'<div class="empty">No hay descartes pendientes.</div>');
     }
     h+='<p class="upd">Errores de cuota que el radar ha detectado y que se han revisado a mano antes de publicarse. Son los que cuentan en las estadísticas. Un error de cuota no garantiza ganar dinero: las casas pueden limitar la apuesta, anularla o corregir la cuota.</p>';
-    var casasP={};
-    Object.keys(c.ok).forEach(function(k){var r=d[k];if(r&&r.ultima)(r.ultima.casas||[]).forEach(function(b){casasP[b]=1})});
-    h+='<div class="erf">'+sel("fp","Mostrar",[["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.fp)+'</div>'+selG("p","ref","Partidos de referencia",[["min","Mínimo 10 (y 5 local/visitante)"],["todo","Sin mínimo"]],ER.p.ref)+formG("p",ER.p,Object.keys(casasP),ORD_P)+'<p class="upd">EV = lo que paga la mejor cuota frente a la segunda (el mercado), sin contar el historial del equipo.</p>';
-    function evP(r){var u=r.ultima||{};return u.ref>0?u.c/u.ref-1:null}
+    h+='<div class="erf">'+sel("fp","Mostrar",[["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.fp)+'</div>';
     l=Object.keys(c.ok).filter(function(k){return d[k]}).map(function(k){var r=d[k];r._k=k;return r}).filter(function(r){
-      return (ER.fp==="todo"||(r.activo&&T(r.inicio)>now))&&(ER.p.ref!=="min"||refOk(r))&&pasa(ER.p,r.ultima.casas||[],r.ultima.c,evP(r));
-    });
-    if(ER.p.ord==="pub")l.sort(function(a,b){return (c.ok[b._k]||0)-(c.ok[a._k]||0)});
-    else ordenar(l,ER.p.ord,function(r){return r.ultima.c},evP,function(r){return T(r.inicio)});
+      return ER.fp==="todo"||(r.activo&&T(r.inicio)>now);
+    }).sort(function(a,b){return (c.ok[b._k]||0)-(c.ok[a._k]||0)});
     h+='<div class="upd">'+l.length+' resultado'+(l.length===1?'':'s')+'</div>';
     return h+(l.length?l.slice(0,80).map(function(r){return card(r,"pub")}).join(""):'<div class="empty">Ahora mismo no hay ninguno publicado.</div>');
   }
@@ -220,11 +166,10 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
   window.curCambio=function(){if(S.tab==="errores"||S.tab==="resultados")draw()};
   window.erS=function(s){ER.sub=s;if(s==="todos"||s==="fuera")ER.data=null;if(s==="fuera"&&window.CUENTA)CUENTA.curCargar(true);draw()};
   window.erF=function(k,v){ER.f[k]=v;draw()};
-  window.erG=function(g,k,v){ER[g][k]=v;draw()};
   var e0=errores;
   errores=function(){
     if(ER.sub==="todos"&&!adm())ER.sub="sel";
     var h='<div class="chips"><button class="'+(ER.sub==="sel"?"on":"")+'" onclick="erS(\'sel\')">Selecciones</button>'+(adm()?'<button class="'+(ER.sub==="todos"?"on":"")+'" onclick="erS(\'todos\')">Todos los mercados</button>':'')+'<button class="'+(ER.sub==="fuera"?"on":"")+'" onclick="erS(\'fuera\')">Errores fuera radar</button></div>';
-    return h+(ER.sub==="todos"?todos():ER.sub==="fuera"?fuera():selec());
+    return h+(ER.sub==="todos"?todos():ER.sub==="fuera"?fuera():e0());
   };
 })();
