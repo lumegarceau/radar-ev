@@ -20,6 +20,7 @@ GRUPOS = [
     {"betfair", "pokerstars"},
 ]
 PASADA = {}
+CIERRE = {}
 
 
 def grupo(nombre):
@@ -65,6 +66,10 @@ def ahora():
 
 def registrar(clave, ctx, q):
     """clave unica de la linea; ctx = datos del partido y del suceso."""
+    try:
+        CIERRE[clave] = (ahora(), {b: float(c) for b, c in (q or {}).items()})
+    except Exception:
+        pass
     e = evaluar(q)
     if not e:
         return False
@@ -131,9 +136,28 @@ def guardar(tipos):
                 r["activo"] = False
                 r["cerrado"] = t
                 cerrados += 1
+    # cuota de cierre (para el CLV): ultima cuota vista antes del partido, aunque
+    # la casa ya haya corregido el error. No toca primera / max / ultima.
+    try:
+        for clave, (t0, q0) in CIERRE.items():
+            r = sel.get(clave)
+            if not r or r.get("estado") != "pendiente" or not q0:
+                continue
+            ini = str(r.get("inicio") or "")
+            if ini and ini <= t:
+                continue
+            gs = {grupo(b) for b in ((r.get("primera") or {}).get("casas") or [])}
+            otras = [c for b, c in q0.items() if grupo(b) not in gs]
+            r["cierre"] = {"t": t0, "c": max(q0.values()),
+                           "ref": max(otras) if otras else None,
+                           "cuotas": [{"b": b, "c": c} for b, c in
+                                      sorted(q0.items(), key=lambda kv: -kv[1])[:8]]}
+    except Exception as ex:
+        print("cuota de cierre: fallo controlado", repr(ex)[:100])
     d = {"v": 1, "actualizado": t, "sel": sel}
     json.dump(d, open(ARCH, "w", encoding="utf-8"), ensure_ascii=False)
     print("errores de cuota (todos los mercados): vistos", len(PASADA),
           "| nuevos", nuevos, "| cerrados", cerrados,
           "| en registro", len(sel))
     PASADA.clear()
+    CIERRE.clear()
