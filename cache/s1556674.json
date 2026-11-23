@@ -1,1 +1,1 @@
-{"256": {"sot": 1, "shots": 8, "fouls": 3, "corners": 2, "yc": 1, "rc": 0, "cards": 1}, "247": {"sot": 15, "shots": 25, "fouls": 4, "corners": 9, "yc": 2, "rc": 0, "cards": 2}}
+{"256": {"sot": 1, "shots": 8, "fouls": 3, "corners": 2, "offsides": 2, "yc": 1, "rc": 0, "cards": 1}, "247": {"sot": 15, "shots": 25, "fouls": 4, "corners": 9, "offsides": 1, "yc": 2, "rc": 0, "cards": 2}, "_o": 1}
