@@ -90,9 +90,11 @@ function cbody(c){
   if(c.cond)h+='<span class="chip">L10 '+esc(c.condTxt)+' <b>'+esc(c.cond)+'</b></span>';
   if(c.rival)h+='<span class="chip">L20 permitido por el rival <b>'+esc(c.rival)+'</b></span>';
   if(c.valor!=null&&(c.estado==="ganada"||c.estado==="perdida"))h+='<span class="chip">Dato real <b>'+esc(c.valor)+'</b></span>';
-  h+='</div><div class="met"><div><span>Probabilidad</span><b>'+pc(c.prob)+'</b></div>';
+  h+='</div><div class="met"><div><span>Probabilidad'+(c.arb_pend?'*':'')+'</span><b>'+pc(c.prob)+'</b></div>';
   h+='<div><span>Cuota estimada</span><b>'+f2(c.fair)+'</b></div>';
   h+='<div class="ev '+evc+'"><span>EV</span><b class="'+evc+'">'+evt(c)+'</b></div></div>';
+  if(c.arb_pend)h+='<div class="k2f" style="margin-top:6px">* Árbitro aún sin designar: la probabilidad puede cambiar cuando se conozca.</div>';
+  if(c.arb&&c.arb.f)h+='<div class="k2f" style="margin-top:6px">Probabilidad ajustada por el árbitro (×'+String(c.arb.f).replace('.',',')+' sobre la media de la liga).</div>';
   h+='<div class="act"><a class="best" href="'+esc(c.best.u)+'" target="_blank" rel="sponsored noopener">'+logo(c.best.b)+'<span>'+f2(c.best.c)+'</span></a></div>';
   if(c.q.length>1){
     h+='<details class="mo"><summary>Más cuotas ('+(c.q.length-1)+')</summary>';

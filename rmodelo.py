@@ -138,9 +138,11 @@ def analizar(h, hr, stat, linea, es_local, sentido="over"):
     p = mezcla(hits, n, hc, nc)
     r20 = tasa(b, linea, sentido)
     r10 = tasa(b[-10:], linea, sentido)
-    wr = 0.25
+    # En fueras de juego manda la linea defensiva del rival (si adelanta la defensa,
+    # provoca muchos): su peso es casi el doble que en el resto de mercados.
+    wr = 0.45 if stat == "offsides" else 0.25
     if 5 <= r10 <= 7:
-        wr = 0.15
+        wr = 0.30 if stat == "offsides" else 0.15
     pf = (1 - wr) * p + wr * r20 / nr
     return {
         "n": n,

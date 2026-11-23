@@ -4,10 +4,16 @@ import unicodedata
 from datetime import datetime
 from rcommon import api, gasto
 import rmodelo
+import math
+from rcommon import _logit
 
 TEMPS = (2026, 2025, 2024, 2023)
 RECIENTES = 20
 NUEVAS_MAX = 300
+MIN_ARB = 5          # minimo de partidos del arbitro para ajustar la probabilidad
+MEDIA_LIGA_N = 40    # partidos recientes de la liga para la media de referencia
+BETA = 3.0           # sensibilidad de la probabilidad a la media esperada
+F_MIN, F_MAX = 0.85, 1.15
 UNID = {"fouls": "faltas", "cards": "tarjetas", "drawn": "faltas"}
 OK = ("FT", "AET", "PEN")
 
@@ -130,12 +136,53 @@ def lineas_de(c, ps, nom, liga):
     return out
 
 
+
+def media_liga(lst, nuevas):
+    """Media por partido (suma de ambos equipos) de faltas y tarjetas en la liga."""
+    fin = [x for x in lst if x["fixture"]["status"]["short"] in OK]
+    fin.sort(key=lambda x: x["fixture"]["date"], reverse=True)
+    acc = {"fouls": [], "cards": []}
+    n = 0
+    for x in fin:
+        if n >= MEDIA_LIGA_N:
+            break
+        d = valores(x["fixture"]["id"], x["fixture"]["date"], nuevas)
+        if not d:
+            continue
+        h = d.get(str(x["teams"]["home"]["id"]))
+        a = d.get(str(x["teams"]["away"]["id"]))
+        if not h or not a:
+            continue
+        n += 1
+        for k in acc:
+            if k in h and k in a:
+                acc[k].append(h[k] + a[k])
+    return {k: (sum(v) / len(v) if len(v) >= 15 else None) for k, v in acc.items()}
+
+
+def ajustar_prob(c, ps, lm):
+    """Devuelve (factor, prob_nueva) o None. Ajusta en logit segun lo que pita el arbitro."""
+    k = "cards" if c["mercado"] == "cards" else "fouls"
+    tot = [p["h"][k] + p["a"][k] for p in ps if k in p["h"] and k in p["a"]]
+    if len(tot) < MIN_ARB or not lm.get(k):
+        return None
+    n = len(tot)
+    f = 1 + (sum(tot) / n / lm[k] - 1) * (n / (n + 10.0))
+    f = min(max(f, F_MIN), F_MAX)
+    sg = -1 if (c.get("sentido") or "over") == "under" else 1
+    z = _logit(c["prob"]) + sg * BETA * math.log(f)
+    return round(f, 3), round(1 / (1 + math.exp(-z)), 4)
+
+
 def main():
     fn = "radar-data.json"
     data = json.load(open(fn))
     cs = data["days"][-1]["candidatos"]
     for c in cs:
         c.pop("arb", None)
+        if "prob_sin_arb" in c:
+            c["prob"] = c.pop("prob_sin_arb")
+        c.pop("arb_pend", None)
     obj = [c for c in cs if c.get("mercado") in UNID]
     ligas = sorted(set(c["lid"] for c in obj if c.get("lid") is not None))
     listas = {}
@@ -156,6 +203,8 @@ def main():
         for x in lst:
             ref_de[x["fixture"]["id"]] = x["fixture"].get("referee")
     cache = {}
+    lmedias = {}
+    ajust = 0
     sin_datos = []
     con = 0
     sin_ref = 0
@@ -163,6 +212,7 @@ def main():
         ref = ref_de.get(c["fixture"])
         if not ref:
             sin_ref += 1
+            c["arb_pend"] = True   # la probabilidad puede cambiar cuando se designe arbitro
             continue
         key = (c["lid"], norm(nombre(ref)))
         if key not in cache:
@@ -180,9 +230,17 @@ def main():
         if ln:
             c["arb"] = {"nom": nombre(ref), "n": len(ps), "l": ln}
             con += 1
+            if c["lid"] not in lmedias:
+                lmedias[c["lid"]] = media_liga(listas[c["lid"]], nuevas)
+            r_aj = ajustar_prob(c, ps, lmedias[c["lid"]])
+            if r_aj:
+                c["prob_sin_arb"] = c["prob"]
+                c["prob"] = r_aj[1]
+                c["arb"]["f"] = r_aj[0]
+                ajust += 1
     json.dump(data, open(fn, "w"), ensure_ascii=False)
     print("arbitros: candidatos de faltas/tarjetas:", len(obj),
-          "| con datos de arbitro:", con, "| sin arbitro asignado:", sin_ref)
+          "| con datos de arbitro:", con, "| sin arbitro asignado:", sin_ref, "| prob ajustada:", ajust)
     por = {}
     for c in obj:
         k = c.get("liga")
