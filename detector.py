@@ -77,6 +77,51 @@ def _suficiente(h):
         return False
 
 
+AUTO_EV_MIN = -0.30   # se descarta si lo que paga la cuota esta mas de un 30 % por debajo de la probabilidad historica
+
+
+def _ok_error(x):
+    """Mismo criterio que la pestaña de errores: cuota hasta 3,00 -> +30 %; mas de 3,00 -> +70 %."""
+    if x["c"] > 5 and x["ref"] >= 2.5:
+        return False
+    return x["gap"] >= 0.30 if x["c"] <= 3 else x["gap"] >= 0.70
+
+
+def _tasas(h):
+    """(tasa L10, tasa L20, partidos L10) del historial; en totales el peor de los dos equipos."""
+    ps = [h.get("eq") or h.get("jug")] if (h.get("eq") or h.get("jug")) else [h.get("loc"), h.get("vis")]
+    t10, t20, n10 = [], [], []
+    for p in ps:
+        a, b = str(p["l10"]).split("/")
+        c, e = str(p["l20"]).split("/")
+        t10.append(int(a) / int(b))
+        n10.append(int(b))
+        t20.append(int(c) / int(e))
+    return min(t10), min(t20), min(n10)
+
+
+def _decidir(r, snap, t):
+    """Seleccion automatica de un error de cuota. Se decide una vez, cuando el error
+    cumple por primera vez el criterio, con la cuota y el historial de ese momento."""
+    out = {"t": t, "c": snap["c"]}
+    try:
+        t10, t20, n10 = _tasas(r["hist"])
+    except Exception:
+        out.update({"ok": False, "m": "sin datos de referencia"})
+        return out
+    if n10 < 10:
+        out.update({"ok": False, "m": "menos de 10 partidos de titular"})
+        return out
+    p = (t10 + t20) / 2
+    ev = p * snap["c"] - 1
+    out.update({"p": round(p, 3), "ev": round(ev, 3)})
+    if ev < AUTO_EV_MIN:
+        out.update({"ok": False, "m": "sin valor: paga menos de lo que ocurre"})
+    else:
+        out.update({"ok": True, "m": "valor"})
+    return out
+
+
 def registrar(clave, ctx, q):
     """clave unica de la linea; ctx = datos del partido y del suceso."""
     try:
@@ -127,6 +172,8 @@ def guardar(tipos):
         r["serie"].append({"t": t, "c": snap["c"], "ref": snap["ref"],
                            "gap": snap["gap"], "b": snap["casas"]})
         r["serie"] = r["serie"][-MAX_SERIE:]
+        if "auto" not in r and _ok_error(snap):
+            r["auto"] = _decidir(r, snap, t)
     cerrados = 0
     try:
         from rcommon import agotado as _agotado

@@ -3,7 +3,7 @@ import json
 import time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from rcommon import api, gasto
+from rcommon import api, gasto, calibrar
 import rvalue as rv
 import rwina as rw
 import rbway
@@ -387,7 +387,8 @@ for lid, (pais, liga) in LIGAS.items():
                 "cond": str(r["hc"]) + "/" + str(r["nc"]),
                 "condTxt": "local" if es_local else "visitante",
                 "rival": None,
-                "prob": r["prob"],
+                "prob": calibrar(r["prob"], q),
+                "prob_modelo": r["prob"],
                 "serie": ex["serie"],
                 "serieD": ex["det"],
                 "media": ex["media"],

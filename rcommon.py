@@ -54,3 +54,28 @@ def api(ruta, **p):
             gasto[0] = LIMITE
         return j["response"]
     return None
+
+
+# ---- Regla v1: probabilidad calibrada + anclaje al mercado -------------------
+# El modelo v0 (rachas L20/L10/cond) sobreestimaba la probabilidad real (con 2000
+# apuestas resueltas). v1 la corrige y la mezcla con lo que dice el mercado:
+#   logit(p) = -0.24 + 0.33*logit(p_modelo) + 0.52*logit(1/cuota_mediana)
+import math as _m
+
+
+def _logit(p):
+    p = min(max(p, 0.02), 0.98)
+    return _m.log(p / (1 - p))
+
+
+def calibrar(p_modelo, cuotas):
+    """p_modelo: 0-1. cuotas: dict casa->cuota o lista de cuotas. Devuelve prob calibrada."""
+    try:
+        cs = sorted(float(c) for c in (cuotas.values() if hasattr(cuotas, "values") else cuotas) if c and float(c) > 1)
+        if not cs:
+            return p_modelo
+        med = cs[len(cs) // 2] if len(cs) % 2 else (cs[len(cs) // 2 - 1] + cs[len(cs) // 2]) / 2
+        z = -0.24 + 0.33 * _logit(p_modelo) + 0.52 * _logit(1 / med)
+        return round(1 / (1 + _m.exp(-z)), 4)
+    except Exception:
+        return p_modelo

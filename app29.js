@@ -26,15 +26,14 @@ var ES={sec:"sel",casa:""};
     fetch("errores.json?t="+Date.now()).then(function(r){return r.json()}).catch(function(){return {sel:{}}}).then(function(j){ER.data=j;ER.cargando=false;if(S.tab==="resultados")draw()});
   }
   function errStats(){
-    var h='<h2>Errores de cuota</h2><p class="upd">Estadísticas de los errores publicados en la pestaña Errores de cuota › Errores fuera radar, revisados a mano antes de publicarse. Aparte de las estadísticas de selecciones y de los Top 5. Se cuenta 1 unidad por error a la cuota elegida abajo.</p>';
+    var h='<h2>Errores de cuota</h2><p class="upd">Estadísticas de los errores publicados en la pestaña Errores de cuota › Errores fuera radar (selección automática; se cuentan solo desde el 21/11, cuando empezó la revisión actual). Aparte de las estadísticas de selecciones y de los Top 5. Se cuenta 1 unidad por error a la cuota elegida abajo.</p>';
     h+=chips(PERS,R.per,"rP");
     h+='<div class="upd">Cuota usada en el balance</div>'+chips(BASES,R.base,"rB");
     if(!ER.data){cargaE();return h+'<div class="empty">Cargando...</div>'}
     var CU=window.CUENTA;
     if(CU&&CU.ok&&!(CU.cur&&CU.cur.cargado)){CU.curCargar();return h+'<div class="empty">Cargando...</div>'}
-    var pub=(CU&&CU.cur&&CU.cur.ok)||{};
     var all=Object.keys(ER.data.sel||{}).map(function(k){var r=ER.data.sel[k];r._k=k;return r});
-    var base=all.filter(function(r){return pub[r._k]&&enPer(fmd(r))&&cuo(r)>0});
+    var base=all.filter(function(r){return window.efPub&&efPub(r)&&pubTs(r)>=window.DESDE_MANUAL&&enPer(fmd(r))&&cuo(r)>0});
     var casas={};base.forEach(function(r){casas[casaDe(r)]=1});
     var lc=[["","Todas"]].concat(Object.keys(casas).sort().map(function(c){return [c,c]}));
     if(ES.casa&&!casas[ES.casa])ES.casa="";

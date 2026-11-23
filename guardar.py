@@ -3,7 +3,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 MAD = ZoneInfo("Europe/Madrid")
-REGLA = "v0"
+REGLA = "v1"
 FH = "historial.json"
 FR = "radar-data.json"
 CAMPOS = ["tid", "hid", "aid", "lid", "pid", "num", "pos", "serie",
@@ -110,6 +110,7 @@ for c in radar["days"][-1]["candidatos"]:
             "condTxt": c.get("condTxt"),
             "prob": c["prob"],
             "prob0": c["prob"],
+            "prob_modelo": c.get("prob_modelo"),
             "primera": obs,
             "ultima": obs,
             "max": obs,

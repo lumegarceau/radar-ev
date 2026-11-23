@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from rcommon import api, gasto
+from rcommon import api, gasto, calibrar
 from rmodelo import historial, analizar, analizar_total, tot_vals, referencia
 import rvalue as rv
 import rwina as rw
@@ -328,7 +328,8 @@ for lid, (pais, liga) in LIGAS.items():
                 "cond": r["cond"],
                 "condTxt": cond_txt,
                 "rival": r.get("rival"),
-                "prob": r["prob"],
+                "prob": calibrar(r["prob"], q),
+                "prob_modelo": r["prob"],
                 "serie": serie,
                 "serieL": serie_l,
                 "serieV": serie_v,

@@ -41,6 +41,11 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
   }
   function adm(){return !!(window.CUENTA&&CUENTA.admin)}
   function cur(){return (window.CUENTA&&CUENTA.cur)||{ok:{},no:{}}}
+  // seleccion: manual (Firebase) + automatica (la decide el detector). Lo manual manda sobre lo automatico.
+  var DESDE_MANUAL=Date.parse("2026-11-21T00:30:00+01:00");
+  window.DESDE_MANUAL=DESDE_MANUAL;
+  window.efPub=function(r){var c=cur();if(c.no[r._k])return false;if(c.ok[r._k])return true;return !!(r.auto&&r.auto.ok)};
+  window.pubTs=function(r){var c=cur();if(c.ok[r._k])return c.ok[r._k];return (r.auto&&T(r.auto.t))||0};
   function curLista(){var C=window.CUENTA;return !C||!C.ok||(C.cur&&C.cur.cargado)}
   function cargarER(){
     if(ER.cargando)return;
@@ -52,9 +57,16 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
     var k=encodeURIComponent(r._k).replace(/'/g,"%27"),c=cur();
     function b(t,e,cl){return '<button type="button" class="'+cl+'" onclick="erM(decodeURIComponent(\''+k+'\'),\''+e+'\')">'+t+'</button>'}
     function hh(t){var d=new Date(t);return isNaN(d)?'':' '+('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
-    if(modo==="todos")return '<div class="erb">'+(c.ok[r._k]?'<span class="erp">Publicado'+hh(c.ok[r._k])+'</span>':c.no[r._k]?'<span class="erp no">Descartado'+hh(c.no[r._k])+'</span>':'')+b('✓ Es error','ok','y')+b('✗ Descartar','no','n')+'</div>';
-    if(modo==="pub")return '<div class="erb"><span class="erp">Publicado'+hh(c.ok[r._k])+'</span>'+b('Quitar y descartar','no','n')+'</div>';
-    if(modo==="desc")return '<div class="erb"><span class="erp no">Descartado'+hh(c.no[r._k])+'</span>'+b('✓ Publicar','ok','y')+'</div>';
+    function etq(){
+      if(c.ok[r._k])return '<span class="erp">Publicado'+hh(c.ok[r._k])+'</span>';
+      if(c.no[r._k])return '<span class="erp no">Descartado'+hh(c.no[r._k])+'</span>';
+      var a=r.auto;if(!a)return '';
+      var ev=a.ev!=null?' · EV '+(a.ev>=0?'+':'')+Math.round(a.ev*100)+'%':'';
+      return a.ok?'<span class="erp">Automático: publicado'+ev+'</span>':'<span class="erp no">Automático: descartado ('+esc(a.m||'')+ev+')</span>';
+    }
+    if(modo==="todos")return '<div class="erb">'+etq()+b('✓ Es error','ok','y')+b('✗ Descartar','no','n')+'</div>';
+    if(modo==="pub")return '<div class="erb">'+etq()+b('Quitar y descartar','no','n')+'</div>';
+    if(modo==="desc")return '<div class="erb">'+etq()+b('✓ Publicar','ok','y')+'</div>';
     return '';
   }
   function kn(s){var m=/^(\d+)\/(\d+)$/.exec(s||"");return m?[+m[1],+m[2]]:null}
@@ -190,7 +202,9 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
       var bor=Object.keys(c.no).filter(function(k){return !d[k]||T(d[k].inicio)<=now});
       if(bor.length)C.curBorrarNo(bor);
     }
-    var nd=Object.keys(c.no).filter(function(k){return d[k]&&T(d[k].inicio)>now});
+    Object.keys(d).forEach(function(k){d[k]._k=k});
+    var nd=Object.keys(d).filter(function(k){var r=d[k];if(T(r.inicio)<=now)return false;if(c.no[k])return true;if(c.ok[k])return false;return !!(r.auto&&!r.auto.ok&&r.activo)});
+    var pk=Object.keys(d).filter(function(k){return efPub(d[k])});
     if(ER.fs==="desc"&&!adm())ER.fs="pub";
     if(adm())h+='<div class="chips"><button class="'+(ER.fs==="pub"?"on":"")+'" onclick="erSS(\'pub\')">Publicados</button><button class="'+(ER.fs==="desc"?"on":"")+'" onclick="erSS(\'desc\')">Descartes ('+nd.length+')</button></div>';
     if(adm())h+='<div class="erf"><div><label>Reiniciar revisión</label><button type="button" class="n" style="display:block;width:100%;margin-top:3px;padding:9px;border-radius:8px;border:1px solid #e4b4b0;background:#fff;color:#b42318;font:inherit;font-weight:700" onclick="erReset()">Quitar publicados y descartados de partidos sin empezar</button></div></div>';
@@ -198,19 +212,19 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
     if(ER.fs==="desc"){
       h+='<p class="upd">Solo lo ves tú. Los descartados se borran solos cuando empieza el partido.</p>';
       h+='<div class="erf">'+selG("d","vent","Devolver a Publicados los descartados en",[["","Elige..."],["15","los últimos 15 minutos"],["60","la última hora"],["180","las últimas 3 horas"],["360","las últimas 6 horas"],["1440","las últimas 24 horas"]],"")+'</div>';
-      l=nd.map(function(k){var r=d[k];r._k=k;return r}).sort(function(a,b){return (c.no[b._k]||0)-(c.no[a._k]||0)});
+      l=nd.map(function(k){return d[k]}).sort(function(a,b){return (c.no[b._k]||T((b.auto||{}).t)||0)-(c.no[a._k]||T((a.auto||{}).t)||0)});
       h+='<div class="upd">'+l.length+' descartado'+(l.length===1?'':'s')+'</div>';
       return h+(l.length?l.map(function(r){return card(r,"desc")}).join(""):'<div class="empty">No hay descartes pendientes.</div>');
     }
-    h+='<p class="upd">Errores de cuota que el radar ha detectado y que se han revisado a mano antes de publicarse. Son los que cuentan en las estadísticas. Un error de cuota no garantiza ganar dinero: las casas pueden limitar la apuesta, anularla o corregir la cuota.</p>';
+    h+='<p class="upd">Errores de cuota que el radar ha detectado y que pasan un filtro automático: se descartan los que pagan claramente menos de lo que ocurre según los últimos partidos (EV por debajo de −30 %) y los de jugadores o equipos con menos de 10 partidos de titular. Son los que cuentan en las estadísticas. Un error de cuota no garantiza ganar dinero: las casas pueden limitar la apuesta, anularla o corregir la cuota.</p>';
     h+='<div class="erf">'+sel("fp","Mostrar",[["fut","Partido sin empezar (también corregidos)"],["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.fp)+'</div>';
     var casasP={};
-    Object.keys(c.ok).forEach(function(k){var r=d[k];if(r&&r.ultima)(r.ultima.casas||[]).forEach(function(b){casasP[b]=1})});
+    pk.forEach(function(k){var r=d[k];if(r&&r.ultima)(r.ultima.casas||[]).forEach(function(b){casasP[b]=1})});
     h+=formG("p",ER.p,Object.keys(casasP),ORD_P,false);
-    l=Object.keys(c.ok).filter(function(k){return d[k]}).map(function(k){var r=d[k];r._k=k;return r}).filter(function(r){
+    l=pk.map(function(k){return d[k]}).filter(function(r){
       return (ER.fp==="todo"||(ER.fp==="fut"?T(r.inicio)>now:(r.activo&&T(r.inicio)>now)))&&pasa(ER.p,r.ultima.casas||[],r.ultima.c,null,r.ultima.gap);
     });
-    if(ER.p.ord==="pub")l.sort(function(a,b){return (c.ok[b._k]||0)-(c.ok[a._k]||0)});
+    if(ER.p.ord==="pub")l.sort(function(a,b){return pubTs(b)-pubTs(a)});
     else ordenar(l,ER.p.ord,function(r){return r.ultima.c},null,function(r){return T(r.inicio)},function(r){return r.ultima.gap});
     h+='<div class="upd">'+l.length+' resultado'+(l.length===1?'':'s')+'</div>';
     return h+(l.length?l.slice(0,80).map(function(r){return card(r,"pub")}).join(""):'<div class="empty">Ahora mismo no hay ninguno publicado.</div>');
