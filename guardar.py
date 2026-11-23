@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 MAD = ZoneInfo("Europe/Madrid")
 REGLA = "v1"
+RESTR_EV = 0.15   # EV minimo en mercados/ligas restringidos
 FH = "historial.json"
 FR = "radar-data.json"
 CAMPOS = ["tid", "hid", "aid", "lid", "pid", "num", "pos", "serie",
@@ -132,6 +133,11 @@ for c in radar["days"][-1]["candidatos"]:
 ocultas = 0
 for k, r in sel.items():
     r.setdefault("dia", str(r["inicio"])[:10])
+    # Restriccion v1: faltas recibidas y Championship solo cuentan con EV >= 15 %
+    # (con la mejor cuota vista). Se recalcula mientras la ficha esta pendiente.
+    if r.get("regla") == "v1" and r["estado"] == "pendiente":
+        r["restr"] = bool((r.get("mercado") == "drawn" or r.get("liga") == "Championship")
+                          and r["prob"] * r["max"]["c"] - 1 < RESTR_EV)
     if k in vistas or r["estado"] != "pendiente":
         continue
     if ahora >= datetime.fromisoformat(r["inicio"]):

@@ -112,7 +112,7 @@ var RV={f:{ev:"",p:"",c:"",liga:"",mk:"",tipo:"",ver:""},t5:5,dn:10};
         R.cargando=true;
         fetch("historial.json?"+Date.now())
           .then(function(r){return r.json()})
-          .then(function(j){R.data=Object.values((j&&j.sel)||{})})
+          .then(function(j){R.data=Object.values((j&&j.sel)||{}).filter(function(r){return !r.restr})})
           .catch(function(){R.data=[]})
           .then(function(){if(S.tab==="resultados")draw()});
       }

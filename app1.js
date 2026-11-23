@@ -44,7 +44,7 @@ function jget(u){
 function load(){
   Promise.all([jget("historial.json"),jget("radar-data.json")]).then(function(v){
     var h=v[0],rd=v[1],list=[];
-    if(h&&h.sel){list=Object.values(h.sel).map(deHist)}
+    if(h&&h.sel){list=Object.values(h.sel).filter(function(r){return !r.restr}).map(deHist)}
     if(!list.length&&rd&&rd.days&&rd.days.length){
       var d=rd.days[rd.days.length-1];
       list=(d.candidatos||[]).map(function(c){
