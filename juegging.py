@@ -144,19 +144,28 @@ def main():
         return pg.inner_text("body")
 
     def cargar(pg, url, minimo=3000):
-        for _ in range(3):
+        for intento in range(2):
+            estado = None
             try:
-                pg.goto(url, timeout=60000, wait_until="domcontentloaded")
+                resp = pg.goto(url, timeout=60000, wait_until="domcontentloaded")
+                estado = resp.status if resp else None
             except Exception as e:
                 print("   goto falla:", repr(e)[:80])
                 continue
-            for _ in range(10):
+            for _ in range(8):
                 pg.wait_for_timeout(3500)
                 try:
                     if len(texto(pg)) > minimo:
                         return True
                 except Exception:
                     pass
+            try:
+                t = " ".join(texto(pg).split())
+                print("   DIAG intento", intento + 1, "| http", estado, "| url", pg.url[:90],
+                      "| titulo:", pg.title()[:70], "| chars:", len(t), "| texto:", t[:220])
+                print("   DIAG html:", " ".join(pg.content().split())[:300])
+            except Exception as e_d:
+                print("   DIAG fallo:", repr(e_d)[:80])
         return False
 
     JS_EV = """()=>Array.from(document.querySelectorAll('a[href*="/Sport/Evento/"]'))
@@ -179,9 +188,14 @@ def main():
         eventos = []
         origen = {}
         cerrados = set()  # competiciones ordenadas por fecha: al pasarnos de plazo, el resto tambien
+        fallos = 0
         for ruta in LISTADOS:
             if not cargar(pg, BASE + ruta, 1500):
                 print("   listado no carga:", ruta)
+                fallos += 1
+                if fallos >= 2:
+                    print("   abandono: la web no responde (se ahorra proxy)")
+                    break
                 continue
             try:
                 hs = pg.evaluate(JS_EV)
