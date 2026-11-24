@@ -31,6 +31,7 @@ LIGAS = {
     79: ("Alemania", "2. Bundesliga"),
     203: ("Turquía", "Süper Lig"),
     119: ("Dinamarca", "Superliga"),
+    128: ("Argentina", "Liga Argentina"),
 }
 SRIDS = set([
     "sr:tournament:8", "sr:tournament:54", "sr:tournament:17",
@@ -40,6 +41,7 @@ SRIDS = set([
     "sr:tournament:242",
     "sr:tournament:325", "sr:tournament:38", "sr:tournament:44",
     "sr:tournament:52", "sr:tournament:39",
+    "sr:tournament:155",
 ])
 NOM = {
     "corners": "córners",
@@ -186,6 +188,9 @@ con_wi = 0
 rango = {"from": fechas[0], "to": fechas[-1]}
 for lid, (pais, liga) in LIGAS.items():
     fx = api("/fixtures", league=lid, season=TEMP, **rango) or []
+    if lid == 128 and fx and fx[0]["league"].get("country") != "Argentina":
+        print("Liga Argentina: id 128 no es de Argentina, se ignora:", fx[0]["league"])
+        fx = []
     print(liga, len(fx), "partidos")
     for x in fx:
         if x["fixture"]["status"]["short"] != "NS":
