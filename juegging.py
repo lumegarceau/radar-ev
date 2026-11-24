@@ -28,6 +28,10 @@ PESTANAS = ["REMATES A PUERTA", "FALTAS", "PARADAS"]
 NUM = re.compile(r"^\d+[.,]\d+$")
 IGNORADOS = set()
 PESADO = ("image", "media", "font")
+STEALTH = ("Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
+           "Object.defineProperty(navigator,'languages',{get:()=>['es-ES','es']});"
+           "Object.defineProperty(navigator,'plugins',{get:()=>[1,2,3,4,5]});"
+           "window.chrome={runtime:{}};")
 
 
 def proxy():
@@ -180,10 +184,20 @@ def main():
     with sync_playwright() as pw:
         pr = proxy()
         print("   proxy:", "si" if pr else "no")
-        br = pw.chromium.launch(proxy=pr) if pr else pw.chromium.launch()
+        args = ["--disable-blink-features=AutomationControlled"]
+        br = pw.chromium.launch(proxy=pr, args=args) if pr else pw.chromium.launch(args=args)
         ctx = br.new_context(user_agent=UA, locale="es-ES", timezone_id="Europe/Madrid",
                              viewport={"width": 1366, "height": 4000})
+        ctx.add_init_script(STEALTH)
+        ctx.set_extra_http_headers({"Accept-Language": "es-ES,es;q=0.9"})
         pg = ctx.new_page()
+        # Akamai suele pedir una primera visita "normal" (con imagenes y cookies) antes de dejar pasar
+        try:
+            r0 = pg.goto(BASE + "/", timeout=60000, wait_until="load")
+            pg.wait_for_timeout(8000)
+            print("   portada: http", r0.status if r0 else None, "| titulo:", pg.title()[:60])
+        except Exception as e0:
+            print("   portada falla:", repr(e0)[:80])
         pg.route("**/*", lambda r: r.abort() if r.request.resource_type in PESADO else r.continue_())
         eventos = []
         origen = {}
