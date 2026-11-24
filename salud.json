@@ -1,14 +1,14 @@
 {
- "ts": 1795531579.1324303,
+ "ts": 1795541409.281845,
  "problemas": [],
  "estado": {
   "sportium": {
    "ceros": 0,
-   "max": 20
+   "max": 30
   },
   "marca": {
    "ceros": 0,
-   "max": 20
+   "max": 30
   },
   "betsson": {
    "ceros": 0,
