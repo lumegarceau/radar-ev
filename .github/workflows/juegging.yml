@@ -1,15 +1,8 @@
 name: Cuotas Juegging (Kirolbet)
 on:
   workflow_dispatch:
-  schedule:
-    # 45 min antes de cada pasada del radar
-    - cron: "15 22 * * *"
-    - cron: "15 5 * * *"
-    - cron: "15 8 * * *"
-    - cron: "15 12 * * *"
-    - cron: "15 15 * * *"
-    - cron: "15 18 * * *"
-    - cron: "15 20 * * *"
+  # PAUSADO (24/11): Akamai devuelve 403 a las IP de GitHub y del proxy.
+  # Para reactivar, restaurar el bloque schedule (cron 15 22, 5, 8, 12, 15, 18 y 20).
 permissions:
   contents: write
 concurrency:
