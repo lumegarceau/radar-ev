@@ -282,22 +282,50 @@ def main():
         pg.on("requestfinished", lambda rq: BYTES.__setitem__(0, BYTES[0] + ((rq.sizes().get("responseBodySize") or 0) if True else 0)))
         vistos = set()
         grupos = []
+        vacias = 0
         for cu in COMPETICIONES + [LISTADO]:
             bag.clear()
             nom_c = urllib.parse.unquote(cu).rstrip("/").split("/")[-2] if "/c-" in cu else "listado general"
+            estado = None
             try:
-                pg.goto(cu, timeout=60000, wait_until="domcontentloaded")
+                rp = pg.goto(cu, timeout=60000, wait_until="domcontentloaded")
+                estado = rp.status if rp else None
             except Exception as e_c:
                 print("betfair: competicion", nom_c, "falla:", repr(e_c)[:70])
                 continue
-            pg.wait_for_timeout(10000)
+            pg.wait_for_timeout(12000)
             urls = []
             for t in list(bag):
                 for u in re.findall(r'f%C3%BAtbol/[^"\\?]+/e-\d+', t):
                     if u not in urls and u not in vistos:
                         urls.append(u)
                         vistos.add(u)
-            print("betfair: competicion", nom_c, "->", len(urls), "partidos nuevos")
+            n_gql = len(urls)
+            # segunda via: enlaces a partidos que hay en la propia pagina
+            try:
+                hrefs = pg.evaluate("()=>Array.from(document.querySelectorAll('a[href*=\"/e-\"]')).map(a=>a.getAttribute('href'))")
+            except Exception:
+                hrefs = []
+            for h in hrefs:
+                m = re.search(r'f(?:%C3%BA|ú)tbol/[^"\\?#]+/e-\d+', h or "")
+                if m:
+                    u = m.group(0).replace("fútbol", "f%C3%BAtbol", 1)
+                    if u not in urls and u not in vistos:
+                        urls.append(u)
+                        vistos.add(u)
+            print("betfair: competicion", nom_c, "->", len(urls), "partidos nuevos",
+                  "| http", estado, "| gql", len(bag), "respuestas,", n_gql, "partidos | enlaces pagina", len(hrefs))
+            if not urls:
+                vacias += 1
+                try:
+                    print("     DIAG titulo:", pg.title()[:70], "| texto:", " ".join(pg.inner_text("body").split())[:160])
+                except Exception:
+                    pass
+                if vacias >= 3 and not grupos:
+                    print("betfair: 3 paginas seguidas sin partidos, se corta para no gastar proxy")
+                    break
+            else:
+                vacias = 0
             grupos.append(urls)
         ctx.close()
         leidos = 0
