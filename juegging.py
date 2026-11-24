@@ -1,8 +1,10 @@
 """Lee las cuotas de Juegging (mismas que Kirolbet) con Playwright y guarda
 juegging.json con el mismo formato que sportium.json / marca.json."""
 import json
+import os
 import re
 import time
+import urllib.parse
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -25,6 +27,20 @@ LISTADOS = ["/esp/Sport/Competicion/2881", "/esp/Sport/Competicion/3",
 PESTANAS = ["REMATES A PUERTA", "FALTAS", "PARADAS"]
 NUM = re.compile(r"^\d+[.,]\d+$")
 IGNORADOS = set()
+PESADO = ("image", "media", "font")
+
+
+def proxy():
+    """Proxy espanol (secreto PROXY_URL). Sin el, se intenta sin proxy como antes."""
+    raw = "".join(os.environ.get("PROXY_URL", "").split())
+    if not raw:
+        return None
+    if "://" not in raw:
+        raw = "http://" + raw
+    p = urllib.parse.urlparse(raw)
+    return {"server": "%s://%s:%s" % (p.scheme, p.hostname, p.port),
+            "username": urllib.parse.unquote(p.username or ""),
+            "password": urllib.parse.unquote(p.password or "")}
 
 
 def a_float(s):
@@ -153,10 +169,13 @@ def main():
     ahora = time.time()
     partidos = []
     with sync_playwright() as pw:
-        br = pw.chromium.launch()
+        pr = proxy()
+        print("   proxy:", "si" if pr else "no")
+        br = pw.chromium.launch(proxy=pr) if pr else pw.chromium.launch()
         ctx = br.new_context(user_agent=UA, locale="es-ES", timezone_id="Europe/Madrid",
                              viewport={"width": 1366, "height": 4000})
         pg = ctx.new_page()
+        pg.route("**/*", lambda r: r.abort() if r.request.resource_type in PESADO else r.continue_())
         eventos = []
         origen = {}
         cerrados = set()  # competiciones ordenadas por fecha: al pasarnos de plazo, el resto tambien
@@ -172,6 +191,12 @@ def main():
             for h in nuevos:
                 origen[h] = ruta
             print("   listado", ruta, "->", len(hs), "enlaces,", len(nuevos), "nuevos")
+            if not hs:
+                try:
+                    print("      DIAG titulo:", pg.title()[:80], "| texto:",
+                          " ".join(pg.inner_text("body").split())[:160])
+                except Exception as e_d:
+                    print("      DIAG fallo:", repr(e_d)[:80])
             eventos += nuevos
         print("   eventos candidatos:", len(eventos))
         vistos = 0
