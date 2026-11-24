@@ -34,6 +34,8 @@ jobs:
           timeout 120 playwright install-deps chromium || echo "dependencias del sistema: se sigue sin ellas"
       - name: Leer cuotas de Juegging
         run: python juegging.py
+        env:
+          PROXY_URL: ${{ secrets.PROXY_URL }}
       - name: Guardar datos
         if: always()
         run: |
