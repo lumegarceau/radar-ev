@@ -58,11 +58,16 @@ def items(j):
 
 
 hoy = datetime.now(ZoneInfo("Europe/Madrid")).date()
-fin = hoy + timedelta(days=3)
+fin = hoy + timedelta(days=8)
 rango = {"from": str(hoy), "to": str(fin)}
-j = api("fixtures", sportId=10,
-        tournamentId=8, **rango)
-fx = items(j)
+fx = []
+# 8 LaLiga, 17 Premier, 23 Serie A, 35 Bundesliga, 34 Ligue 1, 7 Champions, 679 Europa League
+for torneo in (8, 17, 23, 35, 34, 7, 679):
+    j = api("fixtures", sportId=10, tournamentId=torneo, **rango)
+    fx = items(j)
+    print("torneo", torneo, "->", len(fx), "partidos")
+    if fx:
+        break
 if not fx:
     print("Sin partidos")
     raise SystemExit
