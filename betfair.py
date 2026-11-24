@@ -2,6 +2,7 @@
 Sale betfair.json con el mismo formato que juegging.json / betsson.json."""
 import json
 import os
+import random
 import re
 import time
 import urllib.parse
@@ -273,61 +274,83 @@ def main():
     partidos = []
     with sync_playwright() as p:
         br = p.chromium.launch(proxy=pr)
-        ctx = br.new_context(user_agent=UA, locale="es-ES", timezone_id="Europe/Madrid",
-                             viewport={"width": 1366, "height": 2500})
-        pg = ctx.new_page()
-        pg.route("**/*", lambda r: r.abort() if r.request.resource_type in PESADO else r.continue_())
-        bag = []
-        pg.on("response", lambda r: bag.append(r.text()) if ("bff-gql" in r.url and "json" in (r.headers.get("content-type") or "")) else None)
-        pg.on("requestfinished", lambda rq: BYTES.__setitem__(0, BYTES[0] + ((rq.sizes().get("responseBodySize") or 0) if True else 0)))
         vistos = set()
         grupos = []
-        vacias = 0
-        for cu in COMPETICIONES + [LISTADO]:
-            bag.clear()
+        desafios = 0
+        diag_hecho = False
+        # el listado general primero (el que ya funcionaba), luego cada competicion
+        for n_pag, cu in enumerate([LISTADO] + COMPETICIONES):
             nom_c = urllib.parse.unquote(cu).rstrip("/").split("/")[-2] if "/c-" in cu else "listado general"
+            if n_pag:
+                time.sleep(random.uniform(15, 30))
+            # contexto nuevo por pagina: sin cookies ni huella de la anterior
+            ctx = br.new_context(user_agent=UA, locale="es-ES", timezone_id="Europe/Madrid",
+                                 viewport={"width": 1366, "height": 2500})
+            ctx.add_init_script(STEALTH)
+            pg = ctx.new_page()
+            pg.route("**/*", lambda r: r.abort() if r.request.resource_type in PESADO else r.continue_())
+            bag = []
+            pg.on("response", lambda r: bag.append(r.text()) if ("bff-gql" in r.url and "json" in (r.headers.get("content-type") or "")) else None)
+            pg.on("requestfinished", lambda rq: BYTES.__setitem__(0, BYTES[0] + ((rq.sizes().get("responseBodySize") or 0) if True else 0)))
             estado = None
             try:
                 rp = pg.goto(cu, timeout=60000, wait_until="domcontentloaded")
                 estado = rp.status if rp else None
+                # si sale la verificacion de seguridad, se le da tiempo a resolverse sola
+                for _ in range(6):
+                    if "un momento" not in pg.title().lower():
+                        break
+                    pg.wait_for_timeout(5000)
+                pg.wait_for_timeout(12000)
             except Exception as e_c:
                 print("betfair: competicion", nom_c, "falla:", repr(e_c)[:70])
+                ctx.close()
                 continue
-            pg.wait_for_timeout(12000)
+            reto = "un momento" in pg.title().lower()
             urls = []
             for t in list(bag):
-                for u in re.findall(r'f%C3%BAtbol/[^"\\?]+/e-\d+', t):
+                t = t.replace("\\/", "/")
+                for u in re.findall(r'f(?:%C3%BA|ú|\\u00fa)tbol/[^"\\?\s]+/e-\d+', t):
+                    u = u.replace("fútbol", "f%C3%BAtbol", 1).replace("f\\u00fatbol", "f%C3%BAtbol", 1)
                     if u not in urls and u not in vistos:
                         urls.append(u)
                         vistos.add(u)
             n_gql = len(urls)
-            # segunda via: enlaces a partidos que hay en la propia pagina
             try:
-                hrefs = pg.evaluate("()=>Array.from(document.querySelectorAll('a[href*=\"/e-\"]')).map(a=>a.getAttribute('href'))")
+                hrefs = pg.evaluate("()=>Array.from(document.querySelectorAll('a[href]')).map(a=>a.getAttribute('href'))")
             except Exception:
                 hrefs = []
+            n_e = 0
             for h in hrefs:
                 m = re.search(r'f(?:%C3%BA|ú)tbol/[^"\\?#]+/e-\d+', h or "")
                 if m:
+                    n_e += 1
                     u = m.group(0).replace("fútbol", "f%C3%BAtbol", 1)
                     if u not in urls and u not in vistos:
                         urls.append(u)
                         vistos.add(u)
             print("betfair: competicion", nom_c, "->", len(urls), "partidos nuevos",
-                  "| http", estado, "| gql", len(bag), "respuestas,", n_gql, "partidos | enlaces pagina", len(hrefs))
-            if not urls:
-                vacias += 1
+                  "| http", estado, "| reto" if reto else "| ok", "| gql", len(bag), "resp,", n_gql, "partidos | enlaces", len(hrefs), "(a partidos:", n_e, ")")
+            if not urls and not reto and not diag_hecho:
+                diag_hecho = True
                 try:
-                    print("     DIAG titulo:", pg.title()[:70], "| texto:", " ".join(pg.inner_text("body").split())[:160])
-                except Exception:
-                    pass
-                if vacias >= 3 and not grupos:
-                    print("betfair: 3 paginas seguidas sin partidos, se corta para no gastar proxy")
+                    for t in bag[:6]:
+                        ms = [m.start() for m in re.finditer(r"e-\d{6,}", t)][:2]
+                        print("     DIAG gql", len(t), "bytes | claves:", re.findall(r'"([A-Za-z_]{3,20})":', t)[:25],
+                              "| contexto e-ID:", [t[max(0, k - 70):k + 20] for k in ms])
+                    print("     DIAG enlaces de ejemplo:", [h for h in hrefs if h and ("tbol" in h or "/e-" in h)][:8])
+                    print("     DIAG texto:", " ".join(pg.inner_text("body").split())[300:700])
+                except Exception as e_dg:
+                    print("     DIAG fallo:", repr(e_dg)[:80])
+            ctx.close()
+            if reto:
+                desafios += 1
+                if desafios >= 2:
+                    print("betfair: 2 verificaciones de seguridad seguidas, se corta para no gastar proxy")
                     break
             else:
-                vacias = 0
+                desafios = 0
             grupos.append(urls)
-        ctx.close()
         leidos = 0
         for urls in grupos:
             lejos = 0
