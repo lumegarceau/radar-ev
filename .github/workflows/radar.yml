@@ -55,6 +55,12 @@ jobs:
       - name: Guardar historial
         run: python guardar.py
         continue-on-error: true
+      - name: Vigilancia (avisos si algo va mal)
+        run: python salud.py
+        continue-on-error: true
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT: ${{ secrets.TELEGRAM_CHAT }}
       - name: Avisar de errores de cuota
         run: python notificar.py
         continue-on-error: true
