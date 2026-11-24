@@ -19,7 +19,7 @@ FUENTES = [
     ("marca", "Marca Apuestas", 14, 3),
     ("betsson", "Betsson", 14, 3),
     ("betway", "Betway", 14, 3),
-    ("juegging", "Juegging/Kirolbet", 14, 3),
+    # juegging.json: en pausa desde 24/11 (Akamai bloquea con 403), no se vigila
     ("eldorado", "Eldorado", 30, 3),
     # betfair.json: en pausa desde 24/11, no se vigila
 ]
