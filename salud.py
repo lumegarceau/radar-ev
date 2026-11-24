@@ -21,7 +21,7 @@ FUENTES = [
     ("betway", "Betway", 14, 3),
     # juegging.json: en pausa desde 24/11 (Akamai bloquea con 403), no se vigila
     ("eldorado", "Eldorado", 30, 3),
-    # betfair.json: en pausa desde 24/11, no se vigila
+    ("betfair", "Betfair", 20, 3),
 ]
 RADAR_MAX_H = 10
 REPETIR_H = 24

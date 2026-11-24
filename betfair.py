@@ -13,11 +13,21 @@ from playwright.sync_api import sync_playwright
 ARCH = "betfair.json"
 LISTADO = "https://www.betfair.es/apuestas/f%C3%BAtbol/s-1"
 BASE = "https://www.betfair.es/apuestas/"
+_F = BASE + "f%C3%BAtbol/"
+# Paginas de cada competicion (en orden de prioridad). El listado general se lee al final.
+COMPETICIONES = [_F + x for x in (
+    "uefa-champions-league/c-228", "uefa-europa-league/c-2005", "la-liga-espa%C3%B1ola/c-117",
+    "espa%C3%B1a-segunda-divisi%C3%B3n/c-12204313", "premier-league-inglesa/c-10932509",
+    "inglaterra-sky-bet-championship/c-7129730", "serie-a-italiana/c-81",
+    "bundesliga-alemana/c-59", "ligue-1-francesa/c-55", "portugal-primeira-liga/c-99",
+    "eredivisie-holandesa/c-9404054", "b%C3%A9lgica-pro-league/c-89979",
+    "superliga-turca/c-194215", "dinamarca-superliga/c-23", "serie-a-brasil/c-13",
+    "argentina-primera-divisi%C3%B3n/c-67387", "liga-a-de-naciones-de-la-uefa/c-12209069")]
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 MAD = ZoneInfo("Europe/Madrid")
 HORAS = 40
-MAX_EVENTOS = 30
+MAX_EVENTOS = 60
 LIMITE_S = 25 * 60
 PESADO = ("image", "media", "font")
 STEALTH = ("Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
@@ -270,44 +280,61 @@ def main():
         bag = []
         pg.on("response", lambda r: bag.append(r.text()) if ("bff-gql" in r.url and "json" in (r.headers.get("content-type") or "")) else None)
         pg.on("requestfinished", lambda rq: BYTES.__setitem__(0, BYTES[0] + ((rq.sizes().get("responseBodySize") or 0) if True else 0)))
-        pg.goto(LISTADO, timeout=60000, wait_until="domcontentloaded")
-        pg.wait_for_timeout(15000)
-        urls = []
-        for t in bag:
-            for u in re.findall(r'f%C3%BAtbol/[^"\\?]+/e-\d+', t):
-                if u not in urls:
-                    urls.append(u)
+        vistos = set()
+        grupos = []
+        for cu in COMPETICIONES + [LISTADO]:
+            bag.clear()
+            nom_c = urllib.parse.unquote(cu).rstrip("/").split("/")[-2] if "/c-" in cu else "listado general"
+            try:
+                pg.goto(cu, timeout=60000, wait_until="domcontentloaded")
+            except Exception as e_c:
+                print("betfair: competicion", nom_c, "falla:", repr(e_c)[:70])
+                continue
+            pg.wait_for_timeout(10000)
+            urls = []
+            for t in list(bag):
+                for u in re.findall(r'f%C3%BAtbol/[^"\\?]+/e-\d+', t):
+                    if u not in urls and u not in vistos:
+                        urls.append(u)
+                        vistos.add(u)
+            print("betfair: competicion", nom_c, "->", len(urls), "partidos nuevos")
+            grupos.append(urls)
         ctx.close()
-        print("betfair: partidos en el listado:", len(urls))
-        for u in urls[:MAX_EVENTOS]:
-            if time.time() - T0 > LIMITE_S:
-                print("betfair: limite de tiempo, se corta")
-                break
-            res, err = leer_partido(br, u)
-            if not res and "respuestas 0" in str(err):
+        leidos = 0
+        for urls in grupos:
+            lejos = 0
+            for u in urls:
+                if leidos >= MAX_EVENTOS or time.time() - T0 > LIMITE_S:
+                    break
+                leidos += 1
                 res, err = leer_partido(br, u)
-            nombre = urllib.parse.unquote(u).split("/")[-2]
-            if not res:
-                print("  ", nombre, "-> falla:", err)
-                continue
-            titulo, cuerpo, jug = res
-            t = titulo.replace("Apuestas", "", 1).split("»")[0].strip()
-            eq = [x.strip() for x in t.split(" - ")] if " - " in t else []
-            if len(eq) != 2:
-                print("  ", nombre, "-> no saco los equipos de:", titulo[:60])
-                continue
-            ini = inicio_de(cuerpo, eq[0] + " - " + eq[1])
-            if not ini:
-                k = cuerpo.find(eq[0] + " - " + eq[1])
-                print("      no saco la hora de:", cuerpo[max(0, k):max(0, k) + 160])
-            print("  ", t, "| cuotas de jugador:", len(jug), "| inicio:",
-                  datetime.fromtimestamp(ini, MAD).strftime("%d/%m %H:%M") if ini else None)
-            if not ini or not jug:
-                continue
-            if ini - time.time() > HORAS * 3600:
-                continue
-            partidos.append({"inicio": ini, "c1": eq[0], "c2": eq[1], "equipo": [], "total": [],
-                             "jugador": [[k[0], k[1], k[2], c] for k, c in sorted(jug.items())]})
+                if not res and "respuestas 0" in str(err):
+                    res, err = leer_partido(br, u)
+                nombre = urllib.parse.unquote(u).split("/")[-2]
+                if not res:
+                    print("  ", nombre, "-> falla:", err)
+                    continue
+                titulo, cuerpo, jug = res
+                t = titulo.replace("Apuestas", "", 1).split("»")[0].strip()
+                eq = [x.strip() for x in t.split(" - ")] if " - " in t else []
+                if len(eq) != 2:
+                    print("  ", nombre, "-> no saco los equipos de:", titulo[:60])
+                    continue
+                ini = inicio_de(cuerpo, eq[0] + " - " + eq[1])
+                if not ini:
+                    k = cuerpo.find(eq[0] + " - " + eq[1])
+                    print("      no saco la hora de:", cuerpo[max(0, k):max(0, k) + 160])
+                print("  ", t, "| cuotas de jugador:", len(jug), "| inicio:",
+                      datetime.fromtimestamp(ini, MAD).strftime("%d/%m %H:%M") if ini else None)
+                if not ini or not jug:
+                    continue
+                if ini - time.time() > HORAS * 3600:
+                    lejos += 1
+                    if lejos >= 2:
+                        break   # los siguientes de esta competicion son aun mas lejanos
+                    continue
+                partidos.append({"inicio": ini, "c1": eq[0], "c2": eq[1], "equipo": [], "total": [],
+                                 "jugador": [[k[0], k[1], k[2], c] for k, c in sorted(jug.items())]})
         br.close()
     if partidos:
         json.dump({"ts": time.time(), "partidos": partidos}, open(ARCH, "w", encoding="utf-8"), ensure_ascii=False)
