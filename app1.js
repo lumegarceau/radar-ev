@@ -42,7 +42,7 @@ function jget(u){
   return fetch(u+"?"+Date.now()).then(function(r){return r.json()}).catch(function(){return null});
 }
 function load(){
-  Promise.all([jget("historial.json"),jget("radar-data.json")]).then(function(v){
+  Promise.all([jget("historial.json"),jget("radar-data.json"),jget("salud.json")]).then(function(v){
     var h=v[0],rd=v[1],list=[];
     if(h&&h.sel){list=Object.values(h.sel).filter(function(r){return !r.restr}).map(deHist)}
     if(!list.length&&rd&&rd.days&&rd.days.length){
@@ -54,6 +54,7 @@ function load(){
     list=list.filter(function(c){return c&&c.prob&&c.cuotas&&c.cuotas.length&&c.vigente});
     if(list.length)S.demo=false;
     if(rd&&rd.updated_at)document.getElementById("upd").textContent="Última actualización: "+rd.updated_at.slice(11,16);
+    try{var sa=v[2];if(sa&&sa.problemas&&sa.problemas.length){var u=document.getElementById("upd");u.textContent+=" · ⚠ "+sa.problemas.length+" aviso"+(sa.problemas.length>1?"s":"")+": "+sa.problemas.map(function(x){return x.split(":")[0]}).join(", ")}}catch(e){}
     if(!list.length){
       list=DEMO.map(function(c){return Object.assign({},c,{dia:hoyS(),hm:c.hora,estado:"pendiente"})});
     }
