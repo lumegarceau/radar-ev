@@ -1,0 +1,42 @@
+name: Cuotas Betinia
+on:
+  workflow_dispatch:
+  schedule:
+    # 10:30, 14:30 y 19:30 de Madrid, 30 min antes de una pasada del radar
+    - cron: "30 8 * * *"
+    - cron: "30 12 * * *"
+    - cron: "30 17 * * *"
+permissions:
+  contents: write
+concurrency:
+  group: betinia
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Leer cuotas de Betinia
+        run: python betinia.py
+        env:
+          PROXY_URL: ${{ secrets.PROXY_URL }}
+      - name: Guardar datos
+        if: always()
+        run: |
+          git config user.name "radar-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add betinia.json || true
+          git commit -m "betinia" || echo "sin cambios"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs && git push && exit 0
+            git rebase --abort || true
+            sleep 5
+          done
+          exit 1
