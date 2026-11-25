@@ -175,7 +175,8 @@ ESP = [("Sportium", rbway.cargar("sportium.json")),
        ("Betsson", rbway.cargar("betsson.json", 5)),
        ("Betfair", BETFAIR),
        ("PokerStars", BETFAIR),
-       ("Eldorado", rbway.cargar("eldorado.json", 5))]  # PokerStars = misma plataforma y cuotas que Betfair
+       ("Eldorado", rbway.cargar("eldorado.json", 5)),  # PokerStars = misma plataforma y cuotas que Betfair
+       ("Betinia", rbway.cargar("betinia.json", 8))]
 print("sportium:", len(ESP[0][1]), "partidos | marca:", len(ESP[1][1]),
       "partidos | kirolbet:", len(ESP[2][1]), "partidos | betsson:",
       len(ESP[3][1]), "partidos | betfair:", len(ESP[4][1]), "partidos | eldorado:", len(ESP[6][1]), "partidos")

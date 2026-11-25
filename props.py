@@ -145,7 +145,8 @@ ESP = [("Sportium", rbway.cargar("sportium.json")),
        ("Betsson", rbway.cargar("betsson.json", 5)),
        ("Betfair", BETFAIR),
        ("PokerStars", BETFAIR),
-       ("Eldorado", rbway.cargar("eldorado.json", 5))]  # PokerStars = misma plataforma y cuotas que Betfair
+       ("Eldorado", rbway.cargar("eldorado.json", 5)),  # PokerStars = misma plataforma y cuotas que Betfair
+       ("Betinia", rbway.cargar("betinia.json", 8))]
 print("sportium:", len(ESP[0][1]), "partidos | marca:", len(ESP[1][1]),
       "partidos | kirolbet:", len(ESP[2][1]), "partidos | betsson:",
       len(ESP[3][1]), "partidos | betfair:", len(ESP[4][1]), "partidos | eldorado:", len(ESP[6][1]), "partidos")
@@ -458,7 +459,7 @@ print("peticiones API-Football:", gasto[0])
 bwn = [c for c in nuevos if any(q["b"] == "Betway" for q in c["cuotas"])]
 mej = [c for c in bwn if max(c["cuotas"], key=lambda q: q["c"])["b"] == "Betway"]
 print("props con cuota de Betway:", len(bwn), "| Betway mejor cuota:", len(mej))
-for casa_es in ("Sportium", "Marcaapuestas", "Kirolbet", "Betsson", "Betfair", "PokerStars", "Eldorado"):
+for casa_es in ("Sportium", "Marcaapuestas", "Kirolbet", "Betsson", "Betfair", "PokerStars", "Eldorado", "Betinia"):
     ces = [c for c in nuevos if any(q["b"] == casa_es for q in c["cuotas"])]
     mes = [c for c in ces if max(c["cuotas"], key=lambda q: q["c"])["b"] == casa_es]
     print("props con cuota de", casa_es + ":", len(ces), "| mejor cuota:", len(mes))

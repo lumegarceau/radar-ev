@@ -21,6 +21,7 @@ FUENTES = [
     ("betway", "Betway", 14, 3),
     # juegging.json: en pausa desde 24/11 (Akamai bloquea con 403), no se vigila
     ("eldorado", "Eldorado", 30, 3),
+    ("betinia", "Betinia", 20, 3),
     ("betfair", "Betfair", 20, 3),
 ]
 RADAR_MAX_H = 10
@@ -60,6 +61,8 @@ def main():
     problemas = {}   # clave -> texto
 
     for f, nom, max_h, max_ceros in FUENTES:
+        if not os.path.exists(f + ".json"):
+            continue   # casa nueva que aun no ha generado su primer archivo
         d = leer(f + ".json")
         st = prev.get(f, {"ceros": 0, "max": 0})
         if not d or not isinstance(d.get("partidos"), list):
