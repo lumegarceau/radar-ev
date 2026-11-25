@@ -1,3 +1,5 @@
+var SOLO_V1=!/[?&]v0=1/.test(location.search);
+function esV1(r){return !SOLO_V1||(r.regla||"v0")==="v1"}
 var S={tab:"radar",data:[],demo:true,minEv:"",minP:"",minC:"",ord:"prob",dia:null,open:{},keys:[]};
 function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function f2(n){return n.toLocaleString("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2})}
@@ -44,7 +46,7 @@ function jget(u){
 function load(){
   Promise.all([jget("historial.json"),jget("radar-data.json"),jget("salud.json")]).then(function(v){
     var h=v[0],rd=v[1],list=[];
-    if(h&&h.sel){list=Object.values(h.sel).filter(function(r){return !r.restr}).map(deHist)}
+    if(h&&h.sel){list=Object.values(h.sel).filter(function(r){return !r.restr&&esV1(r)}).map(deHist)}
     if(!list.length&&rd&&rd.days&&rd.days.length){
       var d=rd.days[rd.days.length-1];
       list=(d.candidatos||[]).map(function(c){

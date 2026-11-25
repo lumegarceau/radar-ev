@@ -112,7 +112,7 @@ var RV={f:{ev:"",p:"",c:"",liga:"",mk:"",tipo:"",ver:""},t5:5,dn:10};
         R.cargando=true;
         fetch("historial.json?"+Date.now())
           .then(function(r){return r.json()})
-          .then(function(j){R.data=Object.values((j&&j.sel)||{}).filter(function(r){return !r.restr})})
+          .then(function(j){R.data=Object.values((j&&j.sel)||{}).filter(function(r){return !r.restr&&esV1(r)})})
           .catch(function(){R.data=[]})
           .then(function(){if(S.tab==="resultados")draw()});
       }
@@ -133,6 +133,7 @@ var RV={f:{ev:"",p:"",c:"",liga:"",mk:"",tipo:"",ver:""},t5:5,dn:10};
     if(vs.length>1)h+=selH("ver","Versión de la regla",[["","Todas"]].concat(vs.map(function(x){return [x,x]})));
     h+='</div>';
     if(hayF())h+='<div class="chips"><button onclick="r24x()">Quitar filtros</button></div>';
+    h+='<div class="upd">Solo se mide la regla v1 (desde el 23/11). Lo anterior (v0) está guardado aparte y no cuenta.</div>';
     h+='<div class="upd">Los filtros cambian el resumen, ligas, valor, errores de cuota y días. Se cuentan las líneas publicadas en los partidos (la más cercana a 1,83) y las que salieron en los Top 5.</div>';
     var A=acc();
     L.forEach(function(r){suma(A,r)});

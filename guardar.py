@@ -1,9 +1,11 @@
 import json
+from rcommon import calibrar
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 MAD = ZoneInfo("Europe/Madrid")
 REGLA = "v1"
+V1_DESDE = "2026-11-23T15:40"   # primera pasada con la regla v1
 RESTR_EV = 0.15   # EV minimo en mercados/ligas restringidos
 FH = "historial.json"
 FR = "radar-data.json"
@@ -69,6 +71,7 @@ ahora = datetime.now(MAD)
 ts = ahora.isoformat(timespec="minutes")
 nuevas = 0
 act = 0
+recalif = 0
 vistas = set()
 for c in radar["days"][-1]["candidatos"]:
     ini = inicio_de(c.get("hora", ""), ahora)
@@ -125,6 +128,13 @@ for c in radar["days"][-1]["candidatos"]:
     if r["estado"] != "pendiente":
         continue
     r.update(extra)
+    if r.get("regla") != "v1":
+        # estaba medida con v0 y sigue pendiente de jugarse: se recalifica con v1
+        r["regla_orig"] = r.get("regla", "v0")
+        r["prob_v0"] = r.get("prob")
+        r["prob0"] = c["prob"]
+        r["regla"] = REGLA
+        recalif += 1
     r["prob"] = c["prob"]
     r["ultima"] = obs
     if cu > r["max"]["c"]:
@@ -133,6 +143,18 @@ for c in radar["days"][-1]["candidatos"]:
 ocultas = 0
 for k, r in sel.items():
     r.setdefault("dia", str(r["inicio"])[:10])
+    # pendiente de jugarse, medida con v0 y que ya no aparece como candidata: se recalifica con v1
+    if (r.get("regla", "v0") != "v1" and r["estado"] == "pendiente" and k not in vistas
+            and ahora < datetime.fromisoformat(r["inicio"])):
+        qs_r = [o.get("c") for o in r.get("cuotas", []) if o.get("c")]
+        r["regla_orig"] = r.get("regla", "v0")
+        r["prob_v0"] = r["prob"]
+        # si se actualizo despues de estrenar v1 (23/11 15:46) su probabilidad ya viene calibrada
+        if qs_r and str(r["ultima"].get("t", "")) < V1_DESDE:
+            r["prob"] = calibrar(r["prob"], qs_r)
+        r["prob0"] = r["prob"]
+        r["regla"] = REGLA
+        recalif += 1
     # Restriccion v1: faltas recibidas y Championship solo cuentan con EV >= 15 %
     # (con la mejor cuota vista). Se recalcula mientras la ficha esta pendiente.
     if r.get("regla") == "v1" and r["estado"] == "pendiente":
@@ -173,6 +195,7 @@ json.dump(H, open(FH, "w"), ensure_ascii=False)
 print("pasada de props completa:", props_ok)
 print("selecciones nuevas:", nuevas, "| actualizadas:", act)
 print("ocultas por dejar de cumplir:", ocultas)
+print("recalificadas de v0 a v1 (pendientes de jugarse):", recalif)
 print("quitadas por cuota mal leida:", quitadas)
 print("limpiadas por Kirolbet mal leido:", limpiadas)
 print("regla vigente:", REGLA, "| fichas antiguas etiquetadas v0:", sin_regla)
