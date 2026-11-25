@@ -1,18 +1,20 @@
 {
- "ts": 1795602583.4160967,
- "problemas": [],
+ "ts": 1795618828.3570879,
+ "problemas": [
+  "Betfair: sin actualizarse desde hace 23 h."
+ ],
  "estado": {
   "sportium": {
    "ceros": 0,
-   "max": 25
+   "max": 35
   },
   "marca": {
    "ceros": 0,
-   "max": 24
+   "max": 32
   },
   "betsson": {
    "ceros": 0,
-   "max": 18
+   "max": 16
   },
   "betway": {
    "ceros": 0,
@@ -20,12 +22,18 @@
   },
   "eldorado": {
    "ceros": 0,
-   "max": 102
+   "max": 95
+  },
+  "betinia": {
+   "ceros": 0,
+   "max": 33
   },
   "betfair": {
    "ceros": 0,
    "max": 2
   }
  },
- "avisados": {}
+ "avisados": {
+  "betfair": 1795618828.3570879
+ }
 }
