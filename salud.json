@@ -1,22 +1,22 @@
 {
- "ts": 1795591729.1432393,
+ "ts": 1795602583.4160967,
  "problemas": [],
  "estado": {
   "sportium": {
    "ceros": 0,
-   "max": 28
+   "max": 25
   },
   "marca": {
    "ceros": 0,
-   "max": 27
+   "max": 24
   },
   "betsson": {
    "ceros": 0,
-   "max": 21
+   "max": 18
   },
   "betway": {
    "ceros": 0,
-   "max": 113
+   "max": 102
   },
   "eldorado": {
    "ceros": 0,
