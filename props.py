@@ -35,7 +35,16 @@ LIGAS = {
     203: ("Turquía", "Süper Lig"),
     119: ("Dinamarca", "Superliga"),
     128: ("Argentina", "Liga Argentina"),
+    13: ("Sudamérica", "Copa Libertadores"),
+    307: ("Arabia Saudí", "Saudi Pro League"),
+    179: ("Escocia", "Scottish Premiership"),
+    207: ("Suiza", "Super League Suiza"),
+    218: ("Austria", "Bundesliga Austria"),
+    262: ("México", "Liga MX"),
+    197: ("Grecia", "Super League Grecia"),
 }
+PAIS_API = {128: "Argentina", 307: "Saudi-Arabia", 179: "Scotland", 207: "Switzerland",
+            218: "Austria", 262: "Mexico", 197: "Greece", 13: "World"}
 SRIDS = set([
     "sr:tournament:8", "sr:tournament:54", "sr:tournament:17",
     "sr:tournament:18", "sr:tournament:23", "sr:tournament:34",
@@ -45,6 +54,9 @@ SRIDS = set([
     "sr:tournament:325", "sr:tournament:38", "sr:tournament:44",
     "sr:tournament:52", "sr:tournament:39",
     "sr:tournament:155",
+    "sr:tournament:384", "sr:tournament:955", "sr:tournament:36",
+    "sr:tournament:215", "sr:tournament:45", "sr:tournament:27464",
+    "sr:tournament:185",
 ])
 NOM = {
     "shots": "remates",
@@ -161,8 +173,8 @@ n_inj = 0
 omit_baja = 0
 for lid, (pais, liga) in LIGAS.items():
     fx = api("/fixtures", league=lid, season=TEMP, **rango) or []
-    if lid == 128 and fx and fx[0]["league"].get("country") != "Argentina":
-        print("Liga Argentina: id 128 no es de Argentina, se ignora:", fx[0]["league"])
+    if lid in PAIS_API and fx and fx[0]["league"].get("country") != PAIS_API[lid]:
+        print(liga + ": id", lid, "no es de", PAIS_API[lid], ", se ignora:", fx[0]["league"])
         fx = []
     for x in fx:
         if x["fixture"]["status"]["short"] != "NS":
