@@ -1,20 +1,21 @@
 {
- "ts": 1795738767.9287217,
+ "ts": 1795777150.2090065,
  "problemas": [
-  "Betfair: sin actualizarse desde hace 56 h."
+  "Betfair: sin actualizarse desde hace 67 h.",
+  "Props de jugador: la ultima pasada no ha leido cuotas de Winamax."
  ],
  "estado": {
   "sportium": {
    "ceros": 0,
-   "max": 34
+   "max": 31
   },
   "marca": {
    "ceros": 0,
-   "max": 31
+   "max": 29
   },
   "betsson": {
    "ceros": 0,
-   "max": 23
+   "max": 31
   },
   "betway": {
    "ceros": 0,
@@ -26,7 +27,7 @@
   },
   "betinia": {
    "ceros": 0,
-   "max": 20
+   "max": 41
   },
   "betfair": {
    "ceros": 0,
@@ -34,6 +35,7 @@
   }
  },
  "avisados": {
-  "betfair": 1795705474.2195444
+  "betfair": 1795705474.2195444,
+  "props": 1795777150.2090065
  }
 }
