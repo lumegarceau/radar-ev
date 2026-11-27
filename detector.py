@@ -77,7 +77,7 @@ def _suficiente(h):
         return False
 
 
-AUTO_EV_MIN = -0.30   # se descarta si lo que paga la cuota esta mas de un 30 % por debajo de la probabilidad historica
+AUTO_EV_MIN = 0.0   # solo se publican los de EV positivo; si la cuota paga menos de lo que ocurre (EV < 0) se descarta
 
 
 def _ok_error(x):
@@ -174,6 +174,18 @@ def guardar(tipos):
         r["serie"] = r["serie"][-MAX_SERIE:]
         if "auto" not in r and _ok_error(snap):
             r["auto"] = _decidir(r, snap, t)
+    # Criterio nuevo (EV >= 0): se reevaluan los ya publicados de partidos sin empezar.
+    # Los de partidos ya jugados no se tocan.
+    try:
+        _ahora = datetime.now(ZoneInfo("Europe/Madrid"))
+        for r in sel.values():
+            a = r.get("auto")
+            if (a and a.get("ok") and a.get("ev") is not None and a["ev"] < AUTO_EV_MIN
+                    and datetime.fromisoformat(r["inicio"]) > _ahora):
+                a["ok"] = False
+                a["m"] = "sin valor: paga menos de lo que ocurre"
+    except Exception as e:
+        print("detector: reevaluacion fallo", repr(e)[:80])
     cerrados = 0
     try:
         from rcommon import agotado as _agotado

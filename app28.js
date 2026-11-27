@@ -216,7 +216,7 @@ var ER={sub:"sel",data:null,cargando:false,f:{mk:"",casa:"",solo:"act",ord:"gap"
       h+='<div class="upd">'+l.length+' descartado'+(l.length===1?'':'s')+'</div>';
       return h+(l.length?l.map(function(r){return card(r,"desc")}).join(""):'<div class="empty">No hay descartes pendientes.</div>');
     }
-    h+='<p class="upd">Errores de cuota que el radar ha detectado y que pasan un filtro automático: se descartan los que pagan claramente menos de lo que ocurre según los últimos partidos (EV por debajo de −30 %) y los de jugadores o equipos con menos de 10 partidos de titular. Son los que cuentan en las estadísticas. Un error de cuota no garantiza ganar dinero: las casas pueden limitar la apuesta, anularla o corregir la cuota.</p>';
+    h+='<p class="upd">Errores de cuota que el radar ha detectado y que pasan un filtro automático: se descartan los que pagan claramente menos de lo que ocurre según los últimos partidos (solo se publican los de EV positivo; si el EV es negativo se descartan) y los de jugadores o equipos con menos de 10 partidos de titular. Son los que cuentan en las estadísticas. Un error de cuota no garantiza ganar dinero: las casas pueden limitar la apuesta, anularla o corregir la cuota.</p>';
     h+='<div class="erf">'+sel("fp","Mostrar",[["fut","Partido sin empezar (también corregidos)"],["act","Apostables ahora"],["todo","Todos (también pasados)"]],ER.fp)+'</div>';
     var casasP={};
     pk.forEach(function(k){var r=d[k];if(r&&r.ultima)(r.ultima.casas||[]).forEach(function(b){casasP[b]=1})});
