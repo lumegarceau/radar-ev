@@ -1,16 +1,16 @@
 {
- "ts": 1795731615.6299171,
+ "ts": 1795738767.9287217,
  "problemas": [
-  "Betfair: sin actualizarse desde hace 54 h."
+  "Betfair: sin actualizarse desde hace 56 h."
  ],
  "estado": {
   "sportium": {
    "ceros": 0,
-   "max": 35
+   "max": 34
   },
   "marca": {
    "ceros": 0,
-   "max": 35
+   "max": 31
   },
   "betsson": {
    "ceros": 0,
@@ -26,7 +26,7 @@
   },
   "betinia": {
    "ceros": 0,
-   "max": 22
+   "max": 20
   },
   "betfair": {
    "ceros": 0,
