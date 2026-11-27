@@ -144,7 +144,7 @@ TRAD = {
 
 
 def norm(s):
-    s = unicodedata.normalize("NFD", s.lower())
+    s = unicodedata.normalize("NFD", str(s or "").lower())
     s = "".join(c for c in s if c.isalnum() or c == " ")
     r = " ".join(w for w in s.split() if w not in STOP)
     return TRAD.get(r, r)

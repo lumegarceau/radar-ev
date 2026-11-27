@@ -300,6 +300,8 @@ def partidos(srids, desde, hasta):
             continue
         meta = (dd.get("matches") or {}).get(str(mid)) or m
         r = parsear(mid, meta, dd)
+        if not r.get("c1") or not r.get("c2"):
+            continue   # apuestas a largo plazo (ej. "Copa Libertadores 2026"): no son un partido
         desc += r.get("descartes", 0)
         out.append(r)
     cerrar()
